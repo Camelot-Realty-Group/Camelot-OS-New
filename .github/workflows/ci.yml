@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck + build (same as Render)
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true # informational for now; flip to hard-fail once clean
+
+      - name: QA scan (route/import integrity)
+        run: node scripts/qa-scan.mjs
+
+      - name: Server smoke test
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          sleep 3
+          curl -sf http://localhost:10000/api/health
+          curl -sf http://localhost:10000/api/integrations/status
+          kill $SERVER_PID

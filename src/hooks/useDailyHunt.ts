@@ -227,7 +227,7 @@ export function useDailyHunt() {
         });
       } else {
         const { data: { session } } = await supabase.auth.getSession();
-        response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/daily-lead-hunt`, {
+        response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/daily-hunt-run`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,

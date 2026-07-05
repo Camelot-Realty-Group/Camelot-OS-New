@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 /**
  * Camelot Master Report System
  * Combines building intelligence + pitch deck + market data into one unified report.
@@ -1311,7 +1312,7 @@ function camelotAssociationTextLine(): string {
 }
 
 const LEGAL_TERMS_URL = 'https://camelot-scout-v6.onrender.com/#/legal-report-terms';
-const GOOGLE_MAPS_REPORT_KEY = 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8';
+const GOOGLE_MAPS_REPORT_KEY = GOOGLE_MAPS_KEY;
 
 function reportFilenameSafe(value: string): string {
   return value
@@ -2579,24 +2580,26 @@ ${options.caption ? `<div style="grid-column:1/-1;font-size:8.5px;color:#888;tex
 </div>`;
 }
 
+/**
+ * Pre-built deal reports (Hills of Monroe, Three Horizons East) are one-off
+ * client packages with hardcoded data. They must ONLY trigger on an exact
+ * match for that specific deal (or an explicit proposalMode) — never on a
+ * broad geography match — so every other address gets live data.
+ */
 function isHoaExecutiveRecoveryOpportunity(address: string, borough?: string): boolean {
-  return /hills\s+of\s+monroe|monroe,\s*ct|monroe\s+ct|connecticut\s+hoa|hoa\s+executive|carlos\s+capria/i.test(`${address} ${borough || ''}`);
+  return /hills\s+of\s+monroe|carlos\s+capria|645\s+main\s+st(reet)?,?\s+monroe/i.test(`${address} ${borough || ''}`);
 }
 
 function isHoaExecutiveRecoveryReport(d: MasterReportData): boolean {
   return d.raw?.proposalMode === 'hoa_executive_recovery' || isHoaExecutiveRecoveryOpportunity(`${d.address} ${d.buildingName}`, d.borough);
 }
 
-function isFloridaAddress(address: string, borough?: string): boolean {
-  return /\b(florida|fl|miami|north miami|miami-dade|33161)\b/i.test(`${address} ${borough || ''}`);
-}
-
 function isThreeHorizonsEast(address: string, borough?: string): boolean {
-  return /three\s+horizons|12500\s+(ne|northeast)?\s*15th|north\s+miami|33161/i.test(`${address} ${borough || ''}`);
+  return /three\s+horizons|12500\s+(ne|northeast)?\s*15th/i.test(`${address} ${borough || ''}`);
 }
 
 function isFloridaReceivershipReport(d: MasterReportData): boolean {
-  return d.raw?.proposalMode === 'florida_receivership_takeover' || isFloridaAddress(`${d.address} ${d.buildingName}`, d.borough);
+  return d.raw?.proposalMode === 'florida_receivership_takeover' || isThreeHorizonsEast(`${d.address} ${d.buildingName}`, d.borough);
 }
 
 function buildHoaExecutiveRecoveryReport(address: string): MasterReportData {
@@ -5545,7 +5548,7 @@ ${d.buildingPhotos && d.buildingPhotos.exterior.length > 0 && d.buildingPhotos.s
 ${renderPropertyPhotoGallery(d, { limit: 12, height: 96 })}
 ` : d.latitude && d.longitude ? `
 <div style="border-radius:10px;overflow:hidden;border:1px solid #D5D0C6;height:340px;margin-bottom:16px;position:relative">
-<iframe src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${d.latitude},${d.longitude}&heading=0&pitch=5&fov=80" width="100%" height="340" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_REPORT_KEY}&location=${d.latitude},${d.longitude}&heading=0&pitch=5&fov=80" width="100%" height="340" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(58,75,91,0.9));padding:16px 20px 12px;color:#fff">
 <div style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:20px;font-weight:700">${d.buildingName}</div>
 <div style="font-size:11px;opacity:0.8">${d.address} \u00B7 ${d.propertyType} \u00B7 ${d.units ? d.units + ' Units' : ''} ${d.stories ? '\u00B7 ' + d.stories + ' Floors' : ''} ${d.yearBuilt ? '\u00B7 Built ' + d.yearBuilt : ''}</div>
@@ -5553,7 +5556,7 @@ ${renderPropertyPhotoGallery(d, { limit: 12, height: 96 })}
 </div>
 ` : `
 <div style="border-radius:10px;overflow:hidden;border:1px solid #D5D0C6;height:340px;margin-bottom:16px;position:relative">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedAddr}&zoom=19&maptype=satellite" width="100%" height="340" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_REPORT_KEY}&q=${encodedAddr}&zoom=19&maptype=satellite" width="100%" height="340" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(58,75,91,0.9));padding:16px 20px 12px;color:#fff">
 <div style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:20px;font-weight:700">${d.buildingName}</div>
 <div style="font-size:11px;opacity:0.8">${d.address} \u00B7 ${d.propertyType} \u00B7 ${d.units ? d.units + ' Units' : ''} ${d.stories ? '\u00B7 ' + d.stories + ' Floors' : ''} ${d.yearBuilt ? '\u00B7 Built ' + d.yearBuilt : ''}</div>
@@ -5565,27 +5568,27 @@ ${renderPropertyPhotoGallery(d, { limit: 12, height: 96 })}
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
 ${d.latitude && d.longitude ? `
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${d.latitude},${d.longitude}&heading=180&pitch=5&fov=80" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_REPORT_KEY}&location=${d.latitude},${d.longitude}&heading=180&pitch=5&fov=80" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">\uD83D\uDCF7 Building \u2014 Alternate View</div>
 </div>
 ` : `
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedAddr}&zoom=18" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_REPORT_KEY}&q=${encodedAddr}&zoom=18" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">\uD83D\uDCF7 Building Location</div>
 </div>
 `}
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedAddr}&zoom=16" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_REPORT_KEY}&q=${encodedAddr}&zoom=16" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">\uD83D\uDDFA\uFE0F Street Map</div>
 </div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedNeighborhoodContext}&zoom=14" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_REPORT_KEY}&q=${encodedNeighborhoodContext}&zoom=14" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">\uD83C\uDFD8\uFE0F Neighborhood Overview</div>
 </div>
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=driving" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_REPORT_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=driving" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">\uD83D\uDE97 From Camelot HQ \u2014 57 West 57th Street</div>
 </div>
 </div>
@@ -5854,7 +5857,7 @@ ${renderSubjectPhotoStrip(d, { limit: 3, height: 90, caption: 'Property imagery 
 
 <div style="margin-bottom:20px">
 <div style="margin-bottom:16px;border-radius:10px;overflow:hidden;border:1px solid #D5D0C6;height:250px">
-<iframe src="https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=driving" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_REPORT_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=driving" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
 </div>
 <div style="background:#fff;border:1px solid #E5E3DE;border-left:4px solid #A89035;border-radius:0 8px 8px 0;padding:16px;margin-bottom:12px">
 <h4 style="font-size:13px;font-weight:700;color:#2C3240;margin-bottom:4px">\uD83D\uDCCD Camelot Office \u2192 ${d.buildingName}</h4>
@@ -5866,11 +5869,11 @@ ${renderSubjectPhotoStrip(d, { limit: 3, height: 90, caption: 'Property imagery 
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=transit" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_REPORT_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=transit" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">🚇 Transit Route — Camelot → Property</div>
 </div>
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=walking" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_REPORT_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=walking" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:9px;color:#999;padding:4px">🚶 Walking Route — Camelot → Property</div>
 </div>
 </div>
@@ -6397,7 +6400,7 @@ ${[
 
 <!-- Neighborhood Image — Google Maps area overview -->
 <div style="border-radius:10px;overflow:hidden;border:1px solid #D5D0C6;height:200px;margin-bottom:12px">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedNeighborhoodContext}&zoom=14&maptype=roadmap" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_REPORT_KEY}&q=${encodedNeighborhoodContext}&zoom=14&maptype=roadmap" width="100%" height="200" style="border:0" allowfullscreen loading="lazy"></iframe>
 </div>
 <div style="text-align:center;font-size:9px;color:#999;margin-bottom:12px">${d.neighborhoodName ? d.neighborhoodName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : 'Neighborhood'} \u2014 Area Overview</div>
 

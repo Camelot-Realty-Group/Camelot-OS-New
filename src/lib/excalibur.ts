@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 /**
  * @deprecated v2026.05.31 — Excalibur will be replaced by an Edge Function
  * (`agreements-generate`) backed by the same Fact Packet store as Jackie. The
@@ -243,7 +244,7 @@ ${input.jackieData?.stories ? `<div><span style="font-size:9px;text-transform:up
 <!-- Street View Photo -->
 ${input.jackieData?.latitude && input.jackieData?.longitude ? `
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6;height:250px;margin-bottom:12px;position:relative">
-<iframe src="https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${input.jackieData.latitude},${input.jackieData.longitude}&heading=0&pitch=5&fov=80" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_KEY}&location=${input.jackieData.latitude},${input.jackieData.longitude}&heading=0&pitch=5&fov=80" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(58,75,91,0.9));padding:12px 16px 8px;color:#fff">
 <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700">${fullAddr}</div>
 <div style="font-size:10px;opacity:0.7">${input.units || ''} Units ${input.blockLot ? '· ' + input.blockLot : ''}</div>
@@ -251,18 +252,18 @@ ${input.jackieData?.latitude && input.jackieData?.longitude ? `
 </div>
 ` : `
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6;height:250px;margin-bottom:12px">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedAddr}&zoom=18&maptype=satellite" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodedAddr}&zoom=18&maptype=satellite" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
 </div>
 `}
 
 <!-- Two maps: Street + Directions to Camelot -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
 <div style="border-radius:6px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedAddr}&zoom=16" width="100%" height="160" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodedAddr}&zoom=16" width="100%" height="160" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:8px;color:#999;padding:3px">📍 Property Location</div>
 </div>
 <div style="border-radius:6px;overflow:hidden;border:1px solid #D5D0C6">
-<iframe src="https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=driving" width="100%" height="160" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodedAddr}&mode=driving" width="100%" height="160" style="border:0" allowfullscreen loading="lazy"></iframe>
 <div style="text-align:center;font-size:8px;color:#999;padding:3px">🚗 From Camelot HQ — 57 West 57th Street</div>
 </div>
 </div>

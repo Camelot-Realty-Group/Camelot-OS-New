@@ -109,10 +109,20 @@ export const BUILDING_TYPE_LABELS: Record<LL97BuildingType, string> = {
 
 /**
  * Default emission factor: converts site EUI (kBtu/sq ft) to kg CO2e/sq ft.
- * NYC grid average is ~0.000288962 metric tons CO2/kBtu ≈ 0.289 kg CO2e/kBtu.
- * This is a blended factor for electricity + natural gas typical of NYC buildings.
+ *
+ * LL97 official coefficients (2024–2029 period):
+ *   - Electricity: 0.000288962 tCO2e per kWh  → ÷3.412 kBtu/kWh ≈ 0.0847 kg CO2e/kBtu
+ *   - Natural gas: 0.00005311 tCO2e per kBtu  ≈ 0.0531 kg CO2e/kBtu
+ *
+ * Blended for a typical NYC multifamily site-energy mix (~60% gas / 40% electric):
+ *   0.6 × 0.0531 + 0.4 × 0.0847 ≈ 0.066 kg CO2e/kBtu
+ *
+ * NOTE: a previous version used 0.289 (the per-kWh electricity coefficient
+ * mislabeled as per-kBtu), which overstated estimated emissions — and any
+ * EUI-derived penalty — by roughly 4×. Reported benchmarking emissions, when
+ * available, are always preferred over this estimate.
  */
-const DEFAULT_EMISSION_FACTOR_KG_PER_KBTU = 0.289;
+const DEFAULT_EMISSION_FACTOR_KG_PER_KBTU = 0.066;
 
 // ============================================================
 // Core Functions

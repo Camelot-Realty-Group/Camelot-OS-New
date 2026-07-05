@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 /**
  * Sentinel — Camelot Quarterly Market Intelligence Report Generator
  * 
@@ -758,7 +759,7 @@ Complimentary quarterly report from Camelot Realty Group
 
 <!-- Street View -->
 <div style="border-radius:8px;overflow:hidden;border:1px solid #D5D0C6;height:250px;margin-bottom:16px">
-<iframe src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodedAddr}&zoom=18&maptype=satellite" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
+<iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodedAddr}&zoom=18&maptype=satellite" width="100%" height="250" style="border:0" allowfullscreen loading="lazy"></iframe>
 </div>
 
 <div class="stat-row">

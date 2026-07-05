@@ -901,9 +901,43 @@ export function extractDOBProfessionals(permits: DOBPermit[]): { professionals: 
 }
 
 /**
+ * Resolve a borough (and BBL when available) from the free NYC Planning
+ * GeoSearch API. Used as a fallback when the caller couldn't auto-detect the
+ * borough — without it, DOF/PLUTO lookups often fail on ambiguous street
+ * names (e.g. "1133 Park Avenue" exists in Manhattan AND the Bronx), which
+ * left Market Value at $0 in reports.
+ */
+export async function resolveBoroughFromGeoSearch(address: string): Promise<{ borough?: string; bbl?: string } | null> {
+  try {
+    const res = await fetch(
+      `https://geosearch.planninglabs.nyc/v2/search?text=${encodeURIComponent(`${address}, New York, NY`)}&size=1`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const props = data?.features?.[0]?.properties;
+    if (!props) return null;
+    return {
+      borough: props.borough || undefined,
+      bbl: props.addendum?.pad?.bbl || props.pad_bbl || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch ALL NYC data for a building (combined)
  */
 export async function fetchFullBuildingReport(address: string, borough?: string) {
+  // Backfill the borough via GeoSearch when it wasn't provided/detected —
+  // most Socrata queries below are far more reliable with a borough filter.
+  let resolvedBbl: string | undefined;
+  if (!borough) {
+    const geo = await withTimeout(resolveBoroughFromGeoSearch(address), null, 5000);
+    if (geo?.borough) borough = geo.borough;
+    if (geo?.bbl) resolvedBbl = geo.bbl;
+  }
+
   let [violations, registration, dofData, permits, energy] = await Promise.all([
     withTimeout(fetchHPDViolations(address, borough), [] as HPDViolation[]),
     withTimeout(fetchHPDRegistration(address, borough), [] as any[]),
@@ -914,15 +948,17 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
 
   // Extract key data from DOF
   const dof = dofData[0];
-  const facadeFilings = await withTimeout(fetchFacadeFilings(address, borough, dof?.bbl), [] as any[]).catch((err) => {
+  const bestBbl = dof?.bbl || resolvedBbl;
+  const facadeFilings = await withTimeout(fetchFacadeFilings(address, borough, bestBbl), [] as any[]).catch((err) => {
     console.error('Facade filings fetch in report failed:', err);
     return [] as any[];
   });
 
   // Address matching can miss condo parent lots when users include city/state
-  // variations. If DOF found the BBL, use it as the authoritative HPD fallback.
-  if (violations.length === 0 && dof?.bbl) {
-    violations = await withTimeout(fetchHPDViolationsByBBL(dof.bbl), [] as HPDViolation[]);
+  // variations. If DOF or GeoSearch found the BBL, use it as the
+  // authoritative HPD fallback.
+  if (violations.length === 0 && bestBbl) {
+    violations = await withTimeout(fetchHPDViolationsByBBL(bestBbl), [] as HPDViolation[]);
   }
 
   // Extract registration info

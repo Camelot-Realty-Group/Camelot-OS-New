@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Search, FileText, Download, Mail, Phone, Table2, Link2, Loader2, Eye, Copy, Check, X, ShieldCheck, ShieldX, AlertTriangle, Printer } from 'lucide-react';
 import { REPORT_FOCUS_THEMES, buildJackieIntelReportFilename, buildMasterReport, generateBrochureHTML, generateColdCallerSheet, generateEmailDraft, generateCSVExport, validateJackieReport, type MasterReportData, type QACheckResult, type ReportFocusInput, type ReportFocusKey } from '@/lib/camelot-report';
@@ -1095,15 +1096,15 @@ export default function ReportCenter() {
           {/* Property Visual — Image + Map + Travel */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <iframe src={data.latitude && data.longitude ? `https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${data.latitude},${data.longitude}&heading=0&pitch=5&fov=80` : `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(data.address)}&zoom=18`} width="100%" height="220" style={{border:0}} allowFullScreen loading="lazy" title="Street View" />
+              <iframe src={data.latitude && data.longitude ? `https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_KEY}&location=${data.latitude},${data.longitude}&heading=0&pitch=5&fov=80` : `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(data.address)}&zoom=18`} width="100%" height="220" style={{border:0}} allowFullScreen loading="lazy" title="Street View" />
               <div className="p-2 text-center text-xs text-gray-400">Street View — {data.address}</div>
             </div>
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <iframe src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(data.address)}&zoom=16`} width="100%" height="220" style={{border:0}} allowFullScreen loading="lazy" title="Map" />
+              <iframe src={`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(data.address)}&zoom=16`} width="100%" height="220" style={{border:0}} allowFullScreen loading="lazy" title="Map" />
               <div className="p-2 text-center text-xs text-gray-400">Location Map</div>
             </div>
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-              <iframe src={`https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodeURIComponent(data.address)}&mode=driving`} width="100%" height="220" style={{border:0}} allowFullScreen loading="lazy" title="Travel from Camelot HQ" />
+              <iframe src={`https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodeURIComponent(data.address)}&mode=driving`} width="100%" height="220" style={{border:0}} allowFullScreen loading="lazy" title="Travel from Camelot HQ" />
               <div className="p-2 text-center text-xs text-gray-400">Travel from Camelot HQ — 57 West 57th Street</div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 /**
  * Building Photo Finder
  * Searches multiple free sources for building exterior and interior photos.
@@ -5,7 +6,6 @@
  */
 
 const WIKI_API = 'https://commons.wikimedia.org/w/api.php';
-const GOOGLE_MAPS_KEY = 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8';
 
 export interface BuildingPhotos {
   exterior: string[];  // URLs to exterior photos

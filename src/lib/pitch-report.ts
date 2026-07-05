@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 /**
  * Camelot OS - External Pitch Deck (Slide Format)
  * Matches the 155-24 89th Street reference deck design exactly.
@@ -343,26 +344,26 @@ function logoBadge(): string {
 
 function streetViewImage(d: MasterReportData, size = '900x600'): string {
   const location = d.latitude && d.longitude ? `${d.latitude},${d.longitude}` : `${d.address}, New York, NY`;
-  return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${encodeURIComponent(location)}&fov=85&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+  return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${encodeURIComponent(location)}&fov=85&key=${GOOGLE_MAPS_KEY}`;
 }
 
 function streetViewEmbedUrl(d: MasterReportData): string {
   const location = d.latitude && d.longitude ? `${d.latitude},${d.longitude}` : `${d.address}, New York, NY`;
-  return `https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${encodeURIComponent(location)}&heading=0&pitch=5&fov=80`;
+  return `https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_KEY}&location=${encodeURIComponent(location)}&heading=0&pitch=5&fov=80`;
 }
 
 function directionsEmbedUrl(d: MasterReportData): string {
-  return `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodeURIComponent(d.address)}&mode=driving`;
+  return `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_MAPS_KEY}&origin=57+West+57th+Street+Suite+410+New+York+NY+10019&destination=${encodeURIComponent(d.address)}&mode=driving`;
 }
 
 function placeEmbedUrl(d: MasterReportData): string {
   const query = d.latitude && d.longitude ? `${d.latitude},${d.longitude}` : `${d.address}, New York, NY`;
-  return `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(query)}&zoom=16`;
+  return `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`;
 }
 
 function nearbyServicesEmbedUrl(d: MasterReportData): string {
   const query = `restaurants grocery pharmacy transit services near ${d.address || d.buildingName || 'New York NY'}`;
-  return `https://www.google.com/maps/embed/v1/search?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(query)}&zoom=15`;
+  return `https://www.google.com/maps/embed/v1/search?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=15`;
 }
 
 function bestExteriorImage(d: MasterReportData): string {
@@ -392,12 +393,12 @@ function propertyPhotoGallery(d: MasterReportData, limit = 12): string {
 
 function staticMapImage(d: MasterReportData, size = '640x360'): string {
   const destination = d.latitude && d.longitude ? `${d.latitude},${d.longitude}` : `${d.address}, New York, NY`;
-  return `https://maps.googleapis.com/maps/api/staticmap?size=${size}&scale=2&maptype=roadmap&markers=color:gold%7Clabel:C%7C57+West+57th+Street+Suite+410+New+York+NY+10019&markers=color:red%7Clabel:P%7C${encodeURIComponent(destination)}&path=color:0x34444fff%7Cweight:4%7C57+West+57th+Street+Suite+410+New+York+NY+10019%7C${encodeURIComponent(destination)}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+  return `https://maps.googleapis.com/maps/api/staticmap?size=${size}&scale=2&maptype=roadmap&markers=color:gold%7Clabel:C%7C57+West+57th+Street+Suite+410+New+York+NY+10019&markers=color:red%7Clabel:P%7C${encodeURIComponent(destination)}&path=color:0x34444fff%7Cweight:4%7C57+West+57th+Street+Suite+410+New+York+NY+10019%7C${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_KEY}`;
 }
 
 function neighborhoodMapImage(d: MasterReportData, size = '640x360'): string {
   const destination = d.latitude && d.longitude ? `${d.latitude},${d.longitude}` : `${d.address}, New York, NY`;
-  return `https://maps.googleapis.com/maps/api/staticmap?size=${size}&scale=2&maptype=roadmap&zoom=14&markers=color:red%7Clabel:P%7C${encodeURIComponent(destination)}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+  return `https://maps.googleapis.com/maps/api/staticmap?size=${size}&scale=2&maptype=roadmap&zoom=14&markers=color:red%7Clabel:P%7C${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_KEY}`;
 }
 
 function rotatingPropertyImage(d: MasterReportData, index = 0): string {
@@ -470,7 +471,7 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
         ['Resident access', 'Neighborhood mobility', 'Important for value and resident experience', 'context'],
       ];
   const query = exact22East22 ? '23 Street Station N R W Broadway East 23rd Street New York NY' : `${d.address} nearest subway`;
-  return `<div class="gold-card" style="padding:16px 18px;height:100%"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:150px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
+  return `<div class="gold-card" style="padding:16px 18px;height:100%"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:150px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
 }
 
 function rawIframeFrame(src: string, title: string): string {
@@ -954,10 +955,10 @@ export function generatePitchReport(d: MasterReportData): string {
   
   // Street view URLs
   // Use address-based Street View (no geocode dependency)
-  const svUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x500&location=${encodeURIComponent(d.address + ', New York, NY')}&fov=90&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+  const svUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x500&location=${encodeURIComponent(d.address + ', New York, NY')}&fov=90&key=${GOOGLE_MAPS_KEY}`;
   const reportPhotoStack = propertyPhotoStack(d);
   const exteriorImage = reportPhotoStack[0] || svUrl;
-  const alternateSvUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x500&location=${encodeURIComponent(displayAddress)}&heading=115&fov=90&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+  const alternateSvUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x500&location=${encodeURIComponent(displayAddress)}&heading=115&fov=90&key=${GOOGLE_MAPS_KEY}`;
   const interiorImage = reportPhotoStack.find((src, idx) => idx > 0 && src !== exteriorImage) || alternateSvUrl;
   const subjectImage = exteriorImage;
   const factCards = [

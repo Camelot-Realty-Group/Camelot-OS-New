@@ -3240,7 +3240,7 @@ export async function buildMasterReport(address: string, borough?: string): Prom
     ? preKnownFacts
     : getKnownPropertyFacts(lookupAddress, streetEasy?.name || raw.energy?.propertyName || '') || preKnownFacts;
   const reportAddress = knownFacts?.canonicalAddress || lookupAddress;
-  const effectiveBorough = knownFacts?.borough || lookupBorough || '';
+  const effectiveBorough = knownFacts?.borough || lookupBorough || (raw as any)?.resolvedBorough || '';
 
   // Reconcile unit count across sources. DOF/PLUTO can return a tax-lot or
   // partial-building count, so a tiny DOF value must not block stronger signals.

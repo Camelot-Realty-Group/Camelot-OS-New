@@ -1066,6 +1066,9 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
   }
 
   return {
+    // Borough as resolved for this lookup (caller-provided or GeoSearch
+    // fallback) so report builders can backfill when auto-detect failed.
+    resolvedBorough: borough || null,
     violations: {
       total: violations.length,
       open: openViolations.length,
@@ -1085,7 +1088,10 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
       ? {
           bbl: dof.bbl,
           owner: (dof as any).owner || (dof as any).ownername || '',
-          marketValue: parseFloat((dof as any).fullval || (dof as any).fullvaltot || (dof as any).marketvalue) || 0,
+          // PLUTO has no market-value field (only assessed values), so fall
+          // back to the DOF assessment roll's current market total
+          // (curmkttot via fetchDOFExemptions). Previously this was always 0.
+          marketValue: parseFloat((dof as any).fullval || (dof as any).fullvaltot || (dof as any).marketvalue) || dofAbatement?.marketValue || 0,
           assessedValue: parseFloat((dof as any).avtot || (dof as any).assesstot) || 0,
           landValue: parseFloat((dof as any).avland || (dof as any).assessland) || 0,
           yearBuilt: parseInt(dof.yearbuilt) || 0,

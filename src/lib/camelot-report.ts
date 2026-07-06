@@ -54,6 +54,9 @@ export interface MasterReportData {
   buildingClass: string;
   taxClass: string;
   marketValue: number;
+  /** Residential vs total (incl. commercial) unit counts from PLUTO. */
+  unitsResidential?: number;
+  unitsTotalAll?: number;
   assessedValue: number;
   landValue: number;
   lotArea: number;
@@ -3588,6 +3591,8 @@ export async function buildMasterReport(address: string, borough?: string): Prom
       || (raw.dobOwners?.[0]?.name)
       || '',
     bbl: knownFacts?.bbl || dof?.bbl || '',
+    unitsResidential: (dof as any)?.unitsResidential || 0,
+    unitsTotalAll: (dof as any)?.unitsTotalAll || 0,
     registrationOwner: knownFacts?.dofOwner
       || raw.registration?.owner
       || (raw.dobOwners?.[0]?.name)
@@ -8199,40 +8204,4 @@ function generateProposal() {
   '</div>' +
 
   '<div class="hr"></div>' +
-  '<p style="font-size:9px;color:#888;text-align:center;line-height:1.55">Please refer to our property management agreement for a detailed description of all terms, conditions, and rates.<br>Camelot Property Management Services Corp. &nbsp;&middot;&nbsp; 57 West 57th Street, Suite 410, New York, NY 10019<br>Main: (212) 206-9939 &nbsp;&middot;&nbsp; www.camelot.nyc &nbsp;&middot;&nbsp; Licensed Broker ID #10491200104</p>' +
-
-  '</body></html>';
-
-  var w = window.open('', '_blank');
-  if (w && w.document && typeof w.document.write === 'function') {
-    w.document.write(html);
-    w.document.close();
-    // Preview only — user clicks Print button when ready
-    // setTimeout(function() { w.print(); }, 800);
-    return;
-  }
-
-  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = proposalHtmlFile;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
-}
-</script>
-</body>
-</html>`;
-  const cleanHtml = html
-    .replace(/\b-?Infinity\b/g, 'N/A')
-    .replace(/\bNaN\b/g, 'N/A');
-  return sanitizeJackieKnownPropertyHtml(cleanHtml, d).data;
-}
-
-
-
-
-
-
+  '<p style="font-size:9px;color:#888;text-align:center;line-height:1.55">Ple

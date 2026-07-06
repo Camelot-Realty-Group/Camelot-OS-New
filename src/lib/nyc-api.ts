@@ -1105,6 +1105,8 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
           landValue: parseFloat((dof as any).avland || (dof as any).assessland) || 0,
           yearBuilt: parseInt(dof.yearbuilt) || 0,
           units: parseInt(dof.unitsres) || parseInt(dof.unitstotal) || 0,
+          unitsResidential: parseInt(dof.unitsres) || 0,
+          unitsTotalAll: parseInt(dof.unitstotal) || 0,
           lotArea: parseFloat(dof.lotarea) || 0,
           buildingArea: parseFloat((dof as any).bldgarea || (dof as any).resarea) || 0,
           stories: parseInt(dof.numfloors) || 0,
@@ -1324,78 +1326,4 @@ export async function searchByUnit(address: string, unit: string): Promise<any> 
 }
 
 /**
- * Search buildings by region using NYC Open Data
- * This searches PLUTO for buildings matching criteria
- */
-export async function searchBuildingsByRegion(params: {
-  borough?: string;
-  minUnits?: number;
-  maxUnits?: number;
-  yearBuiltMin?: number;
-  yearBuiltMax?: number;
-  buildingClass?: string;
-  limit?: number;
-}): Promise<DOFProperty[]> {
-  try {
-    const limit = params.limit || 100;
-    const where: string[] = [];
-
-    if (params.borough) {
-      // PLUTO uses 2-letter borough codes: MN, BK, BX, QN, SI
-      const boroCodes: Record<string, string> = {
-        MANHATTAN: 'MN', BROOKLYN: 'BK', QUEENS: 'QN', BRONX: 'BX', 'STATEN ISLAND': 'SI',
-      };
-      const code = boroCodes[params.borough.toUpperCase()] || params.borough;
-      where.push(`borough='${code}'`);
-    }
-    if (params.minUnits) {
-      where.push(`unitsres >= ${params.minUnits}`);
-    }
-    if (params.maxUnits) {
-      where.push(`unitsres <= ${params.maxUnits}`);
-    }
-    if (params.yearBuiltMin) {
-      where.push(`yearbuilt >= '${params.yearBuiltMin}'`);
-    }
-    if (params.yearBuiltMax) {
-      where.push(`yearbuilt <= '${params.yearBuiltMax}'`);
-    }
-    // Exclude empty lots and buildings with 0 units
-    where.push(`unitsres > 0`);
-
-    // PLUTO dataset uses assesstot (not fullval) and ownername (not owner)
-    let url = `${ENDPOINTS.dofProperty}?$limit=${limit}&$order=assesstot DESC`;
-    if (where.length) {
-      url += `&$where=${where.join(' AND ')}`;
-    }
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Search API error: ${res.status}`);
-    const raw: any[] = await res.json();
-
-    // Map PLUTO column names to our DOFProperty interface
-    return raw.map((r) => ({
-      bbl: r.bbl || '',
-      borough: r.borough || '',
-      block: r.block || '',
-      lot: r.lot || '',
-      address: r.address || '',
-      owner: r.ownername || '',
-      bldgcl: r.bldgclass || '',
-      taxclass: r.taxclass || '',
-      fullval: r.assesstot || '0',
-      avland: r.assessland || '0',
-      avtot: r.assesstot || '0',
-      yearbuilt: r.yearbuilt || '',
-      unitsres: r.unitsres || '0',
-      unitstotal: r.unitstotal || '0',
-      lotarea: r.lotarea || '0',
-      bldgarea: r.bldgarea || '0',
-      numfloors: r.numfloors || '0',
-      numbldgs: r.numbldgs || '1',
-    }));
-  } catch (err) {
-    console.error('Building search error:', err);
-    return [];
-  }
-}
+ * Search buildings by region using NYC Open 

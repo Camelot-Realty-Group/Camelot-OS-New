@@ -112,14 +112,14 @@ const MDS_REPORT_PROOF_POINTS = [
 ];
 
 const ONBOARDING_CHECKLIST = [
-  'Full file and data transfer',
-  'Banking, lockbox, payables and arrears setup',
-  'Resident portal configuration and notices',
-  'Vendor contracts, W-9s, COIs and recurring costs',
-  'Compliance calendar: HPD, DOB, DOF, RPIE, LL97, FISP',
-  'Staff/vendor roles, SOPs and emergency contacts',
-  'First board-ready financial package and transition dashboard',
-  '90-day operating review with next-quarter roadmap',
+  '48-hour bank account: with your tax ID and articles of incorporation, the account is open in the association / entity\u2019s name within 48 hours',
+  'Resident roster loaded \u2014 names, numbers, emails \u2014 portal and notices live within the first two weeks',
+  'Written transition document issued to the exiting manager; our transition agent runs the checklist with their team',
+  'First-30-days data download: service contracts, insurance policies, vendor agreements, governing documents, payroll, common charges / rents / arrears',
+  'Resident meet-and-greet \u2014 wine & cheese at the building or a Zoom \u2014 so everyone knows who we are',
+  'Vendor walk-throughs on site, and every city agency (HPD, DOB, DOF) renoticed to send all notices to Camelot',
+  'Full site inspection with an exterior visual report \u2014 issues you may not be aware of, documented with photos',
+  '90-day audit gut-check: what we accomplished, the first board-ready financial package, and an ownership agenda session',
 ];
 
 const STANDARD_AGREEMENT_PROOF_POINTS = [
@@ -204,13 +204,47 @@ function clientRecipientLabel(d: MasterReportData): string {
   return 'Board and Ownership Team';
 }
 
+function ownerEntityName(d: MasterReportData): string {
+  const name = String((d as any).registrationOwner || (d as any).dofOwner || '').trim();
+  if (!name || /department|dcas|city of new york|housing authority|nycha|state of new york/i.test(name)) return '';
+  return name.replace(/\s+/g, ' ');
+}
+
+function isGovernmentOwned(d: MasterReportData): boolean {
+  return /department|dcas|city of new york|housing authority|nycha|state of new york/i.test(String((d as any).registrationOwner || (d as any).dofOwner || ''));
+}
+
+/** Data-aware greeting: never "Dear Landlord" unless we actually know it's a rental. */
+function recipientGreeting(d: MasterReportData): string {
+  const entity = ownerEntityName(d);
+  const type = `${d.propertyType || ''} ${d.buildingClass || ''}`.toLowerCase();
+  if (isGovernmentOwned(d)) return 'Dear Facilities and Asset Management Team';
+  if (/co-?op|cooperative/.test(type)) return entity ? `Dear Board of Directors of ${entity}` : 'Dear Board of Directors';
+  if (/condo/.test(type)) return entity ? `Dear Board of Managers of ${entity}` : 'Dear Members of the Condominium Board';
+  if (entity) return `Dear Ownership of ${entity}`;
+  return `Dear Ownership of ${d.address}`;
+}
+
+function bblLabel(d: MasterReportData): string {
+  const raw = String(d.bbl || '').replace(/\D/g, '');
+  if (raw.length < 10) return d.bbl ? String(d.bbl) : 'To verify';
+  return `Block ${parseInt(raw.slice(1, 6), 10)} / Lot ${parseInt(raw.slice(6, 10), 10)} (BBL ${raw.slice(0, 10)})`;
+}
+
+function unitsBreakdownLabel(d: MasterReportData): string {
+  const res = Number((d as any).unitsResidential || 0);
+  const tot = Number((d as any).unitsTotalAll || 0);
+  if (res && tot && tot > res) return `${res} residential + ${tot - res} commercial/other = ${tot} total`;
+  return fmtN(d.units);
+}
+
 function coverLetterParagraphs(d: MasterReportData): string {
   const building = d.buildingName || d.address;
   if (isJacksonHeights85th(d)) {
     return `<div style="font-family:'Cormorant Garamond',Georgia,serif;color:#1a2744;font-size:15px;line-height:1.38"><p style="margin-bottom:10px"><strong style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">Dear Samantha Hosein and Board Members,</strong> thank you for taking the time to speak with Valerie, Vincent, and the Camelot team about <strong>${escapeHtml(building)}</strong>. We understand this is a small Jackson Heights co-op with a shared garden, recent capital-project fatigue, rising cost pressure, mortgage and tax-abatement considerations, and a need for more consistent vendor, superintendent, accounting, and board support.</p><p style="margin-bottom:10px">Before we set a formal proposal or management agreement, Camelot would like to review the most recent financial report, management report, audit, operating budget, mortgage statements, insurance information, vendor list, and any Local Law 11 / compliance files. With your permission, those records let us quantify a fee structure that is fair to the building, identify refinancing and savings opportunities, and separate base management from items that should be billed separately or paid by the applicable shareholder.</p><p style="margin-bottom:12px">Our goal is to make the transition feel organized instead of burdensome: cleaner monthly reporting, responsive maintenance coordination, attorney and accountant cooperation, insurance and vendor review, superintendent coverage evaluation, and practical guidance for refinancing preparation. We would welcome a board meet-and-greet by Zoom or in person and will provide references and a Schedule A / Schedule B1-style fee menu for board review.</p>${davidGoldoffClientSignatureHtml()}</div>`;
   }
-  const recipient = clientRecipientLabel(d);
-  return `<div style="font-family:'Cormorant Garamond',Georgia,serif;color:#1a2744;font-size:15px;line-height:1.38"><p style="margin-bottom:10px"><strong style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">Dear ${recipient},</strong> thank you for allowing Camelot the opportunity to discuss <strong>${escapeHtml(building)}</strong> and how we may be able to support your property, residents, staff, and ownership goals. Camelot Property Management is a New York-based, hands-on management company that combines experienced property managers, in-house accounting, compliance discipline, and practical proptech to deliver clearer communication, cleaner reporting, faster response, and better day-to-day control.</p><p style="margin-bottom:10px">Projected fees associated with our services would be quantified once we review, with your permission, the prior property manager report, last audited financials, or latest operating budget. Those materials help us identify strengths, weaknesses, service needs, and cost pressures so we can propose a meaningful budget and economical solution before any formal proposal or agreement.</p><p style="margin-bottom:12px">We serve our clients by becoming a value-added member of the building team: organizing operations, improving vendor oversight, supporting boards and landlords with timely financials, using automation and resident-facing tools where they make sense, and protecting the property with local knowledge and senior attention. We look forward to speaking with you soon and learning where Camelot can be most useful.</p>${davidGoldoffClientSignatureHtml()}</div>`;
+  const greeting = recipientGreeting(d);
+  return `<div style="font-family:'Cormorant Garamond',Georgia,serif;color:#1a2744;font-size:15px;line-height:1.38"><p style="margin-bottom:10px"><strong style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px">${escapeHtml(greeting)},</strong> thank you for taking a moment with this. It is about <strong>${escapeHtml(building)}</strong> &mdash; and about introducing the team we would like you to consider for its management. Camelot Property Management has managed New York buildings since <strong>2006</strong>: independently owned, New York-based, and staffed by New Yorkers who manage New York buildings for a living.</p><p style="margin-bottom:10px">What sets us apart is the combination. On one side, a deep bench of well-trained property managers and in-house accounting professionals who navigate New York City compliance, local law, and the daily realities of running a building here. On the other, serious automation and AI that speeds up the work, protects the property, controls costs, and surfaces new revenue opportunities. We are connected across the city's industry organizations &mdash; NYARM, REBNY, IREM, BOMA New York, and CNYC among them &mdash; and we manage buildings in your area.</p><p style="margin-bottom:12px">The pages that follow are a live sample of the visibility our platform gives every client: what the city's public records say about your building today, and what we would do with that information on your behalf. We would welcome a Zoom, a phone call, or a meet-and-greet at your building &mdash; whichever is easiest for you.</p>${davidGoldoffClientSignatureHtml()}</div>`;
 }
 
 function fmt$(n: number): string {
@@ -349,9 +383,9 @@ function streetViewImage(d: MasterReportData, size = '900x600'): string {
   return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${encodeURIComponent(location)}&fov=85&key=${GOOGLE_MAPS_KEY}`;
 }
 
-function streetViewEmbedUrl(d: MasterReportData): string {
+function streetViewEmbedUrl(d: MasterReportData, heading = 0): string {
   const location = d.latitude && d.longitude ? `${d.latitude},${d.longitude}` : `${d.address}, New York, NY`;
-  return `https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_KEY}&location=${encodeURIComponent(location)}&heading=0&pitch=5&fov=80`;
+  return `https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_KEY}&location=${encodeURIComponent(location)}&heading=${heading}&pitch=5&fov=80`;
 }
 
 function directionsEmbedUrl(d: MasterReportData): string {
@@ -425,7 +459,8 @@ function contextualImageCard(d: MasterReportData, index: number, caption: string
   // billing-enabled Maps key and previously failed into a dark placeholder
   // reading "contextual image N"), the Embed API renders real street-level
   // imagery of the address with the shared key.
-  return iframeCard(streetViewEmbedUrl(d), `${d.buildingName || d.address} street view`, caption, height);
+  const heading = (index * 90) % 360;
+  return iframeCard(streetViewEmbedUrl(d, heading), `${d.buildingName || d.address} street view (angle ${heading}\u00B0)`, caption, height);
 }
 
 /** Satellite close-up pinned on the property lot — the "3D site" view. */
@@ -664,7 +699,7 @@ function mdsAccountingSlide(): string {
 }
 
 function onboardingChecklistSlide(d: MasterReportData): string {
-  return `<div class="slide"><div class="pad">${logoBadge()}<div class="section-title">Onboarding Checklist</div><p class="body-text" style="margin-bottom:16px">The transition is treated like an operating handoff, not just a contract start date.</p><div style="display:grid;grid-template-columns:1fr .9fr;gap:18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${ONBOARDING_CHECKLIST.map((item, idx) => `<div class="gold-card" style="padding:13px 14px"><div style="font-size:11px;color:#B8973A;font-weight:900;letter-spacing:1px;margin-bottom:3px">STEP ${idx + 1}</div><div style="font-size:13px;font-weight:800;color:#1a2744;line-height:1.35">${item}</div></div>`).join('')}</div><div style="display:grid;gap:10px"><div class="visual-card" style="padding:12px">${contextualImageCard(d, 2, 'Subject property or neighborhood image used to anchor transition planning', 142)}</div><div class="visual-card" style="padding:18px"><div class="sub-heading" style="font-size:20px">90-Day Transition Rhythm</div>${[['Month 1 - Assessment', 34], ['Month 2 - Stabilization', 67], ['Month 3 - Optimization', 100]].map(([label, pct]) => `<div style="margin:12px 0"><div style="font-size:13px;font-weight:900;color:#1a2744">${label}</div><div class="mini-bar" style="height:12px"><span style="width:${pct}%"></span></div></div>`).join('')}<div class="small">Designed to show reliability quickly: files, money, staff, vendors, resident experience, and compliance all get organized into a visible plan.</div></div></div></div><div class="source-note">Sources: Camelot transition procedures, rental portfolio transition case-study workflow, and Jackie 90-day onboarding model.</div></div></div>`;
+  return `<div class="slide"><div class="pad">${logoBadge()}<div class="section-title">Onboarding Checklist</div><p class="body-text" style="margin-bottom:16px">Full onboarding can begin immediately. With your tax ID and articles of incorporation we open the entity\u2019s bank account within 48 hours; with the resident roster we are operational inside two weeks \u2014 and a written transition document drives an orderly handoff with your exiting manager from day one.</p><div style="display:grid;grid-template-columns:1fr .9fr;gap:18px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${ONBOARDING_CHECKLIST.map((item, idx) => `<div class="gold-card" style="padding:13px 14px"><div style="font-size:11px;color:#B8973A;font-weight:900;letter-spacing:1px;margin-bottom:3px">STEP ${idx + 1}</div><div style="font-size:13px;font-weight:800;color:#1a2744;line-height:1.35">${item}</div></div>`).join('')}</div><div style="display:grid;gap:10px"><div class="visual-card" style="padding:12px">${contextualImageCard(d, 2, 'Subject property or neighborhood image used to anchor transition planning', 142)}</div><div class="visual-card" style="padding:18px"><div class="sub-heading" style="font-size:20px">90-Day Transition Rhythm</div>${[['Month 1 \u2014 Files, Banking, Data Download', 34], ['Month 2 \u2014 Residents, Vendors, City Agencies', 67], ['Month 3 \u2014 Inspection, Audit Gut-Check, Agenda', 100]].map(([label, pct]) => `<div style="margin:12px 0"><div style="font-size:13px;font-weight:900;color:#1a2744">${label}</div><div class="mini-bar" style="height:12px"><span style="width:${pct}%"></span></div></div>`).join('')}<div class="small">By day 90: accounts live, records in-house, residents met, vendors toured, agencies renoticed, a full site inspection delivered, and a written account of what we accomplished \u2014 then we sit down with ownership to set the agenda together.</div></div></div></div><div class="source-note">Sources: Camelot transition procedures, rental portfolio transition case-study workflow, and Jackie 90-day onboarding model.</div></div></div>`;
 }
 
 function standardAgreementSlide(): string {
@@ -852,9 +887,9 @@ export function generateFirstEmailIntroReport(d: MasterReportData): string {
   const hasRisks = d.violationsOpen > 0 || d.ecbPenaltyBalance > 0 || Boolean(d.ll97?.period1Penalty);
   const landmarks = landmarkLabels(d);
   const slides = `
-<div class="slide slide-dark"><div style="position:absolute;inset:0;background:#1f303d"><img src="${subjectImage}" alt="${escapeHtml(d.buildingName || d.address)} subject property image" style="width:100%;height:100%;object-fit:cover;opacity:.56" onerror="this.style.display='none'"></div><div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(34,47,58,.98) 0%,rgba(34,47,58,.74) 48%,rgba(34,47,58,.34) 100%)"></div><div style="position:absolute;right:62px;bottom:58px;width:410px;display:grid;grid-template-columns:1fr 1fr;gap:10px;z-index:2"><div style="height:150px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(placeEmbedUrl(d), `${neighborhoodName(d)} neighborhood map`)}</div><div style="height:150px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(directionsEmbedUrl(d), 'Camelot route map')}</div></div><div class="pad" style="position:relative;z-index:3">${logoBadge()}<div style="height:100%;display:flex;flex-direction:column;justify-content:center;max-width:720px"><div style="font-size:13px;color:#B8973A;text-transform:uppercase;letter-spacing:2.5px;font-weight:800">First Email Intro - Camelot Property Management</div><h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:68px;line-height:.95;color:#F4D26A;font-style:italic;margin:12px 0">${d.buildingName || d.address}</h1><p style="font-size:20px;color:rgba(255,255,255,.84);line-height:1.55">A concise Camelot introduction with property imagery, neighborhood context, and a clear next step.</p><div style="margin-top:18px;max-width:620px;border-left:3px solid #B8973A;padding:10px 14px;background:rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.76);line-height:1.55">${JACKIE_INTELLIGENT_REPORT_NOTE}</div><p style="font-size:12px;color:rgba(255,255,255,.58);margin:26px 0 0">${d.address} - ${neighborhoodName(d)} - ${today}</p>${preparedForBlock(d)}</div></div></div>
+<div class="slide slide-dark"><div style="position:absolute;inset:0;background:#1f303d"><img src="${subjectImage}" alt="${escapeHtml(d.buildingName || d.address)} subject property image" style="width:100%;height:100%;object-fit:cover;opacity:.56" onerror="this.style.display='none'"></div><div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(34,47,58,.98) 0%,rgba(34,47,58,.74) 48%,rgba(34,47,58,.34) 100%)"></div><div style="position:absolute;right:62px;bottom:58px;width:410px;display:grid;grid-template-columns:1fr 1fr;gap:10px;z-index:2"><div style="height:150px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(placeEmbedUrl(d), `${neighborhoodName(d)} neighborhood map`)}</div><div style="height:150px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(directionsEmbedUrl(d), 'Camelot route map')}</div></div><div class="pad" style="position:relative;z-index:3">${logoBadge()}<div style="height:100%;display:flex;flex-direction:column;justify-content:center;max-width:720px"><div style="font-size:13px;color:#B8973A;text-transform:uppercase;letter-spacing:2.5px;font-weight:800">First Email Intro - Camelot Property Management</div><h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:68px;line-height:.95;color:#F4D26A;font-style:italic;margin:12px 0">${d.buildingName || d.address}</h1><p style="font-size:20px;color:rgba(255,255,255,.84);line-height:1.55">New Yorkers managing New York buildings since 2006 &mdash; a short introduction to what our people and our platform can do for ${escapeHtml(d.buildingName || d.address)}.</p><div style="margin-top:18px;max-width:620px;border-left:3px solid #B8973A;padding:10px 14px;background:rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.76);line-height:1.55">${JACKIE_INTELLIGENT_REPORT_NOTE}</div><p style="font-size:12px;color:rgba(255,255,255,.58);margin:26px 0 0">${d.address} - ${neighborhoodName(d)} - ${today}</p>${preparedForBlock(d)}</div></div></div>
 <div class="slide"><div class="pad" style="padding:38px 64px 40px">${logoBadge()}<div class="section-title" style="margin-bottom:12px">Cover Letter</div><div style="display:grid;grid-template-columns:1.14fr .86fr;gap:16px;align-items:stretch"><div class="article-wrap" style="background:#fff;border:1px solid rgba(184,151,58,.38);border-left:5px solid #B8973A;border-radius:6px;padding:21px 28px;box-shadow:0 14px 28px rgba(26,31,54,.06);max-height:548px;overflow:hidden">${articleImageFloat(d, 1, 'Property-specific visual context', 'right', 178)}${coverLetterParagraphs(d)}</div><div style="display:grid;gap:10px">${contextualImageCard(d, 2, `Street-level view — ${d.address}`, 254)}${localServicesCard(d, 208)}</div></div><div class="source-note">Prepared by Camelot Property Management for ${d.buildingName || d.address} - ${today}</div></div></div>
-<div class="slide"><div class="pad" style="padding:40px 64px">${logoBadge()}<div class="section-title" style="margin-bottom:13px">Property Snapshot &amp; New York Reach</div><div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:15px"><div><div class="gold-card" style="margin-bottom:10px;padding:15px 16px"><div class="sub-heading">Property Snapshot</div><table><tr><td>Units</td><td>${fmtN(d.units)}</td></tr><tr><td>Type</td><td>${d.propertyType || 'Residential'}</td></tr><tr><td>Year Built</td><td>${d.yearBuilt || 'Verify'}</td></tr><tr><td>Current Management</td><td>${d.managementCompany || 'To verify'}</td></tr></table></div><div class="gold-card" style="margin-bottom:10px;padding:15px 16px"><div class="sub-heading">Initial Read</div><p class="body-text" style="font-size:14px;line-height:1.5">${hasRisks ? `Camelot identified public-record signals worth reviewing: ${d.violationsOpen} open HPD violation(s), ${fmt$(d.ecbPenaltyBalance)} ECB balance, and ${d.ll97?.period1Penalty ? fmt$(d.ll97.period1Penalty) + ' LL97 modeled exposure' : 'LL97 context to verify'}.` : `The building appears suitable for a boutique, high-attention management review focused on financial clarity, resident experience, vendor control, and board support.`}</p></div><div class="gold-card" style="padding:11px 14px"><div class="sub-heading" style="font-size:15px;margin-bottom:5px">Nearby Context</div>${landmarks.slice(0, 3).map(l => `<div class="check" style="font-size:12px;margin-bottom:6px"><span>&#10003;</span><div>${l}</div></div>`).join('')}</div></div><div style="display:grid;grid-template-columns:1fr;gap:9px">${propertyImageCard(d, `${d.buildingName || d.address} - verified property image`, 210)}${propertyPhotoGallery(d, 4)}${iframeCard(directionsEmbedUrl(d), 'Camelot HQ to subject property route map', `Camelot HQ at 57 West 57th Street to ${d.buildingName || d.address}`, 122)}</div></div><div class="source-note">Sources: Google Maps route, neighborhood context, Camelot property intelligence, and uploaded/verified property assets.</div></div></div>
+<div class="slide"><div class="pad" style="padding:40px 64px">${logoBadge()}<div class="section-title" style="margin-bottom:13px">Property Snapshot &amp; New York Reach</div><div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:15px"><div><div class="gold-card" style="margin-bottom:10px;padding:15px 16px"><div class="sub-heading">Property Snapshot</div><table><tr><td>Owner / Entity</td><td>${escapeHtml(ownerEntityName(d) || String((d as any).dofOwner || '') || 'To verify (HPD / ACRIS)')}</td></tr><tr><td>Type</td><td>${d.propertyType || 'Residential'}</td></tr><tr><td>Units</td><td>${unitsBreakdownLabel(d)}</td></tr><tr><td>Stories / Built</td><td>${d.stories ? `${d.stories} stories` : 'Stories: verify'} &middot; ${d.yearBuilt || 'year: verify'}</td></tr><tr><td>Block / Lot</td><td>${bblLabel(d)}</td></tr><tr><td>Neighborhood</td><td>${neighborhoodName(d)}</td></tr><tr><td>Current Management</td><td>${d.managementCompany ? `${escapeHtml(d.managementCompany)} <span style="font-size:10px;color:#888">(HPD registration &mdash; verify)</span>` : 'To verify &mdash; HPD / DOB / PropertyShark'}</td></tr></table></div><div class="gold-card" style="margin-bottom:10px;padding:15px 16px"><div class="sub-heading">Initial Read</div><p class="body-text" style="font-size:14px;line-height:1.5">This page is a sample of the day-one visibility Camelot's platform gives ownership. ${hasRisks ? `Today the public record shows ${d.violationsOpen} open HPD violation(s), ${fmt$(d.ecbPenaltyBalance)} in ECB penalty balance, and ${d.ll97?.period1Penalty ? fmt$(d.ll97.period1Penalty) + ' in modeled LL97 exposure' : 'LL97 status to confirm'} &mdash; exactly the kind of items we monitor, resolve, and prevent for the buildings we manage.` : `Your building's public record is comparatively clean &mdash; our job would be keeping it that way while tightening financial reporting, vendor pricing, and resident service.`}</p></div><div class="gold-card" style="padding:11px 14px"><div class="sub-heading" style="font-size:15px;margin-bottom:5px">Nearby Context</div>${landmarks.slice(0, 3).map(l => `<div class="check" style="font-size:12px;margin-bottom:6px"><span>&#10003;</span><div>${l}</div></div>`).join('')}</div></div><div style="display:grid;grid-template-columns:1fr;gap:9px">${propertyImageCard(d, `${d.buildingName || d.address} - verified property image`, 210)}${propertyPhotoGallery(d, 4)}${iframeCard(directionsEmbedUrl(d), 'Camelot HQ to subject property route map', `Camelot HQ at 57 West 57th Street to ${d.buildingName || d.address}`, 122)}</div></div><div class="source-note">Sources: Google Maps route, neighborhood context, Camelot property intelligence, and uploaded/verified property assets.</div></div></div>
 ${camelotOnePageSlide(d)}
 ${mdsAccountingSlide()}
 ${residentPortalSlide(d)}
@@ -1444,19 +1479,4 @@ Dear Board Members,
 
 My name is David Goldoff, and I'm the founder and president of Camelot Realty Group. I'm reaching out because we recently completed a comprehensive analysis of ${d.buildingName || d.address} at ${d.address}, and I wanted to share what we found.
 
-${hasIssues ? `Our analysis identified several areas that may warrant attention, including ${d.violationsOpen > 0 ? d.violationsOpen + ' open HPD violations' : ''}${d.ll97 && d.ll97.period1Penalty > 0 ? (d.violationsOpen > 0 ? ' and ' : '') + 'LL97 compliance exposure of ' + (d.ll97.period1Penalty > 0 ? '$' + Math.round(d.ll97.period1Penalty).toLocaleString() + '/year starting 2030' : 'pending assessment') : ''}. The attached Property Intelligence Report provides the full details.` : `Your building appears to be well-maintained, and I've attached a Property Intelligence Report with our analysis. Even well-run buildings can benefit from Camelot's technology-driven management approach and institutional-grade compliance services.`}
-
-I'd welcome the opportunity to discuss how Camelot can serve ${d.buildingName || d.address}. We offer a complimentary building inspection ($2,500 value) at no cost and no obligation - our way of demonstrating value upfront.
-
-Would you have 15 minutes this week for a brief conversation?
-
-Best regards,
-
-${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
-}
-
-
-
-
-
-
+${hasIssues ? `Our analysis identified several areas that may warrant attention, including ${d.violationsOpen > 0 ? d.violationsOpen + ' open HPD viol

@@ -907,7 +907,7 @@ export function extractDOBProfessionals(permits: DOBPermit[]): { professionals: 
  * names (e.g. "1133 Park Avenue" exists in Manhattan AND the Bronx), which
  * left Market Value at $0 in reports.
  */
-export async function resolveBoroughFromGeoSearch(address: string): Promise<{ borough?: string; bbl?: string } | null> {
+export async function resolveBoroughFromGeoSearch(address: string): Promise<{ borough?: string; bbl?: string; neighbourhood?: string; postalcode?: string } | null> {
   try {
     const res = await fetch(
       `https://geosearch.planninglabs.nyc/v2/search?text=${encodeURIComponent(`${address}, New York, NY`)}&size=1`
@@ -919,6 +919,8 @@ export async function resolveBoroughFromGeoSearch(address: string): Promise<{ bo
     return {
       borough: props.borough || undefined,
       bbl: props.addendum?.pad?.bbl || props.pad_bbl || undefined,
+      neighbourhood: props.neighbourhood || undefined,
+      postalcode: props.postalcode || undefined,
     };
   } catch {
     return null;
@@ -929,13 +931,18 @@ export async function resolveBoroughFromGeoSearch(address: string): Promise<{ bo
  * Fetch ALL NYC data for a building (combined)
  */
 export async function fetchFullBuildingReport(address: string, borough?: string) {
-  // Backfill the borough via GeoSearch when it wasn't provided/detected —
-  // most Socrata queries below are far more reliable with a borough filter.
+  // Resolve the address via NYC GeoSearch: authoritative borough (backfilled
+  // when the caller couldn't detect it), plus the real neighborhood and ZIP
+  // for report headers (keyword guessing mislabeled e.g. Walker St as Midtown).
   let resolvedBbl: string | undefined;
-  if (!borough) {
+  let resolvedNeighborhood: string | undefined;
+  let resolvedZip: string | undefined;
+  {
     const geo = await withTimeout(resolveBoroughFromGeoSearch(address), null, 5000);
-    if (geo?.borough) borough = geo.borough;
+    if (!borough && geo?.borough) borough = geo.borough;
     if (geo?.bbl) resolvedBbl = geo.bbl;
+    if (geo?.neighbourhood) resolvedNeighborhood = geo.neighbourhood;
+    if (geo?.postalcode) resolvedZip = geo.postalcode;
   }
 
   let [violations, registration, dofData, permits, energy] = await Promise.all([
@@ -1066,9 +1073,11 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
   }
 
   return {
-    // Borough as resolved for this lookup (caller-provided or GeoSearch
-    // fallback) so report builders can backfill when auto-detect failed.
+    // Location as resolved for this lookup (caller-provided or GeoSearch)
+    // so report builders can backfill when auto-detect failed.
     resolvedBorough: borough || null,
+    resolvedNeighborhood: resolvedNeighborhood || null,
+    resolvedZip: resolvedZip || null,
     violations: {
       total: violations.length,
       open: openViolations.length,

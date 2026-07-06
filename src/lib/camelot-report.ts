@@ -3197,6 +3197,22 @@ function buildFloridaReceivershipReport(address: string): MasterReportData {
   };
 }
 
+/**
+ * Normalize a user-typed address for display: "125 walker street, new york, ny"
+ * → "125 Walker Street, New York, NY". Leaves numerics/ordinals (57th, 37-34)
+ * untouched and uppercases NY/NYC.
+ */
+function titleCaseAddress(value: string): string {
+  if (!value) return value;
+  return value.split(/\s+/).map((word) => {
+    if (/^\d/.test(word)) return word;
+    const bare = word.replace(/[^a-zA-Z]/g, '');
+    if (/^(ny|nyc|usa|llc|corp)$/i.test(bare)) return word.toUpperCase();
+    const lower = word.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }).join(' ');
+}
+
 export async function buildMasterReport(address: string, borough?: string): Promise<MasterReportData> {
   if (isThreeHorizonsEast(address, borough)) {
     return buildFloridaReceivershipReport(address);
@@ -3239,7 +3255,7 @@ export async function buildMasterReport(address: string, borough?: string): Prom
   const knownFacts = isLocked22East22
     ? preKnownFacts
     : getKnownPropertyFacts(lookupAddress, streetEasy?.name || raw.energy?.propertyName || '') || preKnownFacts;
-  const reportAddress = knownFacts?.canonicalAddress || lookupAddress;
+  const reportAddress = titleCaseAddress(knownFacts?.canonicalAddress || lookupAddress);
   const effectiveBorough = knownFacts?.borough || lookupBorough || (raw as any)?.resolvedBorough || '';
 
   // Reconcile unit count across sources. DOF/PLUTO can return a tax-lot or
@@ -3492,7 +3508,9 @@ export async function buildMasterReport(address: string, borough?: string): Prom
           source: 'StreetEasy public building photos',
         }
     : buildingPhotos ? { ...buildingPhotos, interior: buildingPhotos.interior || [] } : buildingPhotos;
-  const effectiveNeighborhoodName = knownFacts?.neighborhoodName || streetEasy?.neighborhood || detectNeighborhood(reportAddress, effectiveBorough);
+  // Prefer the geocoder's real neighborhood (e.g. Tribeca for Walker Street)
+  // over keyword guessing, which mislabeled downtown streets as Midtown.
+  const effectiveNeighborhoodName = knownFacts?.neighborhoodName || streetEasy?.neighborhood || (raw as any)?.resolvedNeighborhood || detectNeighborhood(reportAddress, effectiveBorough);
   const neighborhoodSearchContext = buildNeighborhoodSearchContext({
     address: reportAddress,
     borough: effectiveBorough,
@@ -3559,11 +3577,15 @@ export async function buildMasterReport(address: string, borough?: string): Prom
     landValue: dof?.landValue || 0,
     lotArea: knownFacts?.lotArea || dof?.lotArea || 0,
     buildingArea: knownFacts?.buildingArea || gfa,
+    // Ownership priority: HPD registration and ACRIS deed parties identify the
+    // beneficial owner; DOF/PLUTO often lists a recording agency (e.g. DCAS)
+    // rather than the ownership entity, so it comes last.
     dofOwner: knownFacts?.dofOwner
+      || raw.registration?.owner
+      || (raw.acris?.lastSaleBuyer)
       || dof?.owner
       || raw.dofAbatement?.ownerName
       || (raw.dobOwners?.[0]?.name)
-      || (raw.acris?.lastSaleBuyer)
       || '',
     bbl: knownFacts?.bbl || dof?.bbl || '',
     registrationOwner: knownFacts?.dofOwner

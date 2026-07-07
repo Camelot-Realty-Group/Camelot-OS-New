@@ -3511,9 +3511,12 @@ export async function buildMasterReport(address: string, borough?: string): Prom
           source: 'StreetEasy public building photos',
         }
     : buildingPhotos ? { ...buildingPhotos, interior: buildingPhotos.interior || [] } : buildingPhotos;
-  // Prefer the geocoder's real neighborhood (e.g. Tribeca for Walker Street)
-  // over keyword guessing, which mislabeled downtown streets as Midtown.
-  const effectiveNeighborhoodName = knownFacts?.neighborhoodName || streetEasy?.neighborhood || (raw as any)?.resolvedNeighborhood || detectNeighborhood(reportAddress, effectiveBorough);
+  // Prefer the geocoder's real neighborhood over keyword guessing, which
+  // mislabeled downtown streets as Midtown. Manual overrides win for border
+  // blocks where the marketing neighborhood differs from the city's polygon
+  // (e.g. Walker Street reads as Chinatown in city data but pitches as Tribeca).
+  const neighborhoodOverride = /\bwalker\s+st/i.test(reportAddress) ? 'Tribeca' : '';
+  const effectiveNeighborhoodName = knownFacts?.neighborhoodName || neighborhoodOverride || streetEasy?.neighborhood || (raw as any)?.resolvedNeighborhood || detectNeighborhood(reportAddress, effectiveBorough);
   const neighborhoodSearchContext = buildNeighborhoodSearchContext({
     address: reportAddress,
     borough: effectiveBorough,
@@ -5313,7 +5316,7 @@ html,body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!im
 body{font-family:'DM Sans',-apple-system,sans-serif;background:#F5F0E5;color:#2C3240;font-size:12.5px;line-height:1.5}
 .no-print{display:block}@media print{.no-print{display:none!important}@page{margin:0.18in}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
 .page{max-width:900px;margin:0 auto;counter-reset:page-num}
-.section,.cover,.elevator,.back-cover{counter-increment:page-num;position:relative;border:1px solid #D5D0C6;margin-bottom:6px}
+.section,.cover,.elevator,.back-cover{counter-increment:page-num;position:relative;border:1px solid #C9B87E;box-shadow:0 0 0 4px #F5F0E5,0 0 0 5px #E2D7B8;margin-bottom:10px}
 .section::after{content:'Confidential \u00A9 ${new Date().getFullYear()} Camelot Realty Group \u00B7 Proprietary \u0026 Trade Secret \u00B7 Do Not Distribute Without Written Consent';display:block;text-align:center;font-size:7.5px;color:#999;letter-spacing:0.4px;margin-top:14px;padding-top:8px;border-top:1px solid #E5E3DE}
 .section::before{counter-increment:page-num 0;content:counter(page-num);position:absolute;bottom:12px;right:20px;font-size:9px;color:#999;font-family:Arial,sans-serif;font-weight:400}
 .cover::before,.back-cover::before,.elevator::before{content:counter(page-num);position:absolute;bottom:16px;right:24px;font-size:9px;color:rgba(255,255,255,0.38);font-family:Arial,sans-serif;font-weight:400}
@@ -5470,7 +5473,7 @@ a{color:#B8973A;text-decoration:none}
 
 @media print{
 body{background:#fff;font-size:11.4px;line-height:1.38}
-body::before{content:'';position:fixed;top:0.08in;right:0.08in;bottom:0.08in;left:0.08in;border:0.5pt solid #D5D0C6;pointer-events:none;z-index:99999}
+body::before{content:'';position:fixed;top:0.1in;right:0.1in;bottom:0.1in;left:0.1in;border:1.5pt double #B8973A;pointer-events:none;z-index:99999}
 .page{max-width:none;margin:0}
 .cover,.back-cover{background:#343434!important;page-break-after:always}
 .elevator{page-break-after:auto;min-height:auto}

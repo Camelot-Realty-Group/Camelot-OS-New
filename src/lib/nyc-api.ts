@@ -928,6 +928,28 @@ export async function resolveBoroughFromGeoSearch(address: string): Promise<{ bo
 }
 
 /**
+ * Resolve a property address from Borough + Block + Lot via PLUTO.
+ * Lets users who work off tax records search without a street address.
+ */
+export async function fetchAddressByBBL(borough: string, block: string, lot: string): Promise<{ address: string; borough: string } | null> {
+  const boroDigit = BOROUGH_CODES[borough.toLowerCase()];
+  const blockClean = String(parseInt(String(block).replace(/\D/g, ''), 10) || '');
+  const lotClean = String(parseInt(String(lot).replace(/\D/g, ''), 10) || '');
+  if (!boroDigit || !blockClean || !lotClean) return null;
+  const bbl = `${boroDigit}${blockClean.padStart(5, '0')}${lotClean.padStart(4, '0')}`;
+  try {
+    const res = await fetch(`${ENDPOINTS.dofProperty}?$select=address,borough&bbl=${bbl}`);
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const row = rows?.[0];
+    if (!row?.address) return null;
+    return { address: String(row.address).trim(), borough };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch ALL NYC data for a building (combined)
  */
 export async function fetchFullBuildingReport(address: string, borough?: string) {

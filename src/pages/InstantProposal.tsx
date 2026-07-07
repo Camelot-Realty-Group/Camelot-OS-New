@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Search, CheckCircle, FileText, Edit3, Download, Printer, Mail, Loader2, ChevronRight, ArrowLeft, Zap, X, ExternalLink, Copy } from 'lucide-react';
 import { buildJackieIntelReportFilename, buildMasterReport, generateBrochureHTML, validateJackieReport, type MasterReportData, type QACheckResult } from '@/lib/camelot-report';
+import { fetchAddressByBBL } from '@/lib/nyc-api';
 import { generatePitchReport } from '@/lib/pitch-report';
 import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
@@ -60,6 +61,8 @@ export default function InstantProposal() {
   const [step, setStep] = useState<Step>('search');
   const [address, setAddress] = useState((location.state as { address?: string } | null)?.address || '');
   const [borough, setBorough] = useState('');
+  const [blockNum, setBlockNum] = useState('');
+  const [lotNum, setLotNum] = useState('');
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState<MasterReportData | null>(null);
   const [proposalHTML, setProposalHTML] = useState('');
@@ -107,6 +110,32 @@ export default function InstantProposal() {
         toast.error('Failed to load property: ' + (msg || 'Unknown error'));
       }
       // Keep address so user can edit and retry
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search by Borough + Block + Lot (tax-record workflow)
+  const handleBblSearch = async () => {
+    if (!borough) { toast.error('Select a borough for a Block & Lot search'); return; }
+    if (!blockNum.trim() || !lotNum.trim()) { toast.error('Enter both Block and Lot'); return; }
+    setLoading(true);
+    try {
+      const resolved = await fetchAddressByBBL(borough, blockNum, lotNum);
+      if (!resolved) {
+        toast.error(`No PLUTO record for ${borough} Block ${blockNum} / Lot ${lotNum}`);
+        return;
+      }
+      setAddress(resolved.address);
+      toast.success(`Block/Lot resolved: ${resolved.address}`);
+      const data = await buildMasterReport(resolved.address, borough);
+      setReportData(data);
+      setReleaseQA(null);
+      setStep('verify');
+      toast.success('Property data loaded');
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      toast.error('Block/Lot lookup failed: ' + (err?.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -411,6 +440,31 @@ export default function InstantProposal() {
               <option value="Queens">Queens</option>
               <option value="Staten Island">Staten Island</option>
             </select>
+          </div>
+          <div className="flex items-center justify-center gap-2 mt-3 max-w-xl mx-auto">
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide whitespace-nowrap">or by Block &amp; Lot</span>
+            <input
+              type="text"
+              placeholder="Block (e.g. 198)"
+              value={blockNum}
+              onChange={e => setBlockNum(e.target.value)}
+              className="w-32 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+            />
+            <input
+              type="text"
+              placeholder="Lot (e.g. 126)"
+              value={lotNum}
+              onChange={e => setLotNum(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleBblSearch()}
+              className="w-28 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+            />
+            <button
+              onClick={handleBblSearch}
+              disabled={loading}
+              className="px-4 py-2 border border-camelot-gold text-camelot-gold rounded-xl font-semibold text-xs hover:bg-camelot-gold/10 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              Find by Block/Lot
+            </button>
           </div>
           <div className="flex items-center justify-center gap-3 mt-4">
             <button

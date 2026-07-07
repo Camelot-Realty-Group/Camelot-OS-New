@@ -3247,7 +3247,7 @@ export async function buildMasterReport(address: string, borough?: string): Prom
     (raw as any).dof?.zip,
     lookupAddress,
     address
-  );
+  ) || (raw as any)?.resolvedZip || '';
   const precinct = '';
   const neighborhoodIntel = (zip || precinct) ? await getNeighborhoodIntel(
     precinct || '0', zip || '10001',

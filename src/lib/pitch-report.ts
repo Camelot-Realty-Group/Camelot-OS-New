@@ -28,6 +28,9 @@ export const JACKIE_REPORT_PACKAGES: Array<{ key: JackieReportPackage; label: st
 const CAMELOT_EXECUTIVE_TEAM = [
   { name: 'David Goldoff', title: 'Founder & President', note: 'Owner-minded leadership, client relationships, compliance strategy', photo: 'https://www.camelot.nyc/wp-content/uploads/2026/03/david_headshot.jpg' },
   { name: 'Valerie Ann Fiume', title: 'Director of Co-Ops & Condos / Vice President', note: 'Board operations, resident relations, property management execution', photo: 'https://camelot.realtymx.com/images/agents/4.jpg' },
+  { name: 'Dominic Martiano', title: 'Vice President of Operations', note: 'Building operations, staffing, vendor performance, service delivery', photo: '' },
+  { name: 'Dion', title: 'Vice President of Management', note: 'Portfolio management, board partnership, day-to-day execution', photo: '' },
+  { name: 'Michael', title: 'Vice President, Controller & Financial Services', note: 'Controller-level oversight, financial services, reporting discipline', photo: '' },
   { name: 'Anthony Abruzzo, CPA', title: 'Chief Financial Officer, Senior Managing Tax Director', note: 'Financial controls, tax, reporting, accounting oversight', photo: 'https://camelot.realtymx.com/images/agents/12.jpg' },
   { name: 'Steven Milewicz', title: 'Chief Legal Officer, M&A', note: 'Legal guidance, transactions, acquisitions, governance support', photo: '/images/team/steven-milewicz.jpeg' },
   { name: 'Robert Isaacs', title: 'Senior Managing Director, Asset Management & Compliance', note: 'Asset management, compliance, risk and operating standards', photo: '/images/team/robert-isaacs.jpg' },
@@ -696,7 +699,7 @@ function camelotOnePageSlide(d: MasterReportData): string {
 }
 
 function executiveTeamSlide(): string {
-  return `<div class="slide slide-cream">${logoBadge()}<div class="pad" style="padding:42px 58px 46px"><div class="section-title" style="margin-bottom:14px">Executive Team</div><p class="body-text" style="font-size:14px;margin-bottom:14px">Camelot's board-facing team combines ownership perspective, property operations, accounting, compliance, legal, brokerage, and facility oversight.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${CAMELOT_EXECUTIVE_TEAM.map(member => `<div class="gold-card" style="min-height:128px;display:flex;gap:12px;align-items:flex-start;padding:13px 14px;margin-bottom:0"><div style="width:58px;height:58px;border-radius:10px;overflow:hidden;background:#1a2744;color:#B8973A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex:0 0 58px">${member.photo ? `<img src="${member.photo}" alt="${member.name}" style="width:100%;height:100%;object-fit:cover" onerror="this.outerHTML='${member.name.split(' ').map(w => w[0]).slice(0,2).join('')}'">` : member.name.split(' ').map(w => w[0]).slice(0,2).join('')}</div><div><div style="font-size:15px;font-weight:900;color:#1a2744;line-height:1.15">${member.name}</div><div style="font-size:9.5px;color:#B8973A;font-weight:900;text-transform:uppercase;letter-spacing:.45px;margin:4px 0">${member.title}</div><div style="font-size:11px;color:#4a5568;line-height:1.38">${member.note}</div></div></div>`).join('')}</div></div></div>`;
+  return `<div class="slide slide-cream">${logoBadge()}<div class="pad" style="padding:42px 58px 46px"><div class="section-title" style="margin-bottom:14px">Executive Team</div><p class="body-text" style="font-size:14px;margin-bottom:14px">Camelot's board-facing team combines ownership perspective, property operations, accounting, compliance, legal, brokerage, and facility oversight.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${CAMELOT_EXECUTIVE_TEAM.map(member => `<div class="gold-card" style="min-height:128px;display:flex;gap:12px;align-items:flex-start;padding:13px 14px;margin-bottom:0"><div style="width:58px;height:58px;border-radius:10px;overflow:hidden;background:#1a2744;color:#B8973A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex:0 0 58px">${member.photo ? `<img src="${member.photo}" alt="${member.name}" style="width:100%;height:100%;object-fit:cover;object-position:center 18%" onerror="this.outerHTML='${member.name.split(' ').map(w => w[0]).slice(0,2).join('')}'">` : member.name.split(' ').map(w => w[0]).slice(0,2).join('')}</div><div><div style="font-size:15px;font-weight:900;color:#1a2744;line-height:1.15">${member.name}</div><div style="font-size:9.5px;color:#B8973A;font-weight:900;text-transform:uppercase;letter-spacing:.45px;margin:4px 0">${member.title}</div><div style="font-size:11px;color:#4a5568;line-height:1.38">${member.note}</div></div></div>`).join('')}</div></div></div>`;
 }
 
 function residentPortalSlide(d: MasterReportData): string {
@@ -933,7 +936,13 @@ function meetingDeckCoverSlide(d: MasterReportData): string {
   const displayHood = exact22East22 ? 'Flatiron / Madison Square' : neighborhoodName(d);
   const displayBoro = exact22East22 ? 'Manhattan' : (d.borough ? d.borough.charAt(0).toUpperCase() + d.borough.slice(1) : 'New York');
   const propertyType = exact22East22 ? 'Co-op / TIC' : (d.propertyType || 'Residential');
-  const access = /elevator/i.test(d.propertyType || '') ? 'Elevator' : 'Walk-up';
+  // Access can never default to "Walk-up": tall or large buildings are
+  // elevator buildings by definition, and 150+ unit buildings in this market
+  // are full-service (doorman, staffed, live-in resident manager).
+  const isTallOrLarge = (d.stories || 0) >= 7 || (d.units || 0) >= 60;
+  const access = /elevator/i.test(d.propertyType || '') || isTallOrLarge
+    ? ((d.units || 0) >= 150 ? 'Full-Service Elevator' : 'Elevator')
+    : ((d.stories || 0) > 0 && (d.stories || 0) <= 6 ? 'Walk-up' : 'Verify');
   const use = /mixed|commercial|retail/i.test(`${d.propertyType || ''} ${(d.commercialIntel?.likelyCommercialUses || []).join(' ')}`) ? 'Mixed-use' : 'Residential';
   const image = bestExteriorImage(d);
   const stats = [
@@ -954,7 +963,8 @@ function meetingDeckCoverSlide(d: MasterReportData): string {
       <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;color:#B8973A;font-style:italic;font-weight:600;margin-bottom:12px;line-height:1.04">${displayName}</div>
       <div style="font-size:18px;color:rgba(255,255,255,0.82);margin-bottom:7px">${displayAddress}</div>
       <div style="font-size:15px;color:rgba(255,255,255,0.64);margin-bottom:24px">${displayHood} - ${displayBoro}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:28px">Prepared for ${clientRecipientLabel(d)} - ${today}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:6px">Prepared for ${(() => { const f = d.reportFocus; const names = [f?.inquiryContact, f?.inquiryOrganization].filter(Boolean).map(String).join(', '); return names ? `${escapeHtml(names)} and the ${clientRecipientLabel(d)}` : clientRecipientLabel(d); })()} - ${today}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.36);letter-spacing:1.2px;margin-bottom:28px">Prepared with Camelot OS &mdash; data-driven, produced with human + AI assistance</div>
       <div style="display:flex;gap:22px;flex-wrap:wrap;max-width:760px">
         ${stats.map(([label, value]) => `<div style="min-width:74px"><div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:${String(value).length > 8 ? '21px' : '34px'};font-weight:600;color:#B8973A;line-height:1">${value}</div><div style="font-size:9px;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:1px;margin-top:7px">${label}</div></div>`).join('')}
       </div>
@@ -1006,7 +1016,9 @@ export function generatePitchReport(d: MasterReportData): string {
   const displayHood = exact22East22 ? 'Flatiron / Madison Square' : hood;
   const displayBoro = exact22East22 ? 'Manhattan' : boroDisplay;
   const ownerLabel = exact22East22 ? 'WO Realty LLC' : (d.dofOwner || 'To verify against DOF / ACRIS');
-  const accessLabel = /elevator/i.test(d.propertyType || '') ? 'Elevator' : 'Walk-up';
+  const accessLabel = /elevator/i.test(d.propertyType || '') || (d.stories || 0) >= 7 || (d.units || 0) >= 60
+    ? ((d.units || 0) >= 150 ? 'Full-Service Elevator' : 'Elevator')
+    : ((d.stories || 0) > 0 && (d.stories || 0) <= 6 ? 'Walk-up' : 'Verify');
   const useLabel = /mixed|commercial|retail/i.test(`${d.propertyType || ''} ${(d.commercialIntel?.likelyCommercialUses || []).join(' ')}`) ? 'Mixed-use' : 'Residential';
   const ecbPenaltyLabel = d.ecbPenaltyBalance > 0 ? fmt$(d.ecbPenaltyBalance) : 'To verify';
   const ll97StatusLabel = hasLL97 ? `${fmt$(d.ll97!.period1Penalty)}/yr modeled` : 'Verify / monitor';
@@ -1384,11 +1396,12 @@ export function generatePitchReport(d: MasterReportData): string {
 <div class="slide slide-cream">
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
   <div class="pad">
-    <div class="section-title">The Proposed Investment</div>
-    <div class="body-text" style="margin-bottom:20px">Recommended starting point: <strong>Camelot Intelligence</strong>. Classic and Premier remain available if the board wants a leaner, expanded, or hybrid scope.</div>
+    <div class="section-title">The Path to a Fair Number</div>
+    <div class="body-text" style="margin-bottom:14px">We don't quote a building we haven't studied. Before we put a management fee in writing, we ask to review &mdash; with your permission &mdash; the <strong>prior manager's report, your latest operating budget, last audited financials, staffing structure, and arrears</strong>. Those materials let us run our formulas honestly and arrive at a number where you're satisfied and we're satisfied: an equitable agreement, not a guess.</div>
+    <div class="body-text" style="margin-bottom:18px">For context only: full-service buildings of this caliber typically pay in the range of <strong>$1,000&ndash;$1,500 per unit per year</strong> in base management (market figures &mdash; to be verified against your actual scope). Our recommended platform is <strong>Camelot Intelligence</strong> &mdash; standard management on steroids: automation, templates, document depository, resident portal, and the Camelot OS system. Classic and Premier remain available for a leaner or expanded scope.</div>
     <table class="fee-table">
       <tr><th>Management Service Component</th><th>Camelot Inclusion</th></tr>
-      <tr><td><strong>Recommended Package</strong><br><span style="font-size:12px;color:#6b7280">Subject to review of prior management report, latest budget, audited financials, staffing, arrears, and requested scope.</span></td><td class="gold">Camelot Intelligence - ${d.tieredPricing?.intelligence?.monthly ? `$${d.tieredPricing.intelligence.monthly.toLocaleString()}/mo ($${d.tieredPricing.intelligence.annual.toLocaleString()}/yr)` : scopedFeeLabel(d)}</td></tr>
+      <tr><td><strong>Recommended Package</strong><br><span style="font-size:12px;color:#6b7280">Fee quoted after review of prior management report, latest budget, audited financials, staffing, arrears, and requested scope.</span></td><td class="gold">Camelot Intelligence &mdash; full-suite service for a full-suite building; fee proposed with your financials in hand</td></tr>
       <tr><td><strong>Online Banking Services</strong></td><td class="gold">BankUnited preferred banking workflow with zero bank fees</td></tr>
       <tr><td><strong>Technology Platform</strong></td><td>Priced inside the recommended Intelligence package - Camelot OS + ConciergePlus + Merlin AI</td></tr>
       <tr><td><strong>Initial Building Inspection</strong></td><td class="gold">$500 introductory inspection ($2,500 value)</td></tr>

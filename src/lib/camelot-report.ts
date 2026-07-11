@@ -3400,6 +3400,15 @@ export async function buildMasterReport(address: string, borough?: string): Prom
   // keywords, and does NOT match the management company already on file.
   // ---------------------------------------------------------------------------
   function deriveBuildingName(addr: string, data: any): string {
+    // Highest authority: the legal entity on the PLUTO tax roll when it names
+    // the building itself (e.g. "LIBERTY VIEW CONDOMINIUM"). LL84 energy
+    // registrations are filed by owners/sponsors and often carry the
+    // sponsor's brand ("Milstein 99 Battery Place") rather than the
+    // building's actual name.
+    const plutoOwner = String(data.dof?.owner || '').trim();
+    if (/\b(condominium|condo association|co-?op(erative)?|owners corp|tenants corp|apartment corp)\b/i.test(plutoOwner)) {
+      return titleCaseAddress(plutoOwner);
+    }
     const energyName = (data.energy?.propertyName || '').trim();
     if (!energyName) return addr;
 
@@ -3452,7 +3461,14 @@ export async function buildMasterReport(address: string, borough?: string): Prom
   const buildingName = is279CentralParkWestSubject(reportAddress, derivedBuildingName, raw.energy?.propertyName, raw.registration?.managementCompany)
     ? '279 Central Park West'
     : cleanBuildingName(derivedBuildingName, reportAddress, knownFacts?.managementCompany || raw.registration?.managementCompany);
-  const propertyType = knownFacts?.propertyType || streetEasy?.buildingType || classifyBuildingType(dof?.buildingClass || '');
+  // City building class outranks StreetEasy's scraped guess; and a building
+  // with 7+ stories or 60+ units can never be a "walk-up" (see 99 Battery
+  // Place: 28 floors, 293 units, mislabeled walk-up by a scrape).
+  const cityPropertyType = dof?.buildingClass ? classifyBuildingType(dof.buildingClass) : '';
+  let propertyType = knownFacts?.propertyType || cityPropertyType || streetEasy?.buildingType || 'Residential';
+  if (/walk-?up/i.test(propertyType) && ((dof?.stories || 0) >= 7 || (dof?.units || 0) >= 60)) {
+    propertyType = 'Elevator Apartment';
+  }
   const brandingResearch = await fetchOfficialBuildingBranding(reportAddress, buildingName).catch(() => null);
   let commercialIntel = inferCommercialAmenityIntel({
     address: reportAddress,

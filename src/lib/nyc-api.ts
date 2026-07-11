@@ -907,7 +907,7 @@ export function extractDOBProfessionals(permits: DOBPermit[]): { professionals: 
  * names (e.g. "1133 Park Avenue" exists in Manhattan AND the Bronx), which
  * left Market Value at $0 in reports.
  */
-export async function resolveBoroughFromGeoSearch(address: string): Promise<{ borough?: string; bbl?: string; neighbourhood?: string; postalcode?: string } | null> {
+export async function resolveBoroughFromGeoSearch(address: string): Promise<{ borough?: string; bbl?: string; neighbourhood?: string; postalcode?: string; lat?: number; lng?: number } | null> {
   try {
     const res = await fetch(
       `https://geosearch.planninglabs.nyc/v2/search?text=${encodeURIComponent(`${address}, New York, NY`)}&size=1`

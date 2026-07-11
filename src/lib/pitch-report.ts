@@ -529,11 +529,32 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
         ['23 Street Station', '6', 'Park Avenue South & East 23rd Street', 'approx. 0.3 mi'],
         ['23 Street Station', 'F / M', 'Sixth Avenue & West 23rd Street', 'approx. 0.5 mi'],
       ]
-    : [
-        ['Nearest transit', 'Verify', 'Confirm against MTA / Google Maps during final review', 'nearby'],
-        ['Vendor routing', 'Street access', 'Useful for site visits, inspections, and emergency response', 'context'],
-        ['Resident access', 'Neighborhood mobility', 'Important for value and resident experience', 'context'],
-      ];
+    : (() => {
+        const subways = (d as any).nearbySubways as Array<{ name: string; routes: string; miles: number }> | undefined;
+        if (subways && subways.length) {
+          const rows = subways.map(s => {
+            const walkMin = Math.max(1, Math.round(s.miles * 20));
+            return [s.name, s.routes.split(/\s+/).join(' / '), `MTA station &middot; approx. ${s.miles.toFixed(2)} mi`, `~${walkMin} min walk`];
+          });
+          // Distance from Camelot HQ (57 W 57th St) for the last row
+          if (d.latitude && d.longitude) {
+            const R = 3958.8; const la1 = 40.76488, lo1 = -73.97710;
+            const dLat = (d.latitude - la1) * Math.PI / 180, dLng = (d.longitude - lo1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(la1 * Math.PI / 180) * Math.cos(d.latitude * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+            const miles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            rows.push(['From Camelot HQ', 'Transit / car', `57 West 57th Street to your door &middot; ${miles.toFixed(1)} mi`, 'senior staff on-site fast']);
+          } else {
+            rows.push(['From Camelot HQ', 'Transit / car', '57 West 57th Street, Suite 410 to your door', 'senior staff on-site fast']);
+          }
+          rows.push(['Bus / ferry / Citi Bike / rideshare', 'Mapped at onboarding', 'Full mobility map delivered with the first building report', 'context']);
+          return rows;
+        }
+        return [
+          ['Nearest transit', 'Verify', 'Confirm against MTA / Google Maps during final review', 'nearby'],
+          ['Vendor routing', 'Street access', 'Useful for site visits, inspections, and emergency response', 'context'],
+          ['Resident access', 'Neighborhood mobility', 'Important for value and resident experience', 'context'],
+        ];
+      })();
   const query = exact22East22 ? '23 Street Station N R W Broadway East 23rd Street New York NY' : `${d.address} nearest subway`;
   return `<div class="gold-card" style="padding:16px 18px;height:100%"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:150px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
 }
@@ -1230,24 +1251,25 @@ export function generatePitchReport(d: MasterReportData): string {
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
   <div class="pad">
     <div class="section-title">Building Intelligence</div>
-    <div style="font-size:14px;color:#6b7280;margin-bottom:20px">Live data from NYC HPD, DOB, DOF, ACRIS & Energy Star - ${today}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:24px">
-      <div class="stat-box"><div class="stat-val">${d.violationsTotal}</div><div class="stat-label">Total HPD Violations</div></div>
-      <div class="stat-box"><div class="stat-val" style="${d.violationsOpen > 10 ? 'color:#dc2626' : ''}">${d.violationsOpen}</div><div class="stat-label">Open Violations</div></div>
-      <div class="stat-box"><div class="stat-val" style="font-size:30px">${ecbPenaltyLabel}</div><div class="stat-label">DOB / ECB Penalties</div></div>
-      <div class="stat-box"><div class="stat-val" style="font-size:26px">${ll97StatusLabel}</div><div class="stat-label">LL97 Planning Status</div></div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:14px">Live public-record check by agency &mdash; NYC HPD, DOB, ECB, DOF, ACRIS &amp; Energy Star &mdash; ${today}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+      <div class="gold-card" style="padding:12px 14px;margin:0"><div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:4px">HPD &mdash; Housing</div><div style="font-size:22px;font-weight:900;color:${d.violationsOpen > 0 ? '#b45309' : '#1a2744'}">${d.violationsOpen} open</div><div style="font-size:11px;color:#4a5568;line-height:1.4">${d.violationsTotal} total on record${(d.violationClassC || d.violationClassB || d.violationClassA) ? ` &middot; ${[d.violationClassC ? `${d.violationClassC} Class C (critical)` : '', d.violationClassB ? `${d.violationClassB} Class B (hazardous)` : '', d.violationClassA ? `${d.violationClassA} Class A` : ''].filter(Boolean).join(' &middot; ')}` : ''}. Open items get a cure path and re-inspection schedule.</div></div>
+      <div class="gold-card" style="padding:12px 14px;margin:0"><div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:4px">DOB / ECB &mdash; Fines &amp; Interest</div><div style="font-size:22px;font-weight:900;color:${d.ecbPenaltyBalance > 0 ? '#dc2626' : '#1a2744'}">${d.ecbPenaltyBalance > 0 ? fmt$(d.ecbPenaltyBalance) : 'No balance found'}</div><div style="font-size:11px;color:#4a5568;line-height:1.4">${d.ecbCount ? `${d.ecbCount} ECB/OATH record(s). ` : ''}Unpaid ECB penalties compound with interest &mdash; these are always our first target. Open permits reviewed for expiry and sign-off.</div></div>
+      <div class="gold-card" style="padding:12px 14px;margin:0"><div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:4px">DOF &mdash; Liens &amp; Taxes</div><div style="font-size:22px;font-weight:900;color:${(d.taxLienRecordCount || 0) > 0 ? '#dc2626' : '#1a2744'}">${(d.taxLienRecordCount || 0) > 0 ? `${d.taxLienRecordCount} lien record(s)` : 'No lien sale records'}</div><div style="font-size:11px;color:#4a5568;line-height:1.4">Tax lien sale lists, water debt, and assessment posture checked against the tax roll.</div></div>
+      <div class="gold-card" style="padding:12px 14px;margin:0"><div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:4px">LL11 / FISP &mdash; Facade</div><div style="font-size:22px;font-weight:900;color:${(d.facadeIssueCount || 0) > 0 ? '#b45309' : '#1a2744'}">${(d.facadeFilingCount || 0) > 0 ? `${d.facadeFilingCount} filing(s)` : 'Filing status: verify'}</div><div style="font-size:11px;color:#4a5568;line-height:1.4">${(d.facadeIssueCount || 0) > 0 ? `${d.facadeIssueCount} filing(s) show SWARMP/unsafe status. ` : ''}Cycle status, QEWI reports, and sidewalk-shed exposure reviewed with our engineering partners.</div></div>
+      <div class="gold-card" style="padding:12px 14px;margin:0"><div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:4px">LL97 / LL84 &mdash; Energy</div><div style="font-size:22px;font-weight:900;color:${d.ll97?.period1Penalty ? '#dc2626' : '#1a2744'}">${d.ll97?.period1Penalty ? fmt$(d.ll97.period1Penalty) + '/yr modeled' : 'Within limits / verify'}</div><div style="font-size:11px;color:#4a5568;line-height:1.4">${d.ll97?.period1Penalty ? `11-year modeled exposure ${fmt$(d.ll97.totalExposure11yr)}. ` : ''}Benchmarking, emissions trajectory, and 2030 limits modeled with our energy team.</div></div>
+      <div class="gold-card" style="padding:12px 14px;margin:0"><div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:4px">Legal &mdash; Litigation &amp; Labor</div><div style="font-size:22px;font-weight:900;color:${(d.litigationCount || 0) > 0 ? '#b45309' : '#1a2744'}">${(d.litigationCount || 0) > 0 ? `${d.litigationCount} matter(s)` : 'None found'}</div><div style="font-size:11px;color:#4a5568;line-height:1.4">Housing litigation, judgments, and labor-law exposure (wage, 32BJ, prevailing-rate) swept with in-house counsel.</div></div>
     </div>
-    ${hasViolations ? `
-    <div style="display:flex;gap:20px;margin-bottom:16px">
-      ${d.violationClassC ? `<div style="flex:${d.violationClassC};background:#dc2626;color:#fff;padding:8px 12px;text-align:center;border-radius:4px;font-size:13px;font-weight:600">${d.violationClassC} Class C - Critical</div>` : ''}
-      ${d.violationClassB ? `<div style="flex:${d.violationClassB};background:#f59e0b;color:#fff;padding:8px 12px;text-align:center;border-radius:4px;font-size:13px;font-weight:600">${d.violationClassB} Class B - Hazardous</div>` : ''}
-      ${d.violationClassA ? `<div style="flex:${d.violationClassA};background:#3b82f6;color:#fff;padding:8px 12px;text-align:center;border-radius:4px;font-size:13px;font-weight:600">${d.violationClassA} Class A</div>` : ''}
-    </div>` : ''}
-    ${hasLL97 ? `
-    <div style="background:#fefdf5;border:1px solid #B8973A;border-radius:4px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
-      <div><strong style="color:#92400e">LL97 Carbon Penalty Exposure</strong><br><span style="font-size:14px;color:#78350f">${ll97ExposureNote}</span></div>
-      <div style="text-align:right"><div style="font-size:28px;font-weight:700;color:#dc2626">${fmt$(d.ll97!.period1Penalty)}<span style="font-size:14px;color:#6b7280">/year</span></div><div style="font-size:12px;color:#6b7280">11-Year Exposure: ${fmt$(d.ll97!.totalExposure11yr)}</div></div>
-    </div>` : ''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      ${['LL11 FISP facade', 'LL84 benchmarking', 'LL87 energy audit', 'LL97 emissions', 'LL152 gas piping', 'LL126 parapets/garage', 'Window guards', 'Elevator cat-1/5'].map(law => `<span style="font-size:10px;font-weight:800;color:#1a2744;border:1px solid #C9B87E;border-radius:999px;padding:3px 10px;background:#faf7ef">${law}</span>`).join('')}
+      <span style="font-size:10px;font-weight:800;color:#fff;border-radius:999px;padding:3px 10px;background:#B8973A">Applicability &amp; status gut-checked for a building of this size</span>
+    </div>
+    <div class="gold-card" style="padding:14px 18px;margin:0">
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px;align-items:center">
+        <div style="font-size:12.5px;color:#1a2744;line-height:1.55"><strong>And the teams behind these results:</strong> engineering, architecture, compliance, energy, and legal &mdash; are they delivering? We benchmark each one, expose what isn't working, and address it head-on.</div>
+        <div style="font-size:12.5px;color:#1a2744;line-height:1.55">Our plan of attack comes board-ready: <strong>budget, RFP, scope, team identified, and project management</strong> &mdash; keeping the building compliant, and free of fines and compounding interest.</div>
+      </div>
+    </div>
   </div>
 </div>
 

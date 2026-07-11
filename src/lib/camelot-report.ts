@@ -57,6 +57,8 @@ export interface MasterReportData {
   /** Residential vs total (incl. commercial) unit counts from PLUTO. */
   unitsResidential?: number;
   unitsTotalAll?: number;
+  /** Nearest subway stations (MTA dataset): name, routes, straight-line miles. */
+  nearbySubways?: Array<{ name: string; routes: string; miles: number }>;
   assessedValue: number;
   landValue: number;
   lotArea: number;
@@ -3612,6 +3614,7 @@ export async function buildMasterReport(address: string, borough?: string): Prom
     bbl: knownFacts?.bbl || dof?.bbl || '',
     unitsResidential: (dof as any)?.unitsResidential || 0,
     unitsTotalAll: (dof as any)?.unitsTotalAll || 0,
+    nearbySubways: (raw as any)?.nearbySubways || [],
     registrationOwner: knownFacts?.dofOwner
       || raw.registration?.owner
       || (raw.dobOwners?.[0]?.name)

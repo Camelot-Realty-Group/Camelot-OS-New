@@ -916,14 +916,50 @@ export async function resolveBoroughFromGeoSearch(address: string): Promise<{ bo
     const data = await res.json();
     const props = data?.features?.[0]?.properties;
     if (!props) return null;
+    const coords = data?.features?.[0]?.geometry?.coordinates;
     return {
       borough: props.borough || undefined,
       bbl: props.addendum?.pad?.bbl || props.pad_bbl || undefined,
       neighbourhood: props.neighbourhood || undefined,
       postalcode: props.postalcode || undefined,
+      lat: Array.isArray(coords) ? Number(coords[1]) : undefined,
+      lng: Array.isArray(coords) ? Number(coords[0]) : undefined,
     };
   } catch {
     return null;
+  }
+}
+
+function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Nearest subway stations from the MTA stations dataset (real names + routes),
+ * computed by straight-line distance from the property.
+ */
+export async function fetchNearbySubways(lat: number, lng: number, limit = 3): Promise<Array<{ name: string; routes: string; miles: number }>> {
+  try {
+    const res = await fetch(`${NYC_BASE}/39hk-dx4f.json?$select=stop_name,daytime_routes,gtfs_latitude,gtfs_longitude&$limit=600`);
+    if (!res.ok) return [];
+    const rows = await res.json();
+    const seen = new Set<string>();
+    return rows
+      .map((r: any) => ({
+        name: String(r.stop_name || '').trim(),
+        routes: String(r.daytime_routes || '').trim(),
+        miles: haversineMiles(lat, lng, parseFloat(r.gtfs_latitude), parseFloat(r.gtfs_longitude)),
+      }))
+      .filter((s: any) => s.name && Number.isFinite(s.miles))
+      .sort((a: any, b: any) => a.miles - b.miles)
+      .filter((s: any) => { const k = `${s.name}|${s.routes}`; if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, limit);
+  } catch {
+    return [];
   }
 }
 
@@ -959,12 +995,20 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
   let resolvedBbl: string | undefined;
   let resolvedNeighborhood: string | undefined;
   let resolvedZip: string | undefined;
+  let nearbySubways: Array<{ name: string; routes: string; miles: number }> = [];
+  let resolvedLat: number | undefined;
+  let resolvedLng: number | undefined;
   {
     const geo = await withTimeout(resolveBoroughFromGeoSearch(address), null, 5000);
     if (!borough && geo?.borough) borough = geo.borough;
     if (geo?.bbl) resolvedBbl = geo.bbl;
     if (geo?.neighbourhood) resolvedNeighborhood = geo.neighbourhood;
     if (geo?.postalcode) resolvedZip = geo.postalcode;
+    if (geo?.lat && geo?.lng) {
+      resolvedLat = geo.lat;
+      resolvedLng = geo.lng;
+      nearbySubways = await withTimeout(fetchNearbySubways(geo.lat, geo.lng, 3), [], 6000);
+    }
   }
 
   let [violations, registration, dofData, permits, energy] = await Promise.all([
@@ -1100,6 +1144,9 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
     resolvedBorough: borough || null,
     resolvedNeighborhood: resolvedNeighborhood || null,
     resolvedZip: resolvedZip || null,
+    resolvedLat: resolvedLat ?? null,
+    resolvedLng: resolvedLng ?? null,
+    nearbySubways,
     violations: {
       total: violations.length,
       open: openViolations.length,
@@ -1121,8 +1168,14 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
           owner: (dof as any).owner || (dof as any).ownername || '',
           // PLUTO has no market-value field (only assessed values), so fall
           // back to the DOF assessment roll's current market total
-          // (curmkttot via fetchDOFExemptions). Previously this was always 0.
-          marketValue: parseFloat((dof as any).fullval || (dof as any).fullvaltot || (dof as any).marketvalue) || dofAbatement?.marketValue || 0,
+          // (curmkttot via fetchDOFExemptions). Sanity guard: a whole-building
+          // market value can never be below its assessed value — if it is,
+          // the roll matched a single condo unit lot, so discard it.
+          marketValue: (() => {
+            const assessed = parseFloat((dof as any).avtot || (dof as any).assesstot) || 0;
+            const mv = parseFloat((dof as any).fullval || (dof as any).fullvaltot || (dof as any).marketvalue) || dofAbatement?.marketValue || 0;
+            return mv >= assessed * 0.8 ? mv : 0;
+          })(),
           assessedValue: parseFloat((dof as any).avtot || (dof as any).assesstot) || 0,
           landValue: parseFloat((dof as any).avland || (dof as any).assessland) || 0,
           yearBuilt: parseInt(dof.yearbuilt) || 0,

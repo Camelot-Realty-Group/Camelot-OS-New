@@ -28,9 +28,9 @@ export const JACKIE_REPORT_PACKAGES: Array<{ key: JackieReportPackage; label: st
 const CAMELOT_EXECUTIVE_TEAM = [
   { name: 'David Goldoff', title: 'Founder & President', note: 'Owner-minded leadership, client relationships, compliance strategy', photo: 'https://www.camelot.nyc/wp-content/uploads/2026/03/david_headshot.jpg' },
   { name: 'Valerie Ann Fiume', title: 'Director of Co-Ops & Condos / Vice President', note: 'Board operations, resident relations, property management execution', photo: 'https://camelot.realtymx.com/images/agents/4.jpg' },
-  { name: 'Dominic Martiano', title: 'Vice President of Operations', note: 'Building operations, staffing, vendor performance, service delivery', photo: '' },
-  { name: 'Dion', title: 'Vice President of Management', note: 'Portfolio management, board partnership, day-to-day execution', photo: '' },
-  { name: 'Michael', title: 'Vice President, Controller & Financial Services', note: 'Controller-level oversight, financial services, reporting discipline', photo: '' },
+  { name: 'Dominic Martorana', title: 'Vice President of Operations', note: 'Building operations, staffing, vendor performance, service delivery', photo: '' },
+  { name: 'Dion Fotopoulos', title: 'Vice President of Management', note: 'Portfolio management, board partnership, day-to-day execution', photo: '' },
+  { name: 'Michael Eisenstein', title: 'Vice President, Controller & Financial Services', note: 'Controller-level oversight, financial services, reporting discipline', photo: '' },
   { name: 'Anthony Abruzzo, CPA', title: 'Chief Financial Officer, Senior Managing Tax Director', note: 'Financial controls, tax, reporting, accounting oversight', photo: 'https://camelot.realtymx.com/images/agents/12.jpg' },
   { name: 'Steven Milewicz', title: 'Chief Legal Officer, M&A', note: 'Legal guidance, transactions, acquisitions, governance support', photo: '/images/team/steven-milewicz.jpeg' },
   { name: 'Robert Isaacs', title: 'Senior Managing Director, Asset Management & Compliance', note: 'Asset management, compliance, risk and operating standards', photo: '/images/team/robert-isaacs.jpg' },
@@ -378,7 +378,7 @@ function deckShell(title: string, slides: string): string {
   const safeTitle = escapeHtml(title);
   const encodedSubject = encodeURIComponent(title);
   const encodedBody = encodeURIComponent(`Please find the Camelot introduction report for review.\n\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`);
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><style>${externalDeckCss()}</style></head><body><div class="deck-action-bar"><div style="font-size:13px;font-weight:900;color:#F4D26A">${safeTitle}</div><div><button class="gold" onclick="setTimeout(function(){window.focus();window.print()},150)">Print / Save PDF</button><button class="white" onclick="var blob=new Blob([document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=document.title.replace(/[^a-zA-Z0-9]+/g,'-')+'.html';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove()},1000)">Download HTML</button><a class="outline" href="mailto:info@camelot.nyc?cc=dgoldoff@camelot.nyc&subject=${encodedSubject}&body=${encodedBody}">Email</a></div></div>${slides}</body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><style>${externalDeckCss()}</style></head><body><div class="deck-action-bar"><div style="font-size:13px;font-weight:900;color:#F4D26A">${safeTitle}</div><div><button class="gold" onclick="setTimeout(function(){window.focus();window.print()},150)">Print / Save PDF</button><button class="white" onclick="var blob=new Blob([document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=document.title.replace(/[^a-zA-Z0-9]+/g,'-')+'.html';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove()},1000)">Download HTML</button><a class="outline" href="mailto:info@camelot.nyc?cc=dgoldoff@camelot.nyc&subject=${encodedSubject}&body=${encodedBody}">Email</a></div></div>${slides}</body></html>`;
 }
 
 function logoBadge(): string {
@@ -699,7 +699,7 @@ function camelotOnePageSlide(d: MasterReportData): string {
 }
 
 function executiveTeamSlide(): string {
-  return `<div class="slide slide-cream">${logoBadge()}<div class="pad" style="padding:42px 58px 46px"><div class="section-title" style="margin-bottom:14px">Executive Team</div><p class="body-text" style="font-size:14px;margin-bottom:14px">Camelot's board-facing team combines ownership perspective, property operations, accounting, compliance, legal, brokerage, and facility oversight.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${CAMELOT_EXECUTIVE_TEAM.map(member => `<div class="gold-card" style="min-height:128px;display:flex;gap:12px;align-items:flex-start;padding:13px 14px;margin-bottom:0"><div style="width:58px;height:58px;border-radius:10px;overflow:hidden;background:#1a2744;color:#B8973A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex:0 0 58px">${member.photo ? `<img src="${member.photo}" alt="${member.name}" style="width:100%;height:100%;object-fit:cover;object-position:center 18%" onerror="this.outerHTML='${member.name.split(' ').map(w => w[0]).slice(0,2).join('')}'">` : member.name.split(' ').map(w => w[0]).slice(0,2).join('')}</div><div><div style="font-size:15px;font-weight:900;color:#1a2744;line-height:1.15">${member.name}</div><div style="font-size:9.5px;color:#B8973A;font-weight:900;text-transform:uppercase;letter-spacing:.45px;margin:4px 0">${member.title}</div><div style="font-size:11px;color:#4a5568;line-height:1.38">${member.note}</div></div></div>`).join('')}</div></div></div>`;
+  return `<div class="slide slide-cream">${logoBadge()}<div class="pad" style="padding:42px 58px 46px"><div class="section-title" style="margin-bottom:14px">Executive Team</div><p class="body-text" style="font-size:14px;margin-bottom:14px">Camelot's board-facing team combines ownership perspective, property operations, accounting, compliance, legal, brokerage, and facility oversight.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">${CAMELOT_EXECUTIVE_TEAM.map(member => `<div class="gold-card" style="min-height:128px;display:flex;gap:12px;align-items:flex-start;padding:13px 14px;margin-bottom:0"><div style="width:58px;height:58px;border-radius:10px;overflow:hidden;background:#1a2744;color:#B8973A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex:0 0 58px">${member.photo ? `<img src="${member.photo}" alt="${member.name}" style="width:100%;height:100%;object-fit:cover;object-position:center 10%;transform:scale(1.28);transform-origin:center 22%" onerror="this.outerHTML='${member.name.split(' ').map(w => w[0]).slice(0,2).join('')}'">` : member.name.split(' ').map(w => w[0]).slice(0,2).join('')}</div><div><div style="font-size:15px;font-weight:900;color:#1a2744;line-height:1.15">${member.name}</div><div style="font-size:9.5px;color:#B8973A;font-weight:900;text-transform:uppercase;letter-spacing:.45px;margin:4px 0">${member.title}</div><div style="font-size:11px;color:#4a5568;line-height:1.38">${member.note}</div></div></div>`).join('')}</div></div></div>`;
 }
 
 function residentPortalSlide(d: MasterReportData): string {
@@ -963,11 +963,13 @@ function meetingDeckCoverSlide(d: MasterReportData): string {
       <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;color:#B8973A;font-style:italic;font-weight:600;margin-bottom:12px;line-height:1.04">${displayName}</div>
       <div style="font-size:18px;color:rgba(255,255,255,0.82);margin-bottom:7px">${displayAddress}</div>
       <div style="font-size:15px;color:rgba(255,255,255,0.64);margin-bottom:24px">${displayHood} - ${displayBoro}</div>
-      <div style="font-size:12px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:6px">Prepared for ${(() => { const f = d.reportFocus; const names = [f?.inquiryContact, f?.inquiryOrganization].filter(Boolean).map(String).join(', '); return names ? `${escapeHtml(names)} and the ${clientRecipientLabel(d)}` : clientRecipientLabel(d); })()} - ${today}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:3px">Prepared for ${(() => { const f = d.reportFocus; const names = [f?.inquiryContact, f?.inquiryOrganization].filter(Boolean).map(String).join(', '); return names ? `${escapeHtml(names)} and the ${clientRecipientLabel(d)}` : clientRecipientLabel(d); })()}</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:1.8px;margin-bottom:6px">${today}</div>
       <div style="font-size:10px;color:rgba(255,255,255,0.36);letter-spacing:1.2px;margin-bottom:28px">Prepared with Camelot OS &mdash; data-driven, produced with human + AI assistance</div>
       <div style="display:flex;gap:22px;flex-wrap:wrap;max-width:760px">
         ${stats.map(([label, value]) => `<div style="min-width:74px"><div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:${String(value).length > 8 ? '21px' : '34px'};font-weight:600;color:#B8973A;line-height:1">${value}</div><div style="font-size:9px;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:1px;margin-top:7px">${label}</div></div>`).join('')}
       </div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.72);line-height:1.6;margin-top:22px;max-width:640px;font-style:italic">A prominent ${use === 'Mixed-use' ? 'residential mixed-use' : 'residential'} ${/condo/i.test(propertyType) ? 'condominium' : propertyType.toLowerCase()} in a family community. Your home is the type of property Camelot Property Management looks to serve.</div>
     </div>
     <div style="flex:0 0 450px;display:flex;align-items:center;justify-content:center;padding:44px 52px 44px 0">
       <div class="photo-frame"><img src="${image}" style="width:400px;height:500px;object-fit:cover;display:block" /></div>
@@ -1062,7 +1064,7 @@ export function generatePitchReport(d: MasterReportData): string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Camelot - Management Proposal - ${d.buildingName || d.address}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   @page { size: 13.333in 7.5in; margin: 0; }
   @media print {
@@ -1254,7 +1256,8 @@ export function generatePitchReport(d: MasterReportData): string {
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
   <div class="pad">
     <div class="section-title">Why Camelot</div>
-    <div style="font-size:17px;font-weight:700;color:#1a2744;margin-bottom:20px">The institutional power of a full-service firm. The accountability of a dedicated partner.</div>
+    <div style="font-size:17px;font-weight:700;color:#1a2744;margin-bottom:8px">The institutional power of a full-service firm. The accountability of a dedicated partner.</div>
+    <div style="max-width:980px;margin:44px auto 0">
     <table class="cmp-table">
       <tr><th class="other">Large Firms</th><th class="cml">Camelot</th><th class="other">Solo Operators</th></tr>
       <tr><td class="other">Your building is one of 500+</td><td class="cml">Your building is a priority</td><td class="other">Limited staff, limited hours</td></tr>
@@ -1264,7 +1267,8 @@ export function generatePitchReport(d: MasterReportData): string {
       <tr><td class="other">Outsourced accounting, no legal/eng</td><td class="cml">In-house CPAs + free attorney + engineer</td><td class="other">Basic bookkeeping, no advisors</td></tr>
       <tr><td class="other">No proprietary tech</td><td class="cml">Merlin AI + Camelot OS + ConciergePlus</td><td class="other">Paper-based systems</td></tr>
     </table>
-    <div class="body-italic" style="margin-top:16px">Boutique scale. Institutional capability. Owner's mentality.</div>
+    <div class="body-italic" style="margin-top:18px;text-align:center">Boutique scale. Institutional capability. Owner's mentality.</div>
+    </div>
   </div>
 </div>
 
@@ -1378,15 +1382,22 @@ export function generatePitchReport(d: MasterReportData): string {
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
   <div class="pad" style="padding:42px 58px 42px">
     <div class="section-title">The 90-Day Transition</div>
-    <div style="display:grid;grid-template-columns:1fr 44px 1fr 44px 1fr;gap:12px;align-items:stretch;margin-bottom:18px">
-      <div class="phase-card" style="padding:16px"><div class="phase-title">Month 1: Assessment</div><div class="phase-sub">Files, money, residents, staff, vendors, and compliance get organized.</div><div class="phase-items">File transfer<br>Introductory inspection<br>Staff and vendor review<br>Financial baseline</div></div>
-      <div style="display:flex;align-items:center;justify-content:center;color:#B8973A;font-size:34px;font-weight:900">→</div>
-      <div class="phase-card" style="padding:16px"><div class="phase-title">Month 2: Stabilization</div><div class="phase-sub">Camelot becomes visible to the board, residents, vendors, and agencies.</div><div class="phase-items">SOPs and work orders<br>Board portal and cadence<br>Vendor rebids<br>Meet-and-greet / Zoom town hall</div></div>
-      <div style="display:flex;align-items:center;justify-content:center;color:#B8973A;font-size:34px;font-weight:900">→</div>
-      <div class="phase-card" style="padding:16px"><div class="phase-title">Month 3: Optimization</div><div class="phase-sub">The building moves from intake to measurable operating improvement.</div><div class="phase-items">Capital plan<br>Cost-saving priorities<br>Resident communication rhythm<br>Quarterly board review</div></div>
+    <div style="max-width:980px;margin:30px auto 0">
+    <div style="display:grid;grid-template-columns:1fr 44px 1fr 44px 1fr;gap:12px;align-items:stretch;margin-bottom:22px">
+      <div class="phase-card" style="padding:16px"><div class="phase-title">Month 1: Up &amp; Running</div><div class="phase-sub">A written transition document goes to your exiting manager; their transfer agent works with ours.</div><div class="phase-items">Bank account open in 2&ndash;4 days with your tax ID, articles of incorporation, and resident roster<br>Billing live; collections and payables running<br>Contracts, policies, leases, violations, legal and DOB paperwork transferred</div></div>
+      <div style="display:flex;align-items:center;justify-content:center;color:#B8973A;font-size:34px;font-weight:900">&rarr;</div>
+      <div class="phase-card" style="padding:16px"><div class="phase-title">Month 2: Boots on the Ground</div><div class="phase-sub">We meet your building &mdash; people first, then the physical plant.</div><div class="phase-items">Every vendor met at the building to understand what they actually do<br>Exterior walk-through + interior mechanicals reviewed &mdash; written report with photos<br>Staff conversations, resident-manager alignment, expectations set early</div></div>
+      <div style="display:flex;align-items:center;justify-content:center;color:#B8973A;font-size:34px;font-weight:900">&rarr;</div>
+      <div class="phase-card" style="padding:16px"><div class="phase-title">Month 3: Measurable Improvement</div><div class="phase-sub">From intake to operating discipline &mdash; and an honest read of your burn rate.</div><div class="phase-items">Track, measure, and record expenses; cut waste and price-fix vendor costs<br>New SOPs and standards built to the board's demands<br>A six-month plan set with the board: agenda, goals, deliverables</div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-      ${['Cleaner reporting', 'Lower avoidable costs', 'Better resident experience', 'Board-ready priorities'].map((item, idx) => `<div class="gold-card" style="padding:14px;margin:0;text-align:center"><div style="width:34px;height:34px;border-radius:50%;background:#B8973A;color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-weight:900">${idx + 1}</div><div style="font-size:13px;font-weight:900;color:#1a2744">${item}</div></div>`).join('')}
+      ${[
+        ['&#127970;', 'Site inspection &amp; visual report', 'Starting the relationship with a clear-eyed look at your building'],
+        ['&#129309;', 'Meet-and-greet, wine &amp; cheese', '&ldquo;Meet your new management team&rdquo; &mdash; residents, staff, and board'],
+        ['&#9878;&#65039;', 'Compliance &amp; LL gut check', 'Consultants engaged; open items, committees, and projects mapped'],
+        ['&#128197;', 'Governance &amp; calendar', 'Board procedures strengthened; key dates and budget priorities set'],
+      ].map(([icon, title, sub]) => `<div class="gold-card" style="padding:14px;margin:0;text-align:center"><div style="width:40px;height:40px;border-radius:50%;background:#1a2744;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;font-size:19px">${icon}</div><div style="font-size:12.5px;font-weight:900;color:#1a2744;margin-bottom:4px">${title}</div><div style="font-size:10.5px;color:#4a5568;line-height:1.4">${sub}</div></div>`).join('')}
+    </div>
     </div>
   </div>
   ${everyOtherPageVisualChip(d, 2, 'Transition Context')}
@@ -1397,21 +1408,28 @@ export function generatePitchReport(d: MasterReportData): string {
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
   <div class="pad">
     <div class="section-title">The Path to a Fair Number</div>
-    <div class="body-text" style="margin-bottom:14px">We don't quote a building we haven't studied. Before we put a management fee in writing, we ask to review &mdash; with your permission &mdash; the <strong>prior manager's report, your latest operating budget, last audited financials, staffing structure, and arrears</strong>. Those materials let us run our formulas honestly and arrive at a number where you're satisfied and we're satisfied: an equitable agreement, not a guess.</div>
-    <div class="body-text" style="margin-bottom:18px">For context only: full-service buildings of this caliber typically pay in the range of <strong>$1,000&ndash;$1,500 per unit per year</strong> in base management (market figures &mdash; to be verified against your actual scope). Our recommended platform is <strong>Camelot Intelligence</strong> &mdash; standard management on steroids: automation, templates, document depository, resident portal, and the Camelot OS system. Classic and Premier remain available for a leaner or expanded scope.</div>
-    <table class="fee-table">
-      <tr><th>Management Service Component</th><th>Camelot Inclusion</th></tr>
-      <tr><td><strong>Recommended Package</strong><br><span style="font-size:12px;color:#6b7280">Fee quoted after review of prior management report, latest budget, audited financials, staffing, arrears, and requested scope.</span></td><td class="gold">Camelot Intelligence &mdash; full-suite service for a full-suite building; fee proposed with your financials in hand</td></tr>
-      <tr><td><strong>Online Banking Services</strong></td><td class="gold">BankUnited preferred banking workflow with zero bank fees</td></tr>
-      <tr><td><strong>Technology Platform</strong></td><td>Priced inside the recommended Intelligence package - Camelot OS + ConciergePlus + Merlin AI</td></tr>
-      <tr><td><strong>Initial Building Inspection</strong></td><td class="gold">$500 introductory inspection ($2,500 value)</td></tr>
-      <tr><td><strong>In-House CPA / Accounting</strong></td><td>Advisory and reporting coordination; tax returns and deeper accounting work separately scoped</td></tr>
-      <tr><td><strong>Capital Project Management</strong></td><td>Initial coordination only; active project management separately scoped</td></tr>
-      <tr><td><strong>AI Board Meeting Minutes</strong></td><td>Included - annual meeting, AI-enhanced</td></tr>
-      <tr><td><strong>In-House Attorney & Engineer</strong></td><td>Advisory only; formal legal or engineering engagement separately scoped</td></tr>
-      <tr><td><strong>Schedule A / Ancillary Fees</strong></td><td>Property-type-specific menu issued with final agreement and scope</td></tr>
-    </table>
-    <div class="body-italic" style="margin-top:16px">Our efficiencies effectively pay for our management through long-term savings on vendors, compliance, and capital.</div>
+    <div style="max-width:940px;margin:34px auto 0">
+      <div style="display:grid;grid-template-columns:1fr 1.05fr;gap:34px;align-items:start">
+        <div>
+          <div class="sub-heading" style="font-size:21px;margin-bottom:12px">How we arrive at your fee</div>
+          <p class="body-text" style="font-size:14.5px;line-height:1.75;margin-bottom:14px">Our structure is simple: a <strong>base management fee</strong> and a menu of <strong>ancillary services</strong> &mdash; both discussed and shared after a conversation with your board, a look at your financials, and a real understanding of your budget.</p>
+          <p class="body-text" style="font-size:14.5px;line-height:1.75;margin-bottom:14px">We look to <strong>build around your budget</strong> so the agreement is equitable for you and equitable for us. No number is quoted before we've earned the right to quote one.</p>
+          <p class="body-text" style="font-size:14.5px;line-height:1.75">For all of these reasons we are highly competitive &mdash; and we structure our work as <strong>long-term partnerships</strong>, because the savings we find in vendors, compliance, and capital planning compound year over year.</p>
+        </div>
+        <div class="gold-card" style="padding:22px 26px;margin:0">
+          <div class="sub-heading" style="font-size:19px;margin-bottom:12px">What your fee includes</div>
+          ${[
+            'Full management services &mdash; receivables, payables, and the day-to-day running of your building',
+            'A front-end property manager, with board meetings and governance support',
+            'A dedicated account manager at controller level &mdash; overseen by a senior property manager and a senior controller',
+            'In-house CPA and in-house attorney',
+            'Camelot Intelligence technology: Camelot OS, ConciergePlus resident portal, Merlin AI, automation, templates, and a document depository',
+            'Online banking through our preferred BankUnited workflow',
+          ].map(item => `<div class="check" style="font-size:13px;margin-bottom:9px"><span>&#10003;</span><div>${item}</div></div>`).join('')}
+        </div>
+      </div>
+      <div class="body-italic" style="margin-top:26px;text-align:center;font-size:14px">Share your budget, your last audited financials, and the prior manager's report &mdash; and we'll return with a number built for your building, not a template.</div>
+    </div>
   </div>
 </div>
 
@@ -1464,9 +1482,8 @@ export function generatePitchReport(d: MasterReportData): string {
       <a href="tel:+12122069939;ext=701" style="background:#fff;color:#314655;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Call 212-206-9939 x701</a>
     </div>
     <div style="font-size:16px;color:rgba(255,255,255,0.7);line-height:2">
-      212-206-9939 ext. 701  |  212-206-9939 ext. 701<br>
-      info@camelot.nyc<br>
-      www.camelot.nyc<br>
+      212-206-9939 ext. 701<br>
+      info@camelot.nyc &nbsp;|&nbsp; www.camelot.nyc<br>
       57 West 57th Street, Suite 410, New York, NY 10019
     </div>
   </div>
@@ -1480,8 +1497,10 @@ export function generatePitchReport(d: MasterReportData): string {
   <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;text-align:center;padding:60px;position:relative;z-index:2">
     <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;letter-spacing:12px;font-weight:400;margin-bottom:6px">C A M E L O T</div>
     <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#B8973A;font-style:italic;margin-bottom:50px">Property Management</div>
-    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;font-style:italic;color:#B8973A;margin-bottom:20px">Thank You</div>
-    <div style="font-size:18px;color:rgba(255,255,255,0.7)">We look forward to serving<br>the ${d.buildingName || d.address} community</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:46px;font-style:italic;color:#B8973A;margin-bottom:20px">Thank You For Your Consideration</div>
+    <div style="font-size:18px;color:rgba(255,255,255,0.7)">We look forward to serving,</div>
+    <div style="font-family:'Great Vibes','Cormorant Garamond',cursive;font-size:44px;color:#F4D26A;margin-top:10px;line-height:1.2">${escapeHtml(d.buildingName || d.address)}</div>
+    <div style="font-size:18px;color:rgba(255,255,255,0.7);margin-top:6px">community</div>
   </div>
 </div>
 

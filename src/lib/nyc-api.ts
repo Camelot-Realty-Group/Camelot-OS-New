@@ -944,7 +944,9 @@ function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number):
  */
 export async function fetchNearbySubways(lat: number, lng: number, limit = 3): Promise<Array<{ name: string; routes: string; miles: number }>> {
   try {
-    const res = await fetch(`${NYC_BASE}/39hk-dx4f.json?$select=stop_name,daytime_routes,gtfs_latitude,gtfs_longitude&$limit=600`);
+    // MTA Subway Stations lives on the NY State portal (data.ny.gov), not the
+    // NYC portal — the city host returns 404 for this dataset.
+    const res = await fetch(`https://data.ny.gov/resource/39hk-dx4f.json?$select=stop_name,daytime_routes,gtfs_latitude,gtfs_longitude&$limit=600`);
     if (!res.ok) return [];
     const rows = await res.json();
     const seen = new Set<string>();

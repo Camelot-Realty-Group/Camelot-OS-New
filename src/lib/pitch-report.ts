@@ -1234,26 +1234,47 @@ export function generatePitchReport(d: MasterReportData): string {
 <div class="slide slide-cream">
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
   <div class="pad">
-    <div class="section-title">The Property</div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px">
+    <div class="section-title">The Property &mdash; A Quick Look at What We Already Know</div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:14px;font-style:italic">Our platform assembled this profile of your building in minutes, from live city records &mdash; a sample of the day-one visibility Camelot brings to every client.</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px">
       ${factCards.map(card => `<div class="stat-box" style="padding:12px 14px;text-align:left;min-height:92px"><div class="stat-label" style="font-size:11px">${card.label}</div><div class="stat-val" style="font-size:24px;line-height:1.12;word-break:normal;overflow-wrap:anywhere">${card.value}</div></div>`).join('')}
     </div>
-    <div style="display:flex;gap:28px">
+    <div style="display:flex;gap:24px;align-items:flex-start">
       <div style="flex:1">
         <div class="sub-heading">${displayName}</div>
-        <div class="body-text" style="font-size:13.5px;line-height:1.48;margin-bottom:10px">
-          ${d.units ? `At ${d.units} units, ${displayName} is a strong fit for Camelot's high-touch management: small enough for direct board attention and large enough to benefit from disciplined financial, vendor, and compliance systems.` : `${displayName} is well-suited for Camelot's hands-on management approach: personal attention supported by institutional-grade reporting and compliance controls.`}
+        <div class="body-text" style="font-size:13px;line-height:1.5;margin-bottom:10px">
+          ${(() => {
+            const bits: string[] = [];
+            bits.push(`${displayName} is a ${d.yearBuilt ? `${d.yearBuilt}-built, ` : ''}${d.stories ? `${d.stories}-story ` : ''}${/condo/i.test(d.propertyType || '') ? 'condominium' : (d.propertyType || 'residential building').toLowerCase()} in ${displayHood}`);
+            const res = Number((d as any).unitsResidential || 0), tot = Number((d as any).unitsTotalAll || 0);
+            if (res && tot > res) bits.push(`${res} residences over ${tot - res} commercial/other units — a true mixed-use community`);
+            else if (d.units) bits.push(`${d.units} residences`);
+            if ((d.units || 0) >= 150) bits.push('operating as a full-service, staffed building');
+            if (/battery park|waterfront|riverdale|seaport|dumbo/i.test(displayHood)) bits.push('steps from the waterfront');
+            return bits.join(', ') + '.';
+          })()}
         </div>
-        <div style="font-size:12.5px;color:#4a5568;line-height:1.75">
-          <div><strong>Built / Type:</strong> ${d.yearBuilt ? `c. ${d.yearBuilt}` : 'To verify'} | ${d.propertyType || 'Residential'}${d.stories ? ` | ${d.stories} stories` : ''}</div>
-          <div><strong>Scale / Area:</strong> ${d.units ? `${d.units} units` : 'Unit count to verify'} | ${displayHood}</div>
-          <div><strong>Current Management:</strong> ${mgmt}</div>
-          <div><strong>Value / Assessment:</strong> ${d.marketValue ? `Market value ${fmt$(d.marketValue)}` : 'Market value to verify'}${d.assessedValue ? ` | Assessed ${fmt$(d.assessedValue)}` : ''}</div>
-          <div><strong>Owner:</strong> ${ownerLabel}</div>
+        <div style="font-size:12px;color:#4a5568;line-height:1.7">
+          <div><strong>Who runs it today:</strong> ${mgmt} &middot; <strong>Owner:</strong> ${ownerLabel}</div>
+          <div><strong>Compliance at a glance:</strong> ${d.violationsOpen > 0 ? `${d.violationsOpen} open HPD violation(s)` : 'no open HPD violations'}${d.ecbPenaltyBalance > 0 ? ` &middot; ${fmt$(d.ecbPenaltyBalance)} ECB balance` : ' &middot; no ECB balance found'} &middot; full agency check on the next page</div>
+          <div><strong>Staffing profile:</strong> ${(d.units || 0) >= 150 ? 'Doorman / concierge-class building — shift structure confirmed at onboarding' : 'Staffing confirmed at onboarding'}${d.isRentStabilized ? ' &middot; rent-stabilized units (deep DHCR / RGB expertise in-house)' : ''}</div>
+          <div><strong>Assessment:</strong> ${d.marketValue ? `Market value ${fmt$(d.marketValue)}` : 'Market value verified with your financials'}${d.assessedValue ? ` &middot; Assessed ${fmt$(d.assessedValue)}` : ''}</div>
         </div>
-        ${d.isRentStabilized ? `<div class="body-italic" style="margin-top:12px">Rent stabilized - Camelot has deep DHCR & RGB expertise</div>` : ''}
+        <div class="gold-card" style="margin-top:12px;padding:11px 14px">
+          <div style="font-size:10px;font-weight:900;letter-spacing:1px;color:#B8973A;text-transform:uppercase;margin-bottom:6px">How ${displayHood} is trading</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center">
+            ${[
+              ['Condo $/SF', d.neighborhoodMarketData?.condoPSF ? `$${d.neighborhoodMarketData.condoPSF}` : 'In full report'],
+              ['Co-op $/SF', d.neighborhoodMarketData?.coopPSF ? `$${d.neighborhoodMarketData.coopPSF}` : 'In full report'],
+              ['Median 1BR rent', d.neighborhoodMarketData?.median1BR ? `$${Number(d.neighborhoodMarketData.median1BR).toLocaleString()}` : 'In full report'],
+              ['Median 2BR rent', d.neighborhoodMarketData?.median2BR ? `$${Number(d.neighborhoodMarketData.median2BR).toLocaleString()}` : 'In full report'],
+            ].map(([label, value]) => `<div><div style="font-size:15px;font-weight:900;color:#1a2744">${value}</div><div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">${label}</div></div>`).join('')}
+          </div>
+          <div style="font-size:9.5px;color:#888;margin-top:6px">Neighborhood benchmarks &mdash; how your building marks against them (sales, rents, sponsor units) is quantified in the full report.</div>
+        </div>
       </div>
-      <div style="flex:0 0 420px">
+      <div style="flex:0 0 400px;display:grid;gap:8px;align-content:start">
+        ${contextualImageCard(d, 0, `The property &mdash; ${escapeHtml(streetLine(d.address))}`, 132)}
         ${closestSubwayPanel(d, exact22East22)}
       </div>
     </div>

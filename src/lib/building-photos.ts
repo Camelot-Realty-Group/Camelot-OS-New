@@ -60,6 +60,12 @@ export interface BuildingPhotos {
   attribution: string; // Required credit line for the lead photo, if the source requires one
   source: string; // Where the lead photo came from, for QA/debugging and report footnotes
   noPhotoAvailable: boolean; // True when nothing legitimate was found — render the labeled placeholder, not a blank box
+  // Legacy optional fields kept for compatibility with older consumers
+  // (camelot-report.ts) that used to read these directly. Always empty/unset
+  // from this module now — the aimed Street View fallback result is
+  // returned via `exterior[0]` + `attribution`, not a separate field.
+  streetView?: string;
+  satellite?: string;
 }
 
 interface LatLng {

@@ -2,11 +2,7 @@ import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 /**
  * Building Photo Finder — Scout Bot (CamelotOS v.10 / camelot-scout-v6)
  *
- * Real-photo pipeline for the report cover/"THE PROPERTY" image. This module
- * intentionally never returns an AI-generated image and never falls back to
- * Google Street View — both were explicitly ruled out for client-facing
- * reports (Street View reads as "we don't actually have a photo of your
- * building," and AI generation risks showing a building that doesn't exist).
+ * Real-photo pipeline for the report cover/"THE PROPERTY" image.
  *
  * Fallback order:
  *   1. Google Places API (New) — Text Search, scoped to the exact address.
@@ -14,30 +10,49 @@ import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
  *      This is a different Google product from Street View.
  *   2. Wikimedia Commons — free, real, but sparse (mostly landmarked/notable
  *      buildings).
- *   3. Nothing found → a clearly labeled "no exterior photo available"
- *      placeholder. Never silently blank, never Street View, never AI.
+ *   3. Google Street View, aimed at the building — LAST RESORT ONLY. Unlike
+ *      the old behavior (a generic street-facing static image), this looks
+ *      up the nearest panorama, computes the compass bearing from that
+ *      panorama to the building's own coordinates, and requests the image
+ *      with that heading so the camera is actually pointed at the building
+ *      rather than wherever the panorama happens to face. Always captioned
+ *      "Photo via Google Street View" so it's never confused with a
+ *      submitted Places photo.
+ *   4. Nothing found → a clearly labeled "no exterior photo available"
+ *      placeholder. Never silently blank, never AI-generated.
  *
- * Known bug this replaces: the previous version fell back to a Street View
- * static image, and a separate code path in pitch-report.ts was pulling
- * `commercialIntel.brandingImages` (marketing/interior photos of *any*
- * nearby business — e.g. a restaurant a few doors down) into the same slot
- * as if it were a photo of the subject building. That is why reports were
- * showing a random tenant's interior instead of the building's exterior.
- * This file no longer participates in that fallback chain; see
+ * Note on other sources that were researched but are NOT implemented here:
+ * county/municipal property assessor photo portals and the NYC Municipal
+ * Archives tax photo collections (1940s / 1980s) have no public API — they
+ * are manual/scripted-browse-only and, for the NYC archives, decades out of
+ * date. Both were evaluated and intentionally left out of this automated
+ * pipeline; see the PR discussion for the full writeup.
+ *
+ * Known bug this replaces: the previous version fell back to a generic
+ * Street View static image, and a separate code path in pitch-report.ts was
+ * pulling `commercialIntel.brandingImages` (marketing/interior photos of
+ * *any* nearby business — e.g. a restaurant a few doors down) into the same
+ * slot as if it were a photo of the subject building. That is why reports
+ * were showing a random tenant's interior instead of the building's
+ * exterior. This file no longer participates in that fallback chain; see
  * pitch-report.ts (bestExteriorImage / propertyImageCard / contextualImageCard)
  * for the corresponding fix.
  *
  * REQUIRES SETUP (not done by this change): `VITE_GOOGLE_MAPS_API_KEY` must
  * be set in Render with a real, billing-enabled key that has "Places API
- * (New)" enabled. As of this commit, Render has no such key configured for
- * camelot-scout-v6, so `GOOGLE_MAPS_KEY` resolves to the shared public demo
- * key, which does not reliably serve Places (New) responses either. This is
- * a one-time manual step for whoever owns the Google Cloud project — see
- * TODO below.
+ * (New)" enabled (Street View Static + Street View Metadata APIs also need
+ * to be enabled on that same key for the fallback below to work). As of
+ * this commit, Render has no such key configured for camelot-scout-v6, so
+ * `GOOGLE_MAPS_KEY` resolves to the shared public demo key, which does not
+ * reliably serve any of these APIs. This is a one-time manual step for
+ * whoever owns the Google Cloud project.
  */
 
 const WIKI_API = 'https://commons.wikimedia.org/w/api.php';
 const PLACES_SEARCH_TEXT_URL = 'https://places.googleapis.com/v1/places:searchText';
+const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
+const STREETVIEW_METADATA_URL = 'https://maps.googleapis.com/maps/api/streetview/metadata';
+const STREETVIEW_STATIC_URL = 'https://maps.googleapis.com/maps/api/streetview';
 
 export interface BuildingPhotos {
   exterior: string[]; // URLs to real exterior photos, best first
@@ -45,6 +60,11 @@ export interface BuildingPhotos {
   attribution: string; // Required credit line for the lead photo, if the source requires one
   source: string; // Where the lead photo came from, for QA/debugging and report footnotes
   noPhotoAvailable: boolean; // True when nothing legitimate was found — render the labeled placeholder, not a blank box
+}
+
+interface LatLng {
+  lat: number;
+  lng: number;
 }
 
 /**
@@ -83,6 +103,7 @@ interface PlacesTextSearchResult {
   formattedAddress?: string;
   types?: string[];
   photos?: PlacesTextSearchPhoto[];
+  location?: { latitude: number; longitude: number };
 }
 
 /**
@@ -94,14 +115,15 @@ function placePhotoMediaUrl(photoName: string, maxHeightPx = 900): string {
 }
 
 /**
- * Search Google Places (New) for the specific address and return a real
- * photo of that place — not of whatever business Google ranks highest for
- * a loose nearby query. Requires "Places API (New)" enabled on the Maps key.
+ * Search Google Places (New) for the specific address. Returns the best
+ * address-matched result (photo, if any, plus lat/lng so a Street View
+ * fallback — if we end up needing one — can be aimed at the right point).
  */
-async function searchGooglePlacesExteriorPhoto(address: string): Promise<{
-  photoUrl: string;
-  attribution: string;
-} | null> {
+async function searchGooglePlacesForAddress(address: string): Promise<{
+  photoUrl: string | null;
+  attribution: string | null;
+  location: LatLng | null;
+}> {
   try {
     const res = await fetch(PLACES_SEARCH_TEXT_URL, {
       method: 'POST',
@@ -109,11 +131,11 @@ async function searchGooglePlacesExteriorPhoto(address: string): Promise<{
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_MAPS_KEY,
         // Only ask for what we need — keeps the request cheap and fast.
-        'X-Goog-FieldMask': 'places.formattedAddress,places.types,places.photos',
+        'X-Goog-FieldMask': 'places.formattedAddress,places.types,places.photos,places.location',
       },
       body: JSON.stringify({ textQuery: address, maxResultCount: 5 }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { photoUrl: null, attribution: null, location: null };
 
     const data = await res.json();
     const results: PlacesTextSearchResult[] = data?.places || [];
@@ -125,9 +147,18 @@ async function searchGooglePlacesExteriorPhoto(address: string): Promise<{
     const candidates = results.filter(r => placeMatchesAddress(r.formattedAddress || '', address));
     const best =
       candidates.find(r => (r.types || []).some(t => addressLevelTypes.includes(t))) ||
-      candidates[0];
+      candidates[0] ||
+      null;
 
-    if (!best || !best.photos || best.photos.length === 0) return null;
+    if (!best) return { photoUrl: null, attribution: null, location: null };
+
+    const location: LatLng | null = best.location
+      ? { lat: best.location.latitude, lng: best.location.longitude }
+      : null;
+
+    if (!best.photos || best.photos.length === 0) {
+      return { photoUrl: null, attribution: null, location };
+    }
 
     const photo = best.photos[0];
     const attributionName = photo.authorAttributions?.[0]?.displayName;
@@ -135,9 +166,76 @@ async function searchGooglePlacesExteriorPhoto(address: string): Promise<{
       ? `Photo: ${attributionName} via Google`
       : 'Photo via Google';
 
-    return { photoUrl: placePhotoMediaUrl(photo.name), attribution };
+    return { photoUrl: placePhotoMediaUrl(photo.name), attribution, location };
   } catch (e) {
-    console.error('Places (New) exterior photo lookup failed:', e);
+    console.error('Places (New) address lookup failed:', e);
+    return { photoUrl: null, attribution: null, location: null };
+  }
+}
+
+/**
+ * Fall back to the Geocoding API purely for coordinates, when the Places
+ * search above didn't return a usable location (e.g. no address-matched
+ * result at all). Only used to aim the last-resort Street View fallback.
+ */
+async function geocodeAddress(address: string): Promise<LatLng | null> {
+  try {
+    const url = `${GEOCODE_URL}?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const loc = data?.results?.[0]?.geometry?.location;
+    if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return null;
+    return { lat: loc.lat, lng: loc.lng };
+  } catch (e) {
+    console.error('Geocoding fallback failed:', e);
+    return null;
+  }
+}
+
+/**
+ * Standard great-circle initial bearing (degrees, 0-360) from `from` to `to`.
+ * This is what lets the Street View fallback actually point at the building
+ * instead of showing whatever direction the panorama defaults to.
+ */
+function bearingBetween(from: LatLng, to: LatLng): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const toDeg = (rad: number) => (rad * 180) / Math.PI;
+  const phi1 = toRad(from.lat);
+  const phi2 = toRad(to.lat);
+  const deltaLambda = toRad(to.lng - from.lng);
+
+  const y = Math.sin(deltaLambda) * Math.cos(phi2);
+  const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+  const theta = Math.atan2(y, x);
+
+  return (toDeg(theta) + 360) % 360;
+}
+
+/**
+ * Look up the nearest Street View panorama to `location` and, if one
+ * exists, return a Static Street View image URL aimed at `location` (not at
+ * whatever the panorama's own default heading is). Last-resort fallback
+ * only — see module docs.
+ */
+async function aimedStreetViewImage(location: LatLng): Promise<{ photoUrl: string; attribution: string } | null> {
+  try {
+    const metaUrl = `${STREETVIEW_METADATA_URL}?location=${location.lat},${location.lng}&key=${GOOGLE_MAPS_KEY}`;
+    const metaRes = await fetch(metaUrl);
+    if (!metaRes.ok) return null;
+    const meta = await metaRes.json();
+    if (meta?.status !== 'OK' || !meta?.pano_id || !meta?.location) return null;
+
+    const panoLocation: LatLng = { lat: meta.location.lat, lng: meta.location.lng };
+    const heading = bearingBetween(panoLocation, location);
+
+    const photoUrl =
+      `${STREETVIEW_STATIC_URL}?size=1200x600&pano=${encodeURIComponent(meta.pano_id)}` +
+      `&heading=${heading.toFixed(1)}&pitch=8&fov=75&key=${GOOGLE_MAPS_KEY}`;
+
+    return { photoUrl, attribution: 'Photo via Google Street View' };
+  } catch (e) {
+    console.error('Aimed Street View fallback failed:', e);
     return null;
   }
 }
@@ -196,17 +294,16 @@ async function searchWikimedia(buildingName: string, address: string): Promise<s
 
 /**
  * Find the best available REAL exterior photo for a building.
- * Never returns a Street View URL and never generates anything — if nothing
- * legitimate is found, `noPhotoAvailable` is true and callers must render
- * the labeled placeholder (see generatePhotoHTML below).
+ * Order: Places (New) -> Wikimedia -> aimed Street View (last resort) ->
+ * "no photo available" placeholder. Never generates anything.
  */
 export async function findBuildingPhotos(buildingName: string, address: string): Promise<BuildingPhotos> {
-  const placesResult = await searchGooglePlacesExteriorPhoto(address);
-  if (placesResult) {
+  const places = await searchGooglePlacesForAddress(address);
+  if (places.photoUrl) {
     return {
-      exterior: [placesResult.photoUrl],
+      exterior: [places.photoUrl],
       interior: [],
-      attribution: placesResult.attribution,
+      attribution: places.attribution || '',
       source: 'Google Places (New)',
       noPhotoAvailable: false,
     };
@@ -223,6 +320,23 @@ export async function findBuildingPhotos(buildingName: string, address: string):
     };
   }
 
+  // Last resort: Street View, aimed at the building rather than a generic
+  // street-facing shot. Needs coordinates — reuse whatever Places found
+  // even without a photo, or fall back to geocoding.
+  const location = places.location || (await geocodeAddress(address));
+  if (location) {
+    const streetView = await aimedStreetViewImage(location);
+    if (streetView) {
+      return {
+        exterior: [streetView.photoUrl],
+        interior: [],
+        attribution: streetView.attribution,
+        source: 'Google Street View',
+        noPhotoAvailable: false,
+      };
+    }
+  }
+
   return {
     exterior: [],
     interior: [],
@@ -234,8 +348,7 @@ export async function findBuildingPhotos(buildingName: string, address: string):
 
 /**
  * Generate photo HTML for a Jackie report. Shows a clearly labeled
- * placeholder — never a blank box, never Street View, never an AI image —
- * when no real photo was found.
+ * placeholder — never a blank box — when no real photo was found.
  */
 export function generatePhotoHTML(photos: BuildingPhotos, buildingName: string): string {
   if (photos.noPhotoAvailable || !photos.exterior[0]) {

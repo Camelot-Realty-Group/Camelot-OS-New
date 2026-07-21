@@ -11,7 +11,7 @@ import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import { formatLibraryDate, loadLocalJackieReportLibrary, packageLabelFor, removeJackieReportRecord, saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
 import { pushBuildingToIntegrations } from '@/lib/integrations';
 import { trackReportWorkflowEvent } from '@/lib/report-crm-tracking';
-import type { Building, Contact } from '@/types';
+import type { Building, Contact } from '@/types'; import { findBuildingPhotos } from '@/lib/building-photos';
 import toast from 'react-hot-toast';
 
 type EmailType = 'intro' | 'followup' | 'proposal' | 'compliance' | 'loyalty';
@@ -256,7 +256,7 @@ export default function ReportCenter() {
   const [showCallerModal, setShowCallerModal] = useState(false);
   const [emailType, setEmailType] = useState<EmailType>('intro');
   const [copied, setCopied] = useState(false);
-  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]); const [autoExteriorPhoto, setAutoExteriorPhoto] = useState<{ url: string; attribution: string } | null>(null); useEffect(() => { let cancelled = false; setAutoExteriorPhoto(null); const addr = data?.address; const name = data?.buildingName || addr; if (!addr) return; findBuildingPhotos(name || addr, addr).then((result: any) => { if (!cancelled && result?.exterior?.[0]) { setAutoExteriorPhoto({ url: result.exterior[0], attribution: result.attribution || '' }); } }).catch(() => {}); return () => { cancelled = true; }; }, [data?.address, data?.buildingName]);
   const [selectedFocus, setSelectedFocus] = useState<ReportFocusKey[]>(['property_management']);
   const [inquiryContact, setInquiryContact] = useState('');
   const [inquiryEmail, setInquiryEmail] = useState('');
@@ -796,21 +796,21 @@ export default function ReportCenter() {
   const reportDataWithPhotos = useMemo((): MasterReportData | null => {
     if (!data) return null;
     const baseData = { ...data, reportFocus: buildReportFocus() };
-    if (uploadedPhotos.length === 0) return applyJackieFactAuthority(baseData).data as MasterReportData;
+    if (uploadedPhotos.length === 0 && !autoExteriorPhoto) return applyJackieFactAuthority(baseData).data as MasterReportData;
     const uploadedStack = uploadedPhotos.filter(Boolean);
     const existingExterior = baseData.buildingPhotos?.exterior || [];
     const existingInterior = baseData.buildingPhotos?.interior || [];
     return applyJackieFactAuthority({
       ...baseData,
       buildingPhotos: {
-        exterior: [...uploadedStack, ...existingExterior],
+        exterior: [...uploadedStack, ...(uploadedStack.length === 0 && autoExteriorPhoto ? [autoExteriorPhoto.url] : []), ...existingExterior],
         interior: existingInterior,
         streetView: baseData.buildingPhotos?.streetView || '',
         satellite: baseData.buildingPhotos?.satellite || '',
-        source: `Uploaded by Camelot team (${uploadedStack.length} photo${uploadedStack.length === 1 ? '' : 's'})`,
+        source: uploadedStack.length ? `Uploaded by Camelot team (${uploadedStack.length} photo${uploadedStack.length === 1 ? '' : 's'})` : (autoExteriorPhoto ? `Auto-located real exterior photo${autoExteriorPhoto.attribution ? ` (${autoExteriorPhoto.attribution})` : ''}` : (baseData.buildingPhotos?.source || '')),
       },
     }).data as MasterReportData;
-  }, [data, uploadedPhotos, buildReportFocus]);
+  }, [data, uploadedPhotos, buildReportFocus, autoExteriorPhoto]);
 
   const getDataWithPhotos = useCallback((): MasterReportData | null => reportDataWithPhotos, [reportDataWithPhotos]);
 

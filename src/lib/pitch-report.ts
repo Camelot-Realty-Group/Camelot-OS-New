@@ -418,7 +418,7 @@ function nearbyServicesEmbedUrl(d: MasterReportData): string {
 }
 
 function bestExteriorImage(d: MasterReportData): string {
-  return d.buildingPhotos?.exterior?.[0] || d.buildingPhotos?.interior?.[0] || d.commercialIntel?.brandingImages?.[0] || d.streetEasy?.photos?.[0] || streetViewImage(d);
+  return d.buildingPhotos?.exterior?.[0] || d.buildingPhotos?.interior?.[0] || d.streetEasy?.photos?.[0] || '';
 }
 
 function propertyPhotoStack(d: MasterReportData): string[] {
@@ -426,7 +426,7 @@ function propertyPhotoStack(d: MasterReportData): string[] {
   return [
     ...(d.buildingPhotos?.exterior || []),
     ...(d.buildingPhotos?.interior || []),
-    ...(d.commercialIntel?.brandingImages || []),
+    
     ...(d.streetEasy?.photos || []),
   ].map(url => String(url || '').trim()).filter(url => {
     if (!url || seen.has(url)) return false;
@@ -455,7 +455,7 @@ function neighborhoodMapImage(d: MasterReportData, size = '640x360'): string {
 function rotatingPropertyImage(d: MasterReportData, index = 0): string {
   const photos = propertyPhotoStack(d);
   if (photos.length) return photos[index % photos.length];
-  const fallbacks = [bestExteriorImage(d), neighborhoodMapImage(d), staticMapImage(d), streetViewImage(d)];
+  const fallbacks = [bestExteriorImage(d), neighborhoodMapImage(d), staticMapImage(d)].filter(Boolean);
   return fallbacks[index % fallbacks.length];
 }
 
@@ -473,13 +473,13 @@ function contextualImageCard(d: MasterReportData, index: number, caption: string
     // swap in the live Street View of the building \u2014 a text placeholder is
     // never acceptable in a client-facing deck.
     const src = photos[index % photos.length];
-    const fallbackIframe = `<iframe src=&quot;${streetViewEmbedUrl(d, heading)}&quot; title=&quot;${safeAlt}&quot; allowfullscreen loading=&quot;lazy&quot; style=&quot;width:100%;height:100%;border:0;display:block&quot;></iframe>`;
+    const fallbackIframe = `<div style=&quot;height:100%;display:flex;align-items:center;justify-content:center;background:#F5F0E5;color:#8a8174;font-size:11px;font-weight:700;text-align:center;padding:12px&quot;>No exterior photo available for ${safeAlt}</div>`;
     return `<div class="visual-card"><div class="image-frame" style="height:${height}px"><img src="${escapeHtml(src)}" alt="${safeAlt}" onerror="this.style.display='none';this.parentElement.innerHTML='${fallbackIframe}'"></div><div class="image-caption">${caption}</div></div>`;
   }
   // No discovered/uploaded photos: the interactive Street View embed shows
   // real imagery of the address with the shared key (Static APIs need a
   // billing-enabled key).
-  return iframeCard(streetViewEmbedUrl(d, heading), `${d.buildingName || d.address} street view (angle ${heading}\u00B0)`, caption, height);
+  return noExteriorPhotoCard(streetViewEmbedUrl(d, heading), `${d.buildingName || d.address} street view (angle ${heading}\u00B0)`, caption, height);
 }
 
 /** Satellite close-up pinned on the property lot — the "3D site" view. */
@@ -520,11 +520,11 @@ function enrichEveryOtherDeckPage(slides: string, d: MasterReportData): string {
 function propertyImageCard(d: MasterReportData, caption: string, height = 392): string {
   const first = bestExteriorImage(d);
   const safeAlt = escapeHtml(d.buildingName || d.address);
-  const iframe = `<iframe src=&quot;${streetViewEmbedUrl(d)}&quot; title=&quot;${safeAlt} street view&quot; allowfullscreen loading=&quot;lazy&quot;></iframe>`;
-  return `<div class="visual-card"><div class="image-frame" style="height:${height}px"><img src="${first}" alt="${safeAlt}" onerror="this.style.display='none';this.parentElement.innerHTML='${iframe}'"></div><div class="image-caption">${caption}</div></div>`;
+  const placeholder = `<div style=&quot;height:100%;display:flex;align-items:center;justify-content:center;background:#F5F0E5;color:#8a8174;font-size:12px;font-weight:700;text-align:center;padding:16px&quot;>No exterior photo available for ${safeAlt}</div>`;
+  return first ? `<div class="visual-card"><div class="image-frame" style="height:${height}px"><img src="${first}" alt="${safeAlt}" onerror="this.style.display='none';this.parentElement.innerHTML='${placeholder}'"></div><div class="image-caption">${caption}</div></div>` : `<div class="visual-card"><div class="image-frame" style="height:${height}px">${placeholder}</div><div class="image-caption">${caption}</div></div>`;
 }
 
-function iframeCard(src: string, title: string, caption: string, height = 260): string {
+function noExteriorPhotoCard(_unusedSrc: string, title: string, caption: string, height = 260): string { const safeTitle = escapeHtml(title); return `<div class="visual-card"><div class="image-frame" style="height:${height}px;display:flex;align-items:center;justify-content:center;background:#F5F0E5;color:#8a8174;font-size:11px;font-weight:700;text-align:center;padding:12px">No exterior photo available for ${safeTitle}</div><div class="image-caption">${caption}</div></div>`; } function iframeCard(src: string, title: string, caption: string, height = 260): string {
   const safeTitle = escapeHtml(title);
   return `<div class="visual-card"><div class="image-frame" style="height:${height}px"><iframe src="${src}" title="${safeTitle}" allowfullscreen loading="lazy"></iframe></div><div class="image-caption">${caption}</div></div>`;
 }
@@ -876,7 +876,7 @@ function hoaClosingSlide(d: MasterReportData): string {
 
 function hoaSubjectHeroImage(d: MasterReportData): string {
   return d.buildingPhotos?.exterior?.[0]
-    || d.commercialIntel?.brandingImages?.[0]
+    
     || d.streetEasy?.photos?.[0]
     || HOA_ARCHITECTURE_IMAGE;
 }

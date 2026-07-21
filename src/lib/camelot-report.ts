@@ -183,7 +183,7 @@ export interface MasterReportData {
   // Commercial / amenity / branding research
   commercialIntel: CommercialAmenityIntel;
   // Raw data for advanced usage
-  buildingPhotos: { exterior: string[]; interior: string[]; streetView: string; satellite: string; source: string } | null;
+  buildingPhotos: { exterior: string[]; interior: string[]; streetView?: string; satellite?: string; attribution?: string; noPhotoAvailable?: boolean; source: string } | null;
   neighborhoodIntel: { crimeScore: number; qualityScore: number; transitScore: number; crimeTotal: number; complaints311Total: number; crimeBreakdown: Array<{type: string; count: number}>; topComplaints: Array<{type: string; count: number}>; landmarks: Array<{name: string; type: string; date: string}>; crimePrecinct: string; scoreExplanation: string } | null;
   raw: any;
 }

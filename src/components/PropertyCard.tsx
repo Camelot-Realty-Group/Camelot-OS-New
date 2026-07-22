@@ -1,10 +1,38 @@
 import { Building } from '@/types';
 import { cn, gradeBg, formatCurrency, formatNumber } from '@/lib/utils';
 import { normalizeBuildingForReportGuardrails } from '@/lib/property-guardrails';
+import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 import {
   Eye, Mail, FileDown, Plus, Sparkles, MapPin, Building2,
   AlertTriangle, Users, CheckSquare, Square, BarChart3,
 } from 'lucide-react';
+
+/** Street View + mini-map thumbnails for the card header. Images hide
+ * themselves on error (e.g. key without Street View Static / Static Maps
+ * enabled), so cards degrade gracefully instead of showing broken images. */
+function CardThumbnails({ building }: { building: Building }) {
+  const location = encodeURIComponent(`${building.address}, ${building.borough || 'New York'}, NY`);
+  const streetViewSrc = `https://maps.googleapis.com/maps/api/streetview?size=320x120&location=${location}&fov=80&key=${GOOGLE_MAPS_KEY}`;
+  const mapSrc = `https://maps.googleapis.com/maps/api/staticmap?center=${location}&zoom=15&size=320x120&markers=size:small%7C${location}&key=${GOOGLE_MAPS_KEY}`;
+  return (
+    <div className="grid grid-cols-2 gap-px bg-gray-100">
+      <img
+        src={streetViewSrc}
+        alt={`${building.address} street view`}
+        loading="lazy"
+        className="h-[86px] w-full object-cover"
+        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+      />
+      <img
+        src={mapSrc}
+        alt={`${building.address} map`}
+        loading="lazy"
+        className="h-[86px] w-full object-cover"
+        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+      />
+    </div>
+  );
+}
 
 interface PropertyCardProps {
   building: Building;
@@ -36,6 +64,9 @@ export default function PropertyCard({
         selected ? 'border-camelot-gold ring-2 ring-camelot-gold/20' : 'border-gray-200'
       )}
     >
+      {/* Thumbnails: street view + mini map */}
+      <CardThumbnails building={displayBuilding} />
+
       {/* Header */}
       <div className="p-4 pb-3">
         <div className="flex items-start justify-between mb-2">

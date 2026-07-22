@@ -269,6 +269,56 @@ export async function fetchHPDViolations(address: string, borough?: string): Pro
 }
 
 /**
+ * Batch-fetch HPD violation counts (total + open) for many BBLs at once.
+ * Uses SoQL group-by so a 100-building region scan costs ~6 requests
+ * instead of 200. Returns a map of bbl -> {total, open}; BBLs with no
+ * violations are simply absent (treat as zero).
+ */
+export async function fetchViolationCountsByBBLs(
+  bbls: string[],
+): Promise<Record<string, { total: number; open: number }>> {
+  const counts: Record<string, { total: number; open: number }> = {};
+  const clean = Array.from(new Set(
+    bbls.map((b) => String(b || '').replace(/\D/g, '').slice(0, 10)).filter((b) => b.length === 10)
+  ));
+  const CHUNK = 40;
+  for (let i = 0; i < clean.length; i += CHUNK) {
+    const chunk = clean.slice(i, i + CHUNK);
+    const inList = chunk.map((b) => `'${b}'`).join(',');
+    try {
+      const [totalRes, openRes] = await Promise.all([
+        fetch(socrataUrl(ENDPOINTS.hpdViolations, {
+          $select: 'bbl,count(violationid) AS n',
+          $where: `bbl in(${inList})`,
+          $group: 'bbl',
+          $limit: CHUNK,
+        })),
+        fetch(socrataUrl(ENDPOINTS.hpdViolations, {
+          $select: 'bbl,count(violationid) AS n',
+          $where: `bbl in(${inList}) AND violationstatus='Open'`,
+          $group: 'bbl',
+          $limit: CHUNK,
+        })),
+      ]);
+      if (totalRes.ok) {
+        for (const row of await totalRes.json()) {
+          counts[row.bbl] = { total: parseInt(row.n) || 0, open: 0 };
+        }
+      }
+      if (openRes.ok) {
+        for (const row of await openRes.json()) {
+          if (!counts[row.bbl]) counts[row.bbl] = { total: parseInt(row.n) || 0, open: 0 };
+          counts[row.bbl].open = parseInt(row.n) || 0;
+        }
+      }
+    } catch (err) {
+      console.error('Batch violation counts error (chunk skipped):', err);
+    }
+  }
+  return counts;
+}
+
+/**
  * Fetch HPD Building Registration (owner, management company)
  */
 export async function fetchHPDRegistration(address: string, borough?: string): Promise<any[]> {

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { REGIONS, isFloridaArea, getFloridaAreas, getRegionByArea } from '@/lib/regions';
-import { fetchFullBuildingReport, searchByOwnerName, searchByUnit, searchBuildingsByRegion } from '@/lib/nyc-api';
+import { fetchFullBuildingReport, searchByOwnerName, searchByUnit, searchBuildingsByRegion, fetchViolationCountsByBBLs } from '@/lib/nyc-api';
 import { searchNYDOSCorporation, type NYDOSCorporation } from '@/lib/gov-apis';
 import { generateFloridaBuildings } from '@/lib/florida-data';
 import { generateTriStateBuildings, isTriStateArea } from '@/lib/tristate-data';
@@ -378,6 +378,37 @@ export default function Search() {
             updated_at: new Date().toISOString(),
           } as Building;
         });
+
+      // Pull real HPD violation counts for every scanned building (batched
+      // group-by queries — a few requests for the whole result set), then
+      // re-score each building with its actual violation profile. Without
+      // this every card showed 0 violations and a near-identical score.
+      if (nycBuildings.length > 0) {
+        setScanProgress(`Pulling HPD violations for ${nycBuildings.length} buildings...`);
+        try {
+          const counts = await fetchViolationCountsByBBLs(
+            nycBuildings.map((b) => String(b.bbl || ''))
+          );
+          for (const b of nycBuildings) {
+            const key = String(b.bbl || '').replace(/\D/g, '').slice(0, 10);
+            const c = counts[key];
+            b.violations_count = c?.total || 0;
+            b.open_violations_count = c?.open || 0;
+            const rescored = calculateScore({
+              units: b.units,
+              year_built: b.year_built,
+              violations_count: b.violations_count,
+              open_violations_count: b.open_violations_count,
+              current_management: b.current_management,
+            });
+            b.score = rescored.total;
+            b.grade = rescored.grade;
+            b.signals = rescored.signals;
+          }
+        } catch (err) {
+          console.error('Violation backfill failed (scores fall back to size/age):', err);
+        }
+      }
 
       if (nycBuildings.length > 0) {
         addBuildings(nycBuildings);

@@ -9,7 +9,7 @@ import {
   CONTACT_CATEGORY_COLORS as CAT_COLORS,
 } from '@/types';
 import { cn, formatCurrency, formatDate, formatNumber, gradeBg, daysInStage } from '@/lib/utils';
-import { fetchFullBuildingReport } from '@/lib/nyc-api';
+import { fetchFullBuildingReport, fetchHPDRegistration, fetchHPDRegistrationContacts, hpdContactsToBuildingContacts } from '@/lib/nyc-api';
 import { enrichBuildingContacts, isEnrichmentConfigured } from '@/lib/enrichment';
 import { calculateScore } from '@/lib/scoring';
 import { detectBuildingOperations, getDoormanLabel, getFrontDeskLabel } from '@/lib/building-ops';
@@ -660,27 +660,73 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
     }
   };
 
+  /**
+   * Pull the building's HPD-registered contacts (owner, head officer,
+   * managing agent, site manager) from NYC Open Data. Free, no API key.
+   * HPD publishes names/roles/business addresses but NOT emails — email
+   * discovery still needs Apollo/Prospeo or manual research.
+   */
+  const fetchHPDContactsForBuilding = async () => {
+    const regs = await fetchHPDRegistration(guardedBuilding.address, guardedBuilding.borough);
+    const registrationId = regs?.[0]?.registrationid;
+    if (!registrationId) return [];
+    const rows = await fetchHPDRegistrationContacts(String(registrationId));
+    return hpdContactsToBuildingContacts(rows);
+  };
+
+  const mergeNewContacts = (found: Array<{ name: string; role: string }>) => {
+    const existing = guardedBuilding.contacts || [];
+    const existingKeys = new Set(
+      existing.map((c: any) => `${(c.name || '').toLowerCase()}|${(c.role || '').toLowerCase()}`)
+    );
+    const fresh = found.filter(
+      (c) => !existingKeys.has(`${c.name.toLowerCase()}|${c.role.toLowerCase()}`)
+    );
+    if (fresh.length > 0) {
+      onUpdate?.(building.id, { contacts: [...existing, ...fresh] as any });
+    }
+    return fresh.length;
+  };
+
   const handleEnrich = async () => {
     const config = isEnrichmentConfigured();
-    if (!config.apollo && !config.prospeo) {
-      toast.error('Configure Apollo.io or Prospeo API keys in Settings');
-      return;
-    }
     setIsEnriching(true);
     try {
-      const contacts = await enrichBuildingContacts({
-        buildingName: guardedBuilding.name,
-        address: guardedBuilding.address,
-        currentManagement: guardedBuilding.current_management,
-      });
-      if (contacts.length > 0) {
-        const merged = [...(guardedBuilding.contacts || []), ...contacts];
-        onUpdate?.(building.id, { contacts: merged });
-        toast.success(`Found ${contacts.length} contacts`);
+      let added = 0;
+
+      // Paid enrichment first (finds emails), if keys are configured
+      if (config.apollo || config.prospeo) {
+        try {
+          const contacts = await enrichBuildingContacts({
+            buildingName: guardedBuilding.name,
+            address: guardedBuilding.address,
+            currentManagement: guardedBuilding.current_management,
+          });
+          added += mergeNewContacts(contacts as any);
+        } catch (err) {
+          console.error('Apollo/Prospeo enrichment failed:', err);
+        }
+      }
+
+      // Public-record fallback: HPD-registered owner/officers/agent (free).
+      // Always run — it targets THIS building's registered decision-makers,
+      // which is exactly who outreach should address.
+      const hpdContacts = await fetchHPDContactsForBuilding();
+      const hpdAdded = mergeNewContacts(hpdContacts);
+      added += hpdAdded;
+
+      if (added > 0) {
+        const emailNote = !config.apollo && !config.prospeo
+          ? ' HPD publishes names, not emails — add Apollo/Prospeo keys in Settings for email discovery.'
+          : '';
+        toast.success(`Added ${added} contact${added === 1 ? '' : 's'} (incl. ${hpdAdded} from HPD registration).${emailNote}`, { duration: 8000 });
+      } else if ((guardedBuilding.contacts || []).length > 0) {
+        toast('No new contacts found beyond the ones already saved.', { icon: 'ℹ️' });
       } else {
-        toast.error('No new contacts found');
+        toast.error('No contacts found — building may not be HPD-registered (check ACRIS/DOS links in the Ownership tab).');
       }
     } catch (err) {
+      console.error('Enrichment failed:', err);
       toast.error('Enrichment failed');
     } finally {
       setIsEnriching(false);

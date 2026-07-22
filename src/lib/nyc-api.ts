@@ -17,6 +17,7 @@ const NYC_BASE = 'https://data.cityofnewyork.us/resource';
 const ENDPOINTS = {
   hpdViolations: `${NYC_BASE}/wvxf-dwi5.json`,
   hpdRegistration: `${NYC_BASE}/tesw-yqqr.json`,
+  hpdRegistrationContacts: `${NYC_BASE}/feu5-w2e2.json`,
   dobPermits: `${NYC_BASE}/ic3t-wcy2.json`,
   dofProperty: `${NYC_BASE}/64uk-42ks.json`,
   ll97Energy: `${NYC_BASE}/7x5e-2fxh.json`,
@@ -303,6 +304,76 @@ export async function fetchHPDRegistration(address: string, borough?: string): P
     console.error('HPD Registration fetch error:', err);
     return [];
   }
+}
+
+/**
+ * Fetch HPD Registration Contacts (the actual people) for a registration id.
+ *
+ * NYC Open Data `feu5-w2e2` lists, per registered building: CorporateOwner,
+ * IndividualOwner, HeadOfficer, Officer, Agent (managing agent), and
+ * SiteManager — with corporation names and, for individuals, first/last
+ * names. Free, no API key. This is the authoritative public record of who
+ * is responsible for a building (emails/phones are NOT published by HPD).
+ */
+export async function fetchHPDRegistrationContacts(registrationId: string): Promise<any[]> {
+  try {
+    const url = socrataUrl(ENDPOINTS.hpdRegistrationContacts, {
+      $limit: 50,
+      $where: `registrationid='${escapeSoql(registrationId)}'`,
+    });
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HPD Registration Contacts API error: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error('HPD Registration Contacts fetch error:', err);
+    return [];
+  }
+}
+
+const HPD_CONTACT_ROLE_LABELS: Record<string, string> = {
+  CorporateOwner: 'Corporate Owner (HPD registered)',
+  IndividualOwner: 'Owner (HPD registered)',
+  HeadOfficer: 'Head Officer (HPD registered)',
+  Officer: 'Officer (HPD registered)',
+  Agent: 'Managing Agent (HPD registered)',
+  SiteManager: 'Site Manager (HPD registered)',
+  Lessee: 'Lessee (HPD registered)',
+  Shareholder: 'Shareholder (HPD registered)',
+};
+
+/**
+ * Convert raw HPD registration-contact rows into the app's Contact shape.
+ * Dedupes by (name, role); note HPD publishes no emails or phone numbers,
+ * so `email` is intentionally absent — enrichment services or manual
+ * research (ACRIS parties, StreetEasy, DOS corporation search) fill those.
+ */
+export function hpdContactsToBuildingContacts(rows: any[]): Array<{
+  name: string; role: string; company?: string; notes?: string; source: string;
+}> {
+  const seen = new Set<string>();
+  const contacts: Array<{ name: string; role: string; company?: string; notes?: string; source: string }> = [];
+  for (const row of rows || []) {
+    const personName = [row.firstname, row.lastname].filter(Boolean).join(' ').trim();
+    const corpName = (row.corporationname || '').trim();
+    const name = personName || corpName;
+    if (!name) continue;
+    const role = HPD_CONTACT_ROLE_LABELS[row.type] || `${row.type || 'Contact'} (HPD registered)`;
+    const key = `${name.toLowerCase()}|${role}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const bizAddress = [
+      row.businesshousenumber, row.businessstreetname, row.businessapartment,
+      row.businesscity, row.businessstate, row.businesszip,
+    ].filter(Boolean).join(' ');
+    contacts.push({
+      name,
+      role,
+      company: personName && corpName ? corpName : undefined,
+      notes: bizAddress ? `Business address on file: ${bizAddress}` : undefined,
+      source: 'HPD Registration',
+    });
+  }
+  return contacts;
 }
 
 /**

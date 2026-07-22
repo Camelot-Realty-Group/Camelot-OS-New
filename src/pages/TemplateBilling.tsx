@@ -25,6 +25,7 @@ import {
   type TemplateInvoiceDraft,
 } from '@/lib/template-billing';
 import { cn } from '@/lib/utils';
+import { openEmailDraft } from '@/lib/pdf-generator';
 import type { Building } from '@/types';
 
 const INVOICE_LIBRARY_KEY = 'camelot_template_invoice_library_v1';
@@ -222,8 +223,27 @@ export default function TemplateBilling() {
 
   const emailSubject = draft ? `Camelot Invoice ${draft.invoiceNumber} - ${draft.buildingAddress}` : '';
   const emailBody = draft
-    ? `Hello${draft.recipientName ? ` ${draft.recipientName}` : ''},%0D%0A%0D%0AAttached is the Camelot invoice draft for ${draft.buildingAddress}.%0D%0A%0D%0AAmount: ${formatMoney(draft.subtotal)}%0D%0A%0D%0APlease contact Camelot with any questions.%0D%0A%0D%0AMain: (212) 206-9939%0D%0Awww.camelot.nyc`
+    ? `Hello${draft.recipientName ? ` ${draft.recipientName}` : ''},\n\n` +
+      `Please find below the Camelot invoice for ${draft.buildingAddress}.\n\n` +
+      `Invoice: ${draft.invoiceNumber}\n` +
+      `${(draft.lines || []).map((l: any) => `- ${l.description}: ${formatMoney(l.amount)}`).join('\n')}\n` +
+      `Total: ${formatMoney(draft.subtotal)}\n\n` +
+      `Please contact Camelot with any questions.\n\n` +
+      `Main: (212) 206-9939\nwww.camelot.nyc`
     : '';
+
+  const handleEmailInvoice = () => {
+    if (!draft) return;
+    openEmailDraft({
+      to: draft.recipientEmail || '',
+      cc: 'info@camelot.nyc',
+      subject: emailSubject,
+      body: emailBody,
+    });
+    if (!draft.recipientEmail) {
+      toast('No recipient email on this invoice — add one in the Recipient Email field, or type it into the draft.', { icon: '✉️', duration: 8000 });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F6EF] p-6">
@@ -471,13 +491,13 @@ export default function TemplateBilling() {
                     <CreditCard size={16} />
                     Mark Paid
                   </button>
-                  <a
-                    href={`mailto:${draft.recipientEmail || ''}?subject=${encodeURIComponent(emailSubject)}&body=${emailBody}`}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+                  <button
+                    onClick={handleEmailInvoice}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                   >
                     <Mail size={16} />
                     Email
-                  </a>
+                  </button>
                   <button
                     onClick={() => {
                       updateDraftStatus('sent');

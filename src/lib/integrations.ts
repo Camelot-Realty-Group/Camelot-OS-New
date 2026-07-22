@@ -47,6 +47,12 @@ export interface ServicePushResult {
   id?: string;
   url?: string;
   warnings?: string[];
+  // Populated by the HubSpot push specifically, so callers can associate a
+  // follow-up action (like an email send) with the exact record type
+  // rather than guessing what the collapsed `id` field above refers to.
+  contactId?: string;
+  companyId?: string;
+  dealId?: string;
 }
 
 const LOCAL_INTEGRATION_QUEUE_KEY = 'camelot:scout-integration-local-queue';

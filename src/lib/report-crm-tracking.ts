@@ -13,6 +13,7 @@ export type ReportWorkflowAction =
   | 'downloaded'
   | 'printed'
   | 'email_draft_opened'
+  | 'email_sent'
   | 'hubspot_push';
 
 export interface ReportWorkflowContact {

@@ -112,9 +112,7 @@ export async function downloadAsHTML(html: string, filename: string): Promise<vo
   URL.revokeObjectURL(url);
 }
 
-/** Download an HTML report as a PDF using the browser-side renderer. */
-export async function downloadAsPDF(html: string, filename: string): Promise<void> {
-  const html2pdf = (await import('html2pdf.js')).default;
+function buildPdfWrapper(html: string): { wrapper: HTMLDivElement; isSlideDeck: boolean } {
   const parser = new DOMParser();
   const doc = parser.parseFromString(ensureHtmlBase(html), 'text/html');
   doc.querySelectorAll('.no-print, .deck-action-bar, .proposal-action-bar').forEach(el => el.remove());
@@ -128,26 +126,52 @@ export async function downloadAsPDF(html: string, filename: string): Promise<voi
   wrapper.style.background = '#fff';
   wrapper.innerHTML = `${doc.head.innerHTML}${doc.body.innerHTML}`;
   document.body.appendChild(wrapper);
+  return { wrapper, isSlideDeck };
+}
 
+function pdfOptions(filename: string, isSlideDeck: boolean) {
+  return ({
+    margin: 0,
+    filename: filename.endsWith('.pdf') ? filename : `${filename.replace(/\.(html|pdf)$/i, '')}.pdf`,
+    image: { type: 'jpeg', quality: 0.72 },
+    html2canvas: {
+      scale: 1.05,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      imageTimeout: 12000,
+      removeContainer: true,
+    },
+    jsPDF: { unit: 'in', format: 'letter', orientation: isSlideDeck ? 'landscape' : 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] },
+  }) as any;
+}
+
+/** Download an HTML report as a PDF using the browser-side renderer. */
+export async function downloadAsPDF(html: string, filename: string): Promise<void> {
+  const html2pdf = (await import('html2pdf.js')).default;
+  const { wrapper, isSlideDeck } = buildPdfWrapper(html);
   try {
-    await html2pdf()
-      .from(wrapper)
-      .set(({
-        margin: 0,
-        filename: filename.endsWith('.pdf') ? filename : `${filename.replace(/\.(html|pdf)$/i, '')}.pdf`,
-        image: { type: 'jpeg', quality: 0.72 },
-        html2canvas: {
-          scale: 1.05,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          imageTimeout: 12000,
-          removeContainer: true,
-        },
-        jsPDF: { unit: 'in', format: 'letter', orientation: isSlideDeck ? 'landscape' : 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] },
-      }) as any)
-      .save();
+    await html2pdf().from(wrapper).set(pdfOptions(filename, isSlideDeck)).save();
+  } finally {
+    wrapper.remove();
+  }
+}
+
+/**
+ * Render an HTML report to a PDF and return it as base64 (no filesystem
+ * write) so it can be attached to a real outgoing email via
+ * sendCamelotEmail() instead of only ever being saved locally.
+ */
+export async function generatePdfBase64(html: string, filename: string): Promise<string> {
+  const html2pdf = (await import('html2pdf.js')).default;
+  const { wrapper, isSlideDeck } = buildPdfWrapper(html);
+  try {
+    const blob: Blob = await html2pdf().from(wrapper).set(pdfOptions(filename, isSlideDeck)).outputPdf('blob');
+    const dataUrl = await blobToDataUrl(blob);
+    // Strip the "data:application/pdf;base64," prefix — Resend wants the raw base64 payload.
+    const commaIndex = dataUrl.indexOf(',');
+    return commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
   } finally {
     wrapper.remove();
   }
@@ -168,6 +192,80 @@ export function openEmailDraft(params: {
   const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${to}${cc}&su=${subject}&body=${body}`;
   const mailtoUrl = `mailto:${to}?subject=${subject}${cc}&body=${body}`;
   window.open(params.preferGmail === false ? mailtoUrl : gmailUrl, '_blank');
+}
+
+export interface SendCamelotEmailParams {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  replyTo?: string;
+  reportHtml?: string; // full report HTML to render + attach as PDF
+  attachmentFilename?: string;
+  hubspot?: { contactId?: string; dealId?: string; companyId?: string };
+}
+
+export interface SendCamelotEmailResult {
+  ok: boolean;
+  id?: string;
+  error?: string;
+  hubspot?: { status: string; message?: string; id?: string };
+}
+
+/**
+ * Actually send an email via Camelot OS's own Resend-backed endpoint
+ * (server.js /api/email/send) — a real delivery, not a mailto draft. Every
+ * successful send is mirrored into HubSpot as an Email engagement when a
+ * contact/deal/company id is supplied, so both systems stay in sync. Falls
+ * back to a clear error (not a silent no-op) if RESEND_API_KEY isn't
+ * configured yet in Render.
+ */
+export async function sendCamelotEmail(params: SendCamelotEmailParams): Promise<SendCamelotEmailResult> {
+  try {
+    const attachmentBase64 = params.reportHtml
+      ? await generatePdfBase64(params.reportHtml, params.attachmentFilename || 'Camelot-Report.pdf')
+      : undefined;
+
+    const resp = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+        text: params.text,
+        replyTo: params.replyTo,
+        attachmentBase64,
+        attachmentFilename: params.attachmentFilename || (attachmentBase64 ? 'Camelot-Report.pdf' : undefined),
+        hubspot: params.hubspot,
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      return { ok: false, error: data?.error || `Send failed (${resp.status})` };
+    }
+    return { ok: true, id: data.id, hubspot: data.hubspot };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'Email send failed — check your connection and try again.' };
+  }
+}
+
+export interface EmailConfigStatus {
+  resendConfigured: boolean;
+  resendFromAddress: string;
+  hubspotConfigured: boolean;
+  webhookConfigured: boolean;
+}
+
+/** Check whether real sending is actually wired up yet (RESEND_API_KEY set), so the UI can show an honest state instead of pretending Send will work. */
+export async function getEmailConfigStatus(): Promise<EmailConfigStatus | null> {
+  try {
+    const resp = await fetch('/api/email/config-status');
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
 }
 
 /** Download CSV string as a .csv file */

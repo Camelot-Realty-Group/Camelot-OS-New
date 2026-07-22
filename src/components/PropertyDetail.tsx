@@ -11,6 +11,7 @@ import {
 import { cn, formatCurrency, formatDate, formatNumber, gradeBg, daysInStage } from '@/lib/utils';
 import { fetchFullBuildingReport, fetchHPDRegistration, fetchHPDRegistrationContacts, hpdContactsToBuildingContacts } from '@/lib/nyc-api';
 import { enrichBuildingContacts } from '@/lib/enrichment';
+import BuildingIntelPanel from '@/components/BuildingIntelPanel';
 import { calculateScore } from '@/lib/scoring';
 import { detectBuildingOperations, getDoormanLabel, getFrontDeskLabel } from '@/lib/building-ops';
 import { searchNYDOSCorporation, generateExternalLinks, type NYDOSCorporation, type ExternalRecordLink } from '@/lib/gov-apis';
@@ -1033,6 +1034,8 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
                     </div>
                   ))}
                 </div>
+                {/* Neighborhood market, ACRIS sales/financing, Local Law radar */}
+                <BuildingIntelPanel building={guardedBuilding} nycData={nycData} />
               </div>
 
               {/* Score Breakdown + Building Operations */}

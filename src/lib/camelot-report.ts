@@ -1078,7 +1078,7 @@ function classifyBuildingType(buildingClass: string): string {
   return 'Residential';
 }
 
-function detectNeighborhood(address: string, borough: string): string {
+export function detectNeighborhood(address: string, borough: string): string {
   const addr = (address + ' ' + borough).toLowerCase();
   // Try to match known neighborhoods from address keywords
   const patterns: [string, RegExp][] = [
@@ -1163,7 +1163,7 @@ function buildNeighborhoodSearchContext(input: {
   };
 }
 
-function lookupNeighborhoodData(neighborhood: string): NeighborhoodMarketData | null {
+export function lookupNeighborhoodData(neighborhood: string): NeighborhoodMarketData | null {
   if (!neighborhood) return null;
   const key = neighborhood.toLowerCase();
   return NEIGHBORHOOD_MARKET_DATA[key] || null;

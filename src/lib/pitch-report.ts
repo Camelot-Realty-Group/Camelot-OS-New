@@ -542,7 +542,10 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
     : (() => {
         const subways = (d as any).nearbySubways as Array<{ name: string; routes: string; miles: number }> | undefined;
         if (subways && subways.length) {
-          const rows = subways.map(s => {
+          // Cap at the 2 closest stations — this panel lives in a
+          // fixed-height slide column; more rows overflow off the slide
+          // (clipped rows + footer collision in the rendered PDF).
+          const rows = subways.slice(0, 2).map(s => {
             const walkMin = Math.max(1, Math.round(s.miles * 20));
             return [s.name, s.routes.split(/\s+/).join(' / '), `MTA station &middot; approx. ${s.miles.toFixed(2)} mi`, `~${walkMin} min walk`];
           });
@@ -556,7 +559,6 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
           } else {
             rows.push(['From Camelot HQ', 'Transit / car', '57 West 57th Street, Suite 410 to your door', 'senior staff on-site fast']);
           }
-          rows.push(['Bus / ferry / Citi Bike / rideshare', 'Mapped at onboarding', 'Full mobility map delivered with the first building report', 'context']);
           return rows;
         }
         return [
@@ -566,7 +568,7 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
         ];
       })();
   const query = exact22East22 ? '23 Street Station N R W Broadway East 23rd Street New York NY' : `${d.address} nearest subway`;
-  return `<div class="gold-card" style="padding:16px 18px;height:100%"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:150px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
+  return `<div class="gold-card" style="padding:16px 18px;overflow:hidden"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:140px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
 }
 
 function rawIframeFrame(src: string, title: string): string {
@@ -1276,7 +1278,7 @@ export function generatePitchReport(d: MasterReportData): string {
           <div style="font-size:9.5px;color:#888;margin-top:6px">Neighborhood benchmarks &mdash; how your building marks against them (sales, rents, sponsor units) is quantified in the full report.</div>
         </div>
       </div>
-      <div style="flex:0 0 400px;display:grid;gap:8px;align-content:start">
+      <div style="flex:0 0 400px;display:grid;gap:8px;align-content:start;overflow:hidden;max-height:100%">
         ${contextualImageCard(d, 0, `The property &mdash; ${escapeHtml(streetLine(d.address))}`, 132)}
         ${closestSubwayPanel(d, exact22East22)}
       </div>
@@ -1460,7 +1462,6 @@ export function generatePitchReport(d: MasterReportData): string {
     </div>
     </div>
   </div>
-  ${everyOtherPageVisualChip(d, 2, 'Transition Context')}
 </div>
 
 <!-- SLIDE 11: Proposed Investment -->

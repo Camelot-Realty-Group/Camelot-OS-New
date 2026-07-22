@@ -777,6 +777,34 @@ app.post('/api/apollo/enrich', async (req, res) => {
   }
 });
 
+// Generic Apollo API proxy for org/people search — lets the frontend run
+// contact enrichment with the SERVER-side APOLLO_API_KEY (set in Render),
+// so no key ever needs to be baked into the browser bundle. Only two
+// whitelisted Apollo paths are allowed through.
+const APOLLO_PROXY_PATHS = {
+  'org-search': 'https://api.apollo.io/v1/organizations/search',
+  'people-search': 'https://api.apollo.io/v1/people/search',
+};
+app.post('/api/apollo/:proxyPath(org-search|people-search)', async (req, res) => {
+  const apiKey = process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY;
+  if (!apiKey) {
+    return res.status(400).json({ error: 'Apollo API key not configured. Add APOLLO_API_KEY in Render environment.' });
+  }
+  try {
+    const resp = await fetch(APOLLO_PROXY_PATHS[req.params.proxyPath], {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+      body: JSON.stringify(req.body || {}),
+    });
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { error: text || 'Empty response' }; }
+    res.status(resp.ok ? 200 : resp.status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Apollo proxy error' });
+  }
+});
+
 // ============================================================
 // Health check
 // ============================================================

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type {
   Building, Contact, Activity, ContactRole, ContactCategory,
   CONTACT_ROLE_LABELS, CONTACT_ROLE_CATEGORY, CONTACT_CATEGORY_COLORS, BuildingOperations,
@@ -10,7 +10,7 @@ import {
 } from '@/types';
 import { cn, formatCurrency, formatDate, formatNumber, gradeBg, daysInStage } from '@/lib/utils';
 import { fetchFullBuildingReport, fetchHPDRegistration, fetchHPDRegistrationContacts, hpdContactsToBuildingContacts } from '@/lib/nyc-api';
-import { enrichBuildingContacts, isEnrichmentConfigured } from '@/lib/enrichment';
+import { enrichBuildingContacts } from '@/lib/enrichment';
 import { calculateScore } from '@/lib/scoring';
 import { detectBuildingOperations, getDoormanLabel, getFrontDeskLabel } from '@/lib/building-ops';
 import { searchNYDOSCorporation, generateExternalLinks, type NYDOSCorporation, type ExternalRecordLink } from '@/lib/gov-apis';
@@ -505,7 +505,14 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
     try {
       toast.loading(`Preparing ${DETAIL_REPORT_LABELS[reportPackage]} email draft...`, { id: 'detail-report-email' });
       const { data, html, filename } = await buildDetailPackage(reportPackage);
-      const contacts = guardedBuilding.contacts || [];
+      // Self-healing recipients: if no decision-makers are saved yet, run
+      // discovery (Apollo via server key + HPD registration) before the
+      // draft opens, so the email is addressed automatically.
+      let contacts = guardedBuilding.contacts || [];
+      if (contacts.length === 0) {
+        const discovery = await discoverDecisionMakers();
+        contacts = discovery.contacts as any;
+      }
       const recipients = uniqueContactEmails(contacts);
       const contactList = contactDirectory(contacts);
       const subject = `${DETAIL_REPORT_LABELS[reportPackage]} - ${data.buildingName || guardedBuilding.name || guardedBuilding.address}`;
@@ -688,36 +695,77 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
     return fresh.length;
   };
 
+  /**
+   * Full decision-maker discovery for this building:
+   * 1. Apollo/Prospeo (via the server proxy when APOLLO_API_KEY is set in
+   *    Render, or VITE keys in dev) — finds names WITH emails/phones.
+   * 2. HPD registration contacts (free public record, always runs) —
+   *    the building's registered owner, officers, and managing agent.
+   * Returns {added, hpdAdded, withEmails} counts after merging.
+   */
+  const discoverDecisionMakers = async () => {
+    // Collect everything found so callers can use the contacts IMMEDIATELY
+    // (React state from mergeNewContacts/onUpdate lands on a later render).
+    const found: Array<{ name: string; role: string; email?: string }> = [];
+    let added = 0;
+    try {
+      const contacts = await enrichBuildingContacts({
+        buildingName: guardedBuilding.name,
+        address: guardedBuilding.address,
+        currentManagement: guardedBuilding.current_management,
+      });
+      found.push(...(contacts as any));
+      added += mergeNewContacts(contacts as any);
+    } catch (err) {
+      console.error('Apollo/Prospeo enrichment failed:', err);
+    }
+    let hpdAdded = 0;
+    try {
+      const hpdContacts = await fetchHPDContactsForBuilding();
+      found.push(...hpdContacts);
+      hpdAdded = mergeNewContacts(hpdContacts);
+      added += hpdAdded;
+    } catch (err) {
+      console.error('HPD contact fetch failed:', err);
+    }
+    const merged = [...(guardedBuilding.contacts || [])];
+    const seen = new Set(merged.map((c: any) => `${(c.name || '').toLowerCase()}|${(c.role || '').toLowerCase()}`));
+    for (const c of found) {
+      const key = `${c.name.toLowerCase()}|${c.role.toLowerCase()}`;
+      if (!seen.has(key)) { seen.add(key); merged.push(c as any); }
+    }
+    const withEmails = merged.filter((c: any) => c.email).length;
+    return { added, hpdAdded, withEmails, contacts: merged };
+  };
+
+  // AUTO-DISCOVERY: when the detail modal opens on a building with no
+  // saved contacts, pull decision-makers automatically — no manual
+  // "Enrich" click required. Runs once per opened building.
+  const autoDiscoveredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!guardedBuilding.address) return;
+    if ((guardedBuilding.contacts || []).length > 0) return;
+    if (autoDiscoveredRef.current === building.id) return;
+    autoDiscoveredRef.current = building.id;
+    void discoverDecisionMakers().then(({ added, hpdAdded }) => {
+      if (added > 0) {
+        toast.success(
+          `Found ${added} decision-maker contact${added === 1 ? '' : 's'} automatically` +
+          (hpdAdded ? ` (${hpdAdded} from HPD registration)` : ''),
+          { duration: 6000 }
+        );
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [building.id, guardedBuilding.address]);
+
   const handleEnrich = async () => {
-    const config = isEnrichmentConfigured();
     setIsEnriching(true);
     try {
-      let added = 0;
-
-      // Paid enrichment first (finds emails), if keys are configured
-      if (config.apollo || config.prospeo) {
-        try {
-          const contacts = await enrichBuildingContacts({
-            buildingName: guardedBuilding.name,
-            address: guardedBuilding.address,
-            currentManagement: guardedBuilding.current_management,
-          });
-          added += mergeNewContacts(contacts as any);
-        } catch (err) {
-          console.error('Apollo/Prospeo enrichment failed:', err);
-        }
-      }
-
-      // Public-record fallback: HPD-registered owner/officers/agent (free).
-      // Always run — it targets THIS building's registered decision-makers,
-      // which is exactly who outreach should address.
-      const hpdContacts = await fetchHPDContactsForBuilding();
-      const hpdAdded = mergeNewContacts(hpdContacts);
-      added += hpdAdded;
-
+      const { added, hpdAdded, withEmails } = await discoverDecisionMakers();
       if (added > 0) {
-        const emailNote = !config.apollo && !config.prospeo
-          ? ' HPD publishes names, not emails — add Apollo/Prospeo keys in Settings for email discovery.'
+        const emailNote = withEmails === 0
+          ? ' No public emails found — HPD publishes names only; Apollo (server key) adds emails when it recognizes the management company.'
           : '';
         toast.success(`Added ${added} contact${added === 1 ? '' : 's'} (incl. ${hpdAdded} from HPD registration).${emailNote}`, { duration: 8000 });
       } else if ((guardedBuilding.contacts || []).length > 0) {

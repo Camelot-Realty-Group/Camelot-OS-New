@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/qa-scan.mjs || echo \"[qa] scan skipped (non-fatal); using committed qa-report.json\"",
-    "build": "tsc -p tsconfig.json --noEmit --incremental false && vite build",
+    "prebuild": "node scripts/qa-scan.mjs 2>&1 || echo \"[qa] scan skipped (non-fatal); using committed qa-report.json\"",
+    "build": "tsc -p tsconfig.json --noEmit --incremental false && vite build --logLevel warn",
     "qa:full": "node scripts/qa-run.mjs",
     "verify:jackie": "node scripts/verify-jackie-report.mjs",
     "hubspot:rollout": "node scripts/hubspot-rollout.mjs setup",

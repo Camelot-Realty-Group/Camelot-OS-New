@@ -35,5 +35,18 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 4500,
+    rollupOptions: {
+      output: {
+        // Without this, lucide-react's per-icon ESM modules get code-split
+        // into hundreds of ~0.4 kB chunks (dist/assets/circle-alert-*.js,
+        // map-pin-*.js, ...) — noisy build logs and extra HTTP requests.
+        // Bundle each vendor family into a single stable chunk instead.
+        manualChunks(id: string) {
+          if (id.includes('node_modules/lucide-react')) return 'lucide';
+          if (id.includes('node_modules/react')) return 'react-vendor';
+          return undefined;
+        },
+      },
+    },
   },
 });

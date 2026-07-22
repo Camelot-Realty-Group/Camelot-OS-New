@@ -574,7 +574,11 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
         ];
       })();
   const query = exact22East22 ? '23 Street Station N R W Broadway East 23rd Street New York NY' : `${d.address} nearest subway`;
-  return `<div class="gold-card" style="padding:16px 18px;overflow:hidden"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:140px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
+  // Compact list only — the neighborhood map now renders as its own small
+  // square beside the property photo (slide 3 right rail), so embedding a
+  // second map here wasted vertical space and caused slide overflow.
+  void query;
+  return `<div class="gold-card" style="padding:12px 14px;overflow:hidden;margin:0"><div class="sub-heading" style="font-size:15px;margin-bottom:2px">Closest Subway Access</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:7px;margin-top:7px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:10px;font-weight:900;padding:4px 6px">${train}</div><div><div style="font-size:11.5px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:10.5px;line-height:1.3;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
 }
 
 function rawIframeFrame(src: string, title: string): string {
@@ -1288,8 +1292,11 @@ export function generatePitchReport(d: MasterReportData): string {
           <div style="font-size:9.5px;color:#888;margin-top:6px">Neighborhood benchmarks &mdash; how your building marks against them (sales, rents, sponsor units) is quantified in the full report.</div>
         </div>
       </div>
-      <div style="flex:0 0 400px;display:grid;gap:8px;align-content:start;overflow:hidden;max-height:100%">
-        ${contextualImageCard(d, 0, `The property &mdash; ${escapeHtml(streetLine(d.address))}`, 132)}
+      <div style="flex:0 0 300px;display:grid;gap:8px;align-content:start;overflow:hidden;max-height:100%">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${contextualImageCard(d, 0, 'The property', 118)}
+          <div class="visual-card" style="margin:0"><div class="image-frame" style="height:118px;background:#EDE9DF">${rawIframeFrame(placeEmbedUrl(d), `${neighborhoodName(d)} neighborhood map`)}</div><div class="image-caption">${escapeHtml(neighborhoodName(d))}</div></div>
+        </div>
         ${closestSubwayPanel(d, exact22East22)}
       </div>
     </div>

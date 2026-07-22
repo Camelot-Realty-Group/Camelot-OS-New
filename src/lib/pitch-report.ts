@@ -340,10 +340,10 @@ function externalDeckCss(): string {
   .slide::after { content: counter(slide); position:absolute; right:24px; bottom:16px; font-family: Arial, sans-serif; font-size:10px; color:#7d8490; z-index:9; }
   .slide-dark { background: #34444f; color: #fff; }
   .pad { padding: 54px 64px; }
-  .logo-badge { position: absolute; top: 0; right: 0; width: 166px; height: 96px; background: #B8973A; display: flex; align-items: center; justify-content: center; z-index: 4; }
-  .logo-badge img { width: 136px; max-height: 62px; object-fit: contain; }
-  .logo-badge-text { color:#111827;font-size:15px;font-weight:800;letter-spacing:5px;text-align:center;line-height:1.3; }
-  .logo-badge-sub { display:block;font-size:7px;letter-spacing:3px;font-weight:500;margin-top:2px; }
+  .logo-badge { position: absolute; top: 0; right: 0; width: 156px; height: 92px; background: #B8973A; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 28px rgba(0,0,0,0.14); z-index: 4; }
+  .logo-badge img { width: 132px; max-height: 58px; object-fit: contain; }
+  .logo-badge-text { color: #fff; font-family: 'Plus Jakarta Sans'; font-size: 15px; font-weight: 700; letter-spacing: 5px; text-align: center; line-height: 1.3; text-shadow:0 1px 1px rgba(0,0,0,.25); }
+  .logo-badge-sub { font-size: 7px; letter-spacing: 2px; font-weight: 500; display: block; margin-top: 2px; }
   .section-title { font-family:'Cormorant Garamond',Georgia,serif;font-size:48px;font-style:italic;font-weight:600;color:#B8973A;line-height:1.05;border-left:5px solid #B8973A;padding-left:20px;margin-bottom:22px; }
   .sub-heading { font-size:22px;font-weight:800;color:#1a2744;margin-bottom:10px; }
   .body-text { font-size:16px;color:#4a5568;line-height:1.7; }
@@ -385,7 +385,10 @@ function deckShell(title: string, slides: string): string {
 }
 
 function logoBadge(): string {
-  return `<div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>`;
+  // Matches the "Meeting Agenda Deck" treatment (white wordmark + shadow on the
+  // gold badge, "PROPERTY MANAGEMENT" sub-label) across every report that uses
+  // this shared deck shell -- First Email Intro, HOA reports, etc.
+  return `<div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">PROPERTY MANAGEMENT</span></div></div>`;
 }
 
 function streetViewImage(d: MasterReportData, size = '900x600'): string {

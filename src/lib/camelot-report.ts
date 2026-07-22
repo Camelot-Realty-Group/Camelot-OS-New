@@ -2539,25 +2539,36 @@ function subjectImageOnErrorChain(fallbackUrls: string[], label: string): string
 }
 
 function buildSubjectImageCandidates(d: MasterReportData): string[] {
+  // Only real, address-matched photo sources belong here. commercialIntel.brandingImages
+  // and streetEasy.photos are deliberately excluded: brandingImages are marketing photos
+  // for whatever business occupies the building (this is what caused a report for 257
+  // Water Street to show Mark Joseph Steakhouse's dining room as "the subject property"),
+  // and streetEasy.photos come from a scraper that's blocked/legally risky and shouldn't
+  // be trusted as a photo source. Google Street View is included only via
+  // d.buildingPhotos.streetView, which building-photos.ts already computed as an AIMED,
+  // last-resort shot of the building itself -- never a raw, unaimed Street View URL.
   return uniqueImageUrls([
     ...(d.buildingPhotos?.exterior || []),
     ...(d.buildingPhotos?.interior || []),
-    ...(d.commercialIntel?.brandingImages || []),
-    ...(d.streetEasy?.photos || []),
     d.buildingPhotos?.streetView,
-    buildSubjectStreetViewUrl(d),
   ]);
 }
 
 function renderSubjectImage(d: MasterReportData, options: { height?: number; alt?: string } = {}): string {
   const candidates = buildSubjectImageCandidates(d);
-  const first = candidates[0] || buildSubjectStreetViewUrl(d);
-  const rest = candidates.slice(1);
   const height = options.height ? ` style="height:${options.height}px"` : '';
   const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch));
   const alt = escape(options.alt || d.buildingName);
-  const sourceLabel = d.buildingPhotos?.source || (d.streetEasy?.photos?.length ? 'StreetEasy public building photos' : 'Google Street View reference');
-  return `<div class="deck-photo"${height}><img src="${first}" alt="${alt}" data-fallback-index="0" data-image-source="${escape(sourceLabel)}" onerror="${subjectImageOnErrorChain(rest.length ? rest : [buildSubjectStreetViewUrl(d)], d.buildingName)}"></div>`;
+  if (!candidates.length) {
+    // Honest empty state -- never silently fabricate or reach for an
+    // unaimed Street View shot here. Matches the placeholder treatment
+    // used elsewhere once building-photos.ts reports noPhotoAvailable.
+    return `<div class="deck-photo"${height} style="display:flex;align-items:center;justify-content:center;background:#EDE9DF;color:#3A4B5B;text-align:center;padding:18px;font-size:12px;font-weight:700;line-height:1.45">No exterior photo available for ${alt}<br><span style="color:#A89035;font-size:10px;text-transform:uppercase;letter-spacing:0.8px">${escape(d.buildingPhotos?.attribution || '')}</span></div>`;
+  }
+  const first = candidates[0];
+  const rest = candidates.slice(1);
+  const sourceLabel = d.buildingPhotos?.source || 'Google Places';
+  return `<div class="deck-photo"${height}><img src="${first}" alt="${alt}" data-fallback-index="0" data-image-source="${escape(sourceLabel)}" onerror="${subjectImageOnErrorChain(rest, d.buildingName)}"></div>`;
 }
 
 function renderPropertyPhotoGallery(d: MasterReportData, options: { limit?: number; height?: number; columns?: number } = {}): string {

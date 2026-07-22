@@ -457,17 +457,22 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
     toast.success('Preview opened in a printable tab. Use browser Print / Save as PDF.');
   };
 
-  const handleEmailPreviewDraft = () => {
+  const handleEmailPreviewDraft = async () => {
     if (!reportPreview) return;
     const contacts = guardedBuilding.contacts || [];
     const recipients = uniqueContactEmails(contacts);
     const contactList = contactDirectory(contacts);
     const propertyLabel = guardedBuilding.name || guardedBuilding.address;
     const subject = `${reportPreview.label} - ${propertyLabel}`;
+    // Download the PDF first — browser email drafts cannot carry attachments,
+    // so the user needs the file on disk to drag into the draft.
+    const previewPdfName = reportPreview.filename.endsWith('.pdf')
+      ? reportPreview.filename
+      : `${reportPreview.filename}.pdf`;
+    await downloadAsPDF(reportPreview.html, reportPreview.filename);
     const body =
       `To the decision makers of ${propertyLabel},\n\n` +
       `Thank you for taking the time to review Camelot Property Management. I am sending the ${reportPreview.label} for ${propertyLabel} for your review.\n\n` +
-      `Please attach the reviewed PDF before sending. Suggested file name: ${reportPreview.filename}\n\n` +
       `Contacts currently saved for this outreach:\n${contactList}\n\n` +
       `We would welcome the opportunity to discuss the building by phone, Zoom, Google Meet, or in person.\n\n` +
       `Sincerely,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
@@ -477,6 +482,10 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       subject,
       body,
     });
+    toast(
+      `"${previewPdfName}" was saved to your Downloads — drag it into the Gmail draft to attach before sending.`,
+      { id: 'detail-preview-attach', duration: 10000, icon: '📎' }
+    );
     void trackReportWorkflowEvent({
       building: guardedBuilding,
       packageType: reportPreview.reportPackage,
@@ -500,10 +509,15 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       const recipients = uniqueContactEmails(contacts);
       const contactList = contactDirectory(contacts);
       const subject = `${DETAIL_REPORT_LABELS[reportPackage]} - ${data.buildingName || guardedBuilding.name || guardedBuilding.address}`;
+      // Browser-opened Gmail/mailto drafts CANNOT carry attachments, so
+      // download the PDF to the user's machine first — they attach it with
+      // one drag from Downloads. Without this the draft references a file
+      // the user never received.
+      const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+      await downloadAsPDF(html, filename);
       const body =
         `To the decision makers of ${data.buildingName || guardedBuilding.name || guardedBuilding.address},\n\n` +
         `Thank you for taking the time to review Camelot Property Management. Attached is the ${DETAIL_REPORT_LABELS[reportPackage]} for ${data.buildingName || guardedBuilding.name || guardedBuilding.address}.\n\n` +
-        `Please attach the reviewed PDF before sending: ${filename}\n\n` +
         `Contacts currently saved for this outreach:\n${contactList}\n\n` +
         `We would welcome the opportunity to discuss the building by phone, Zoom, Google Meet, or in person.\n\n` +
         `Sincerely,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
@@ -513,6 +527,10 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
         subject,
         body,
       });
+      toast(
+        `"${pdfFilename}" was saved to your Downloads — drag it into the Gmail draft to attach before sending.`,
+        { id: 'detail-report-attach', duration: 10000, icon: '📎' }
+      );
       void trackReportWorkflowEvent({
         building: guardedBuilding,
         reportData: data,
@@ -526,7 +544,12 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
         recipients,
       });
       setReportPreview({ reportPackage, label: DETAIL_REPORT_LABELS[reportPackage], html, filename });
-      toast.success(recipients.length ? 'Preview prepared and addressed email draft opened' : 'Preview prepared and email draft opened; add recipient before sending', { id: 'detail-report-email' });
+      toast.success(
+        recipients.length
+          ? 'PDF downloaded and addressed email draft opened — attach the PDF from Downloads'
+          : 'PDF downloaded and email draft opened — add a recipient and attach the PDF from Downloads',
+        { id: 'detail-report-email' }
+      );
     } catch (err) {
       console.error('Detail report email failed:', err);
       toast.error('Email package failed. Try downloading the PDF first.', { id: 'detail-report-email' });

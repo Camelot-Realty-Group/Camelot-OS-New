@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 // JSON body parser for API proxy routes
-app.use(express.json());
+app.use(express.json({ limit: '15mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 function getHubSpotApiKey() {
   return process.env.HUBSPOT_PRIVATE_APP_TOKEN || process.env.HUBSPOT_API_KEY || process.env.VITE_HUBSPOT_API_KEY || '';
@@ -468,6 +468,236 @@ app.post('/api/hubspot/deals', async (req, res) => {
 });
 
 // ============================================================
+// Email sending (Resend) + HubSpot engagement mirroring + tracking
+// ============================================================
+// Design: Camelot OS sends real email itself via Resend (never routes cold
+// outreach silently -- the caller still composes/reviews the report and
+// clicks Send). Every successful send is ALSO logged as an "emails"
+// engagement in HubSpot, associated to the matching contact/company/deal
+// when IDs are supplied, so both systems show the same history even though
+// only Camelot OS is doing the actual delivery. This keeps HubSpot as the
+// system of record for the team's follow-up (per
+// docs/HUBSPOT_CAMELOT_OS_ROLLOUT.md) without depending on HubSpot's own
+// Marketing Hub / send infrastructure, which this account doesn't have.
+import crypto from 'crypto';
+
+function getResendApiKey() {
+  return process.env.RESEND_API_KEY || '';
+}
+
+function getResendFromAddress() {
+  // Must be a verified sending domain in Resend (SPF/DKIM configured on
+  // camelot.nyc) or Resend will reject the send. Defaults to Resend's
+  // sandbox address, which only delivers to the account owner's own
+  // verified email -- fine for initial testing, not for real outreach.
+  return process.env.RESEND_FROM_ADDRESS || 'Camelot Property Management <onboarding@resend.dev>';
+}
+
+function getResendWebhookSecret() {
+  return process.env.RESEND_WEBHOOK_SECRET || '';
+}
+
+// In-memory send/tracking log. Good enough for a single-instance Render
+// free/starter service; move to Supabase (already wired for everything
+// else in this app) if this needs to survive restarts or scale beyond one
+// dyno -- the shape here is intentionally simple to make that swap easy.
+const EMAIL_LOG = [];
+const EMAIL_LOG_MAX = 500;
+
+function logEmailEvent(resendId, patch) {
+  const idx = EMAIL_LOG.findIndex(e => e.resendId === resendId);
+  if (idx === -1) return null;
+  EMAIL_LOG[idx] = { ...EMAIL_LOG[idx], ...patch, updatedAt: new Date().toISOString() };
+  return EMAIL_LOG[idx];
+}
+
+async function logHubSpotEmailEngagement({ subject, html, to, hubspot }) {
+  const apiKey = getHubSpotApiKey();
+  if (!apiKey || !hubspot || (!hubspot.contactId && !hubspot.dealId && !hubspot.companyId)) {
+    return { status: 'skipped', message: 'No HubSpot token or no contact/deal/company id supplied — send still succeeded.' };
+  }
+  try {
+    const associations = [];
+    if (hubspot.contactId) associations.push({ to: { id: String(hubspot.contactId) }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 198 }] });
+    if (hubspot.dealId) associations.push({ to: { id: String(hubspot.dealId) }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 210 }] });
+    if (hubspot.companyId) associations.push({ to: { id: String(hubspot.companyId) }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 186 }] });
+
+    const resp = await fetch('https://api.hubapi.com/crm/v3/objects/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        properties: {
+          hs_timestamp: String(Date.now()),
+          hs_email_direction: 'EMAIL',
+          hs_email_status: 'SENT',
+          hs_email_subject: subject,
+          hs_email_html: html,
+          hs_email_to_email: Array.isArray(to) ? to.join(', ') : String(to || ''),
+        },
+        associations,
+      }),
+    });
+    const text = await resp.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { error: text, status: resp.status }; }
+    if (!resp.ok) {
+      console.error('HubSpot email engagement error:', resp.status, data);
+      return { status: 'error', message: data?.message || `HubSpot returned ${resp.status}` };
+    }
+    return { status: 'ok', id: data.id };
+  } catch (err) {
+    console.error('HubSpot email engagement exception:', err);
+    return { status: 'error', message: err.message || 'HubSpot engagement logging failed' };
+  }
+}
+
+async function updateHubSpotEmailEngagementStatus(hubspotEngagementId, status) {
+  const apiKey = getHubSpotApiKey();
+  if (!apiKey || !hubspotEngagementId) return;
+  try {
+    await fetch(`https://api.hubapi.com/crm/v3/objects/emails/${hubspotEngagementId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ properties: { hs_email_status: status } }),
+    });
+  } catch (err) {
+    console.error('HubSpot engagement status update failed:', err);
+  }
+}
+
+app.get('/api/email/config-status', (_req, res) => {
+  res.json({
+    resendConfigured: Boolean(getResendApiKey()),
+    resendFromAddress: getResendFromAddress(),
+    hubspotConfigured: Boolean(getHubSpotApiKey()),
+    webhookConfigured: Boolean(getResendWebhookSecret()),
+  });
+});
+
+app.post('/api/email/send', async (req, res) => {
+  const apiKey = getResendApiKey();
+  if (!apiKey) {
+    return res.status(400).json({ error: 'Email sending is not configured yet. Add RESEND_API_KEY in Render → Environment.' });
+  }
+  const { to, subject, html, text, replyTo, attachmentBase64, attachmentFilename, hubspot } = req.body || {};
+  if (!to || !subject || !html) {
+    return res.status(400).json({ error: 'to, subject, and html are required' });
+  }
+  try {
+    const payload = {
+      from: getResendFromAddress(),
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      ...(text ? { text } : {}),
+      ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(attachmentBase64 && attachmentFilename
+        ? { attachments: [{ filename: attachmentFilename, content: attachmentBase64 }] }
+        : {}),
+    };
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      console.error('Resend send error:', resp.status, data);
+      return res.status(resp.status).json({ error: data?.message || `Resend returned ${resp.status}`, details: data });
+    }
+
+    const hubspotResult = await logHubSpotEmailEngagement({ subject, html, to, hubspot });
+
+    EMAIL_LOG.unshift({
+      resendId: data.id,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      status: 'sent',
+      sentAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      hubspotEngagementId: hubspotResult.status === 'ok' ? hubspotResult.id : null,
+    });
+    EMAIL_LOG.splice(EMAIL_LOG_MAX);
+
+    res.json({ ok: true, id: data.id, hubspot: hubspotResult });
+  } catch (err) {
+    console.error('Email send error:', err);
+    res.status(500).json({ error: err.message || 'Email send failed — check server logs' });
+  }
+});
+
+// Resend signs webhooks using the Svix scheme: HMAC-SHA256 over
+// "{id}.{timestamp}.{body}" using the base64 portion of the signing
+// secret, compared (constant-time) against the v1 signature(s) in the
+// webhook-signature header. Reference: https://resend.com/docs/dashboard/webhooks/verify-webhooks-requests
+function verifyResendWebhookSignature(req, rawBody) {
+  const secret = getResendWebhookSecret();
+  if (!secret) return true; // not configured yet — accept but log, don't block setup
+  try {
+    const id = req.headers['webhook-id'];
+    const timestamp = req.headers['webhook-timestamp'];
+    const signatureHeader = req.headers['webhook-signature'];
+    if (!id || !timestamp || !signatureHeader) return false;
+    const secretBytes = Buffer.from(secret.split('_').pop() || secret, 'base64');
+    const signedContent = `${id}.${timestamp}.${rawBody}`;
+    const expected = crypto.createHmac('sha256', secretBytes).update(signedContent).digest('base64');
+    return String(signatureHeader)
+      .split(' ')
+      .map(part => part.split(',')[1])
+      .filter(Boolean)
+      .some(sig => {
+        try {
+          return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+        } catch {
+          return false;
+        }
+      });
+  } catch (err) {
+    console.error('Webhook signature verification error:', err);
+    return false;
+  }
+}
+
+app.post('/api/webhooks/resend', async (req, res) => {
+  const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body || {});
+  if (!verifyResendWebhookSignature(req, rawBody)) {
+    console.warn('Resend webhook: signature verification failed, rejecting.');
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON' });
+  }
+
+  const resendId = event?.data?.email_id;
+  const type = event?.type; // e.g. 'email.delivered', 'email.opened', 'email.clicked', 'email.bounced', 'email.complained'
+  const statusMap = {
+    'email.sent': 'sent',
+    'email.delivered': 'delivered',
+    'email.delivery_delayed': 'delayed',
+    'email.opened': 'opened',
+    'email.clicked': 'clicked',
+    'email.bounced': 'bounced',
+    'email.complained': 'complained',
+  };
+  const status = statusMap[type];
+  if (resendId && status) {
+    const updated = logEmailEvent(resendId, { status });
+    if (updated?.hubspotEngagementId) {
+      const hsStatusMap = { delivered: 'SENT', opened: 'OPENED', clicked: 'CLICKED', bounced: 'BOUNCED' };
+      if (hsStatusMap[status]) await updateHubSpotEmailEngagementStatus(updated.hubspotEngagementId, hsStatusMap[status]);
+    }
+  }
+  res.json({ received: true });
+});
+
+app.get('/api/email/events', (_req, res) => {
+  res.json({ events: EMAIL_LOG.slice(0, 100) });
+});
+
+// ============================================================
 // Apollo API Proxy — contact enrichment
 // ============================================================
 // ============================================================
@@ -680,6 +910,12 @@ app.post('/api/integrations/push-building', async (req, res) => {
                 ? 'HubSpot company/contact synced; add HUBSPOT_DEAL_STAGE_ID for pipeline opportunity sync.'
                 : 'HubSpot company synced; add a verified email and HUBSPOT_DEAL_STAGE_ID for full pipeline sync.',
           id: dealRecord?.id || companyRecord?.id || contactRecord?.id,
+          // Exposed separately (not just the collapsed `id` above) so callers
+          // like the email-send flow can associate a send with the exact
+          // right record type instead of guessing which kind `id` is.
+          contactId: contactRecord?.id,
+          companyId: companyRecord?.id,
+          dealId: dealRecord?.id,
           url: dealRecord?.id && process.env.HUBSPOT_PORTAL_ID
             ? `https://app.hubspot.com/contacts/${process.env.HUBSPOT_PORTAL_ID}/deal/${dealRecord.id}`
             : undefined,

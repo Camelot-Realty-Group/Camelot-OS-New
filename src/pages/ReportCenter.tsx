@@ -1,11 +1,11 @@
 import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Search, FileText, Download, Mail, Phone, Table2, Link2, Loader2, Eye, Copy, Check, X, ShieldCheck, ShieldX, AlertTriangle, Printer } from 'lucide-react';
+import { Search, FileText, Download, Mail, Send, Phone, Table2, Link2, Loader2, Eye, Copy, Check, X, ShieldCheck, ShieldX, AlertTriangle, Printer } from 'lucide-react';
 import { REPORT_FOCUS_THEMES, buildJackieIntelReportFilename, buildMasterReport, generateBrochureHTML, generateColdCallerSheet, generateEmailDraft, generateCSVExport, validateJackieReport, type MasterReportData, type QACheckResult, type ReportFocusInput, type ReportFocusKey } from '@/lib/camelot-report';
 import { JACKIE_REPORT_PACKAGES, buildJackiePackageFilename, generateBoardMeetingDeck, generateFirstEmailIntroReport, generateJackieReportPackage, generatePitchEmail, type JackieReportPackage } from '@/lib/pitch-report';
 import { applyJackieFactAuthority, sanitizeJackieKnownPropertyHtml } from '@/lib/jackie-fact-authority';
 import { generatePitchDeck } from '@/lib/pitch-deck-pptx';
-import { openBrochureForPrint, downloadAsHTML, downloadAsPDF, triggerCSVDownload, copyToClipboard, openEmailDraft } from '@/lib/pdf-generator';
+import { openBrochureForPrint, downloadAsHTML, downloadAsPDF, triggerCSVDownload, copyToClipboard, openEmailDraft, sendCamelotEmail, getEmailConfigStatus, type EmailConfigStatus } from '@/lib/pdf-generator';
 import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import { formatLibraryDate, loadLocalJackieReportLibrary, packageLabelFor, removeJackieReportRecord, saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
@@ -254,6 +254,10 @@ export default function ReportCenter() {
   const [data, setData] = useState<MasterReportData | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showCallerModal, setShowCallerModal] = useState(false);
+  const [emailConfigStatus, setEmailConfigStatus] = useState<EmailConfigStatus | null>(null);
+  const [sendingRealEmail, setSendingRealEmail] = useState(false);
+  const [hubspotSyncedIds, setHubspotSyncedIds] = useState<{ address: string; contactId?: string; companyId?: string; dealId?: string } | null>(null);
+  useEffect(() => { getEmailConfigStatus().then(setEmailConfigStatus).catch(() => setEmailConfigStatus(null)); }, []);
   const [emailType, setEmailType] = useState<EmailType>('intro');
   const [copied, setCopied] = useState(false);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]); const [autoExteriorPhoto, setAutoExteriorPhoto] = useState<{ url: string; attribution: string } | null>(null); useEffect(() => { let cancelled = false; setAutoExteriorPhoto(null); const addr = data?.address; const name = data?.buildingName || addr; if (!addr) return; findBuildingPhotos(name || addr, addr).then((result: any) => { if (!cancelled && result?.exterior?.[0]) { setAutoExteriorPhoto({ url: result.exterior[0], attribution: result.attribution || '' }); } }).catch(() => {}); return () => { cancelled = true; }; }, [data?.address, data?.buildingName]);
@@ -568,6 +572,86 @@ export default function ReportCenter() {
     toast.success(recipients.length ? 'PDF downloaded and addressed Gmail draft opened' : 'PDF downloaded and Gmail draft opened; add recipient before sending', { id: 'jackie-email' });
   };
 
+  /**
+   * Actually send the report by email via Camelot OS's own Resend-backed
+   * endpoint (server.js /api/email/send) — a real delivery, not a mailto
+   * draft the user has to finish themselves. Mirrors the send into HubSpot
+   * as an Email engagement (associated to the matching deal, if this
+   * building has one) so both systems show the same history. Requires
+   * RESEND_API_KEY to be configured in Render; shows a clear error rather
+   * than silently doing nothing if it isn't.
+   */
+  const handleSendRealEmail = async () => {
+    const d = getDataWithPhotos();
+    if (!d) return;
+    if (!emailConfigStatus?.resendConfigured) {
+      toast.error('Real sending isn\'t configured yet — add RESEND_API_KEY in Render, or use "Email PDF Draft" for now.', { id: 'jackie-send', duration: 6000 });
+      return;
+    }
+    const recipients = collectReportContactEmails(d, inquiryEmail);
+    if (!recipients.length) {
+      toast.error('No recipient email found — add one in "Inquiry contact email" above before sending.', { id: 'jackie-send' });
+      return;
+    }
+    const html = generateSelectedPackageHTML(d);
+    if (!verifyJackieRelease(d, html, 'internal', selectedPackage)) return;
+    const filenames = reportPackageFilenames(d, selectedPackage);
+    archiveJackieReport(d, selectedPackage, html, filenames.html);
+
+    const subject = `Introduction to Camelot Property Management regarding ${d.buildingName || d.address}`;
+    const bodyText =
+      `To the decision makers of ${d.buildingName || d.address},\n\n` +
+      `Thank you for taking the time to review Camelot Property Management. Attached is a property-specific Camelot report for ${d.buildingName || d.address}.\n\n` +
+      `Camelot is a New York-based property management company serving co-ops, condos, and rental buildings with senior attention, in-house accounting, legal and compliance guidance, practical technology, and hands-on local management. We would welcome the opportunity to speak with you by phone, Zoom, Google Meet, or in person to discuss where Camelot may be useful to your building.\n\n` +
+      `Sincerely,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
+    const bodyHtml = bodyText.split('\n').map(line => line ? `<p style="margin:0 0 12px;font-family:Georgia,serif;font-size:15px;color:#1a1f36;line-height:1.6">${line}</p>` : '').join('');
+
+    setSendingRealEmail(true);
+    toast.loading('Rendering PDF and sending...', { id: 'jackie-send' });
+    try {
+      const result = await sendCamelotEmail({
+        to: recipients,
+        subject,
+        html: bodyHtml,
+        text: bodyText,
+        replyTo: 'dgoldoff@camelot.nyc',
+        reportHtml: html,
+        attachmentFilename: filenames.pdf,
+        hubspot: hubspotSyncedIds && hubspotSyncedIds.address === d.address
+          ? { contactId: hubspotSyncedIds.contactId, companyId: hubspotSyncedIds.companyId, dealId: hubspotSyncedIds.dealId }
+          : undefined,
+      });
+      if (!result.ok) {
+        toast.error(result.error || 'Send failed', { id: 'jackie-send' });
+      } else {
+        const hubspotNote = result.hubspot?.status === 'ok' ? ' · logged to HubSpot' : '';
+        toast.success(`Sent to ${recipients.join(', ')}${hubspotNote}`, { id: 'jackie-send' });
+        void trackReportWorkflowEvent({
+          building: reportDataToBuilding(d, {
+            name: inquiryContact,
+            email: inquiryEmail,
+            phone: inquiryPhone,
+            role: inquiryRole,
+            organization: inquiryOrganization,
+          }),
+          reportData: d,
+          packageType: selectedPackage,
+          packageLabel: packageLabelFor(selectedPackage),
+          action: 'email_sent',
+          filename: filenames.pdf,
+          html,
+          emailSubject: subject,
+          emailBody: bodyText,
+          recipients,
+        });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Send failed', { id: 'jackie-send' });
+    } finally {
+      setSendingRealEmail(false);
+    }
+  };
+
   const handlePushSelectedHubSpot = async () => {
     const d = getDataWithPhotos();
     if (!d) return;
@@ -600,6 +684,14 @@ export default function ReportCenter() {
         html,
       });
       const hubspotText = result.hubspot?.status === 'ok' ? 'HubSpot synced' : result.hubspot?.message || 'HubSpot queued/skipped';
+      if (result.hubspot?.status === 'ok' && (result.hubspot.contactId || result.hubspot.companyId || result.hubspot.dealId)) {
+        setHubspotSyncedIds({
+          address: d.address,
+          contactId: result.hubspot.contactId,
+          companyId: result.hubspot.companyId,
+          dealId: result.hubspot.dealId,
+        });
+      }
       toast.success(`Scout workflow complete. ${hubspotText}`, { id: 'jackie-hubspot' });
     } catch (err: any) {
       console.error('HubSpot push failed:', err);
@@ -1251,6 +1343,15 @@ export default function ReportCenter() {
               </button>
               <button onClick={handlePitchEmail} className="px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex flex-col items-center gap-1 text-sm">
                 <Mail className="w-5 h-5" /> Email PDF Draft
+              </button>
+              <button
+                onClick={handleSendRealEmail}
+                disabled={sendingRealEmail}
+                title={emailConfigStatus?.resendConfigured ? 'Actually sends via Resend and logs to HubSpot' : 'Add RESEND_API_KEY in Render to enable real sending'}
+                className={`px-4 py-3 rounded-lg font-medium flex flex-col items-center gap-1 text-sm disabled:opacity-60 ${emailConfigStatus?.resendConfigured ? 'bg-[#16a34a] text-white hover:bg-[#15803d]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              >
+                {sendingRealEmail ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                Send Email{!emailConfigStatus?.resendConfigured ? ' (setup needed)' : ''}
               </button>
               <button onClick={() => setShowCallerModal(true)} className="px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex flex-col items-center gap-1 text-sm">
                 <Phone className="w-5 h-5" /> Send to Carl

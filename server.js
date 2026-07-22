@@ -1126,6 +1126,67 @@ app.post('/api/core/route', async (req, res) => {
     res.status(500).json({ error: err.message || 'Core routing failed' });
   }
 });
+// ============================================================
+// Template Concierge — fills branded Camelot document templates
+// ============================================================
+// Master .docx files live in server/doc-templates/<id>.docx with
+// {merge_tag} placeholders. Field schemas for what to ask the user live
+// in src/lib/document-templates.ts (kept in sync manually for now — a
+// template is only wired here once its master .docx exists).
+const DOC_TEMPLATES_DIR = path.join(__dirname, 'server', 'doc-templates');
+
+// id -> master docx filename (must match a file in server/doc-templates/)
+const READY_TEMPLATE_FILES = {
+  'work-order-request-form': 'work-order-request.docx',
+};
+
+app.get('/api/templates/list', async (_req, res) => {
+  try {
+    const fs = await import('fs');
+    const ids = Object.keys(READY_TEMPLATE_FILES).filter((id) =>
+      fs.existsSync(path.join(DOC_TEMPLATES_DIR, READY_TEMPLATE_FILES[id]))
+    );
+    res.json({ ready_ids: ids });
+  } catch (err) {
+    console.error('Templates list error:', err);
+    res.status(500).json({ error: 'Could not list templates' });
+  }
+});
+
+app.post('/api/templates/generate', async (req, res) => {
+  try {
+    const { templateId, answers } = req.body || {};
+    if (!templateId || typeof templateId !== 'string') {
+      return res.status(400).json({ error: 'templateId is required' });
+    }
+    const filename = READY_TEMPLATE_FILES[templateId];
+    if (!filename) {
+      return res.status(404).json({ error: `No generator wired for template "${templateId}" yet` });
+    }
+    const fs = await import('fs');
+    const masterPath = path.join(DOC_TEMPLATES_DIR, filename);
+    if (!fs.existsSync(masterPath)) {
+      return res.status(500).json({ error: 'Master template file missing on server' });
+    }
+    const { default: Docxtemplater } = await import('docxtemplater');
+    const { default: PizZip } = await import('pizzip');
+
+    const content = fs.readFileSync(masterPath, 'binary');
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true, nullGetter: () => '' });
+    doc.render(answers || {});
+
+    const buf = doc.getZip().generate({ type: 'nodebuffer' });
+    const safeName = templateId.replace(/[^a-z0-9-]/gi, '_');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="Camelot_${safeName}.docx"`);
+    res.send(buf);
+  } catch (err) {
+    console.error('Template generate error:', err);
+    res.status(500).json({ error: err.message || 'Document generation failed' });
+  }
+});
+
 // Serve static files
 app.use(express.static(path.join(__dirname, 'dist'), { fallthrough: true }));
 

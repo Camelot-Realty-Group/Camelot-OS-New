@@ -87,6 +87,7 @@ const navigation: NavSection[] = [
     title: 'Excalibur — Agreements',
     items: [
       { label: 'Generate Agreement', href: '/agreements', icon: <Sword size={18} /> },
+      { label: 'Template Concierge', href: '/templates', icon: <FileText size={18} /> },
       { label: 'Templates & Billing', href: '/template-billing', icon: <Receipt size={18} /> },
     ],
   },

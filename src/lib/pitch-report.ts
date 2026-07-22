@@ -523,11 +523,25 @@ function enrichEveryOtherDeckPage(slides: string, d: MasterReportData): string {
 function propertyImageCard(d: MasterReportData, caption: string, height = 392): string {
   const first = bestExteriorImage(d);
   const safeAlt = escapeHtml(d.buildingName || d.address);
-  const placeholder = `<div style=&quot;height:100%;display:flex;align-items:center;justify-content:center;background:#F5F0E5;color:#8a8174;font-size:12px;font-weight:700;text-align:center;padding:16px&quot;>No exterior photo available for ${safeAlt}</div>`;
-  return first ? `<div class="visual-card"><div class="image-frame" style="height:${height}px"><img src="${first}" alt="${safeAlt}" onerror="this.style.display='none';this.parentElement.innerHTML='${placeholder}'"></div><div class="image-caption">${caption}</div></div>` : `<div class="visual-card"><div class="image-frame" style="height:${height}px">${placeholder}</div><div class="image-caption">${caption}</div></div>`;
+  // With no verified photo (or a broken photo URL), fall back to LIVE
+  // Google Street View of the address — real imagery, honestly labeled —
+  // never a dead placeholder in a client-facing deck.
+  const streetViewFallback = rawIframeFrame(streetViewEmbedUrl(d, 0), `${safeAlt} street view`)
+    .replace(/"/g, '&quot;');
+  return first
+    ? `<div class="visual-card"><div class="image-frame" style="height:${height}px"><img src="${first}" alt="${safeAlt}" onerror="this.style.display='none';this.parentElement.innerHTML='${streetViewFallback}'"></div><div class="image-caption">${caption}</div></div>`
+    : `<div class="visual-card"><div class="image-frame" style="height:${height}px;background:#EDE9DF">${rawIframeFrame(streetViewEmbedUrl(d, 0), `${safeAlt} street view`)}</div><div class="image-caption">${caption} &middot; Live Google Street View &mdash; verify angle before sending</div></div>`;
 }
 
-function noExteriorPhotoCard(_unusedSrc: string, title: string, caption: string, height = 260): string { const safeTitle = escapeHtml(title); return `<div class="visual-card"><div class="image-frame" style="height:${height}px;display:flex;align-items:center;justify-content:center;background:#F5F0E5;color:#8a8174;font-size:11px;font-weight:700;text-align:center;padding:12px">No exterior photo available for ${safeTitle}</div><div class="image-caption">${caption}</div></div>`; } function iframeCard(src: string, title: string, caption: string, height = 260): string {
+function noExteriorPhotoCard(streetViewSrc: string, title: string, caption: string, height = 260): string {
+  // No verified photo exists — show LIVE Google Street View of the address
+  // (interactive embed; real imagery, clearly labeled) instead of a dead
+  // placeholder. Scraped/tenant photos remain banned; this is Google's own
+  // street-level imagery of the subject address.
+  const safeTitle = escapeHtml(title);
+  return `<div class="visual-card"><div class="image-frame" style="height:${height}px;background:#EDE9DF">${rawIframeFrame(streetViewSrc, safeTitle)}</div><div class="image-caption">${caption} &middot; Live Google Street View &mdash; verify angle before sending</div></div>`;
+}
+function iframeCard(src: string, title: string, caption: string, height = 260): string {
   const safeTitle = escapeHtml(title);
   return `<div class="visual-card"><div class="image-frame" style="height:${height}px"><iframe src="${src}" title="${safeTitle}" allowfullscreen loading="lazy"></iframe></div><div class="image-caption">${caption}</div></div>`;
 }

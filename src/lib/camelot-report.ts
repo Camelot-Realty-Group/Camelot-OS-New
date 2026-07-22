@@ -2560,10 +2560,15 @@ function renderSubjectImage(d: MasterReportData, options: { height?: number; alt
   const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] || ch));
   const alt = escape(options.alt || d.buildingName);
   if (!candidates.length) {
-    // Honest empty state -- never silently fabricate or reach for an
-    // unaimed Street View shot here. Matches the placeholder treatment
-    // used elsewhere once building-photos.ts reports noPhotoAvailable.
-    return `<div class="deck-photo"${height} style="display:flex;align-items:center;justify-content:center;background:#EDE9DF;color:#3A4B5B;text-align:center;padding:18px;font-size:12px;font-weight:700;line-height:1.45">No exterior photo available for ${alt}<br><span style="color:#A89035;font-size:10px;text-transform:uppercase;letter-spacing:0.8px">${escape(d.buildingPhotos?.attribution || '')}</span></div>`;
+    // No verified photo — fall back to LIVE Google Street View of the
+    // address (interactive embed, clearly labeled; same embed API the
+    // report's other pages already use). Scraped/tenant photos remain
+    // banned; this is Google's own street-level imagery of the address.
+    const svLocation = d.latitude && d.longitude
+      ? `${d.latitude},${d.longitude}`
+      : `${d.address}, New York, NY`;
+    const svUrl = `https://www.google.com/maps/embed/v1/streetview?key=${GOOGLE_MAPS_REPORT_KEY}&location=${encodeURIComponent(svLocation)}&heading=0&pitch=5&fov=80`;
+    return `<div class="deck-photo"${height} style="background:#EDE9DF;position:relative"><iframe src="${svUrl}" title="${alt} street view" width="100%" height="100%" style="border:0;position:absolute;inset:0" allowfullscreen loading="lazy"></iframe><div style="position:absolute;left:0;right:0;bottom:0;background:rgba(26,39,68,.78);color:#F4D26A;font-size:9px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:4px 8px;text-align:center">Live Google Street View &mdash; verify angle before sending</div></div>`;
   }
   const first = candidates[0];
   const rest = candidates.slice(1);

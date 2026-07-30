@@ -20,9 +20,9 @@ import { applyJackieFactAuthority, sanitizeJackieKnownPropertyHtml } from './jac
 export type JackieReportPackage = 'first_email_intro' | 'board_meeting_deck' | 'appendix_full';
 
 export const JACKIE_REPORT_PACKAGES: Array<{ key: JackieReportPackage; label: string; pages: string; description: string }> = [
-  { key: 'first_email_intro', label: 'Introduction Deck', pages: '6-8 pages', description: 'Short board-safe teaser for first outreach.' },
-  { key: 'board_meeting_deck', label: 'First Meeting Briefing', pages: '15 pages', description: 'Main presentation for first board/ownership meetings.' },
-  { key: 'appendix_full', label: 'Proposal & 90-Day Plan', pages: 'Full appendix', description: 'Complete proposal with management scope, fees, and the 90-day transition plan.' },
+  { key: 'first_email_intro', label: 'Intro to Camelot', pages: '6-8 pages', description: 'Short board-safe teaser for first outreach.' },
+  { key: 'board_meeting_deck', label: 'Board Interview Agenda', pages: '15 pages', description: 'Main presentation for first board/ownership meetings.' },
+  { key: 'appendix_full', label: 'Proposal & Agreement', pages: 'Full appendix', description: 'Proposal of Services, 30-day transition, Management Agreement, and what to expect with Camelot in the first 90 days.' },
 ];
 
 const CAMELOT_EXECUTIVE_TEAM = [
@@ -377,17 +377,23 @@ function externalDeckCss(): string {
   `;
 }
 
-function deckShell(title: string, slides: string): string {
+function deckShell(title: string, slides: string, filenameStem?: string): string {
   const safeTitle = escapeHtml(title);
   const encodedSubject = encodeURIComponent(title);
   const encodedBody = encodeURIComponent(`Please find the Camelot introduction report for review.\n\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`);
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${safeTitle}</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><style>${externalDeckCss()}</style></head><body><div class="deck-action-bar"><div style="font-size:13px;font-weight:900;color:#F4D26A">${safeTitle}</div><div><button class="gold" onclick="setTimeout(function(){window.focus();window.print()},150)">Print / Save PDF</button><button class="white" onclick="var blob=new Blob([document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=document.title.replace(/[^a-zA-Z0-9]+/g,'-')+'.html';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove()},1000)">Download HTML</button><a class="outline" href="mailto:info@camelot.nyc?cc=dgoldoff@camelot.nyc&subject=${encodedSubject}&body=${encodedBody}">Email</a></div></div>${slides}</body></html>`;
+  // Browsers use document.title as the suggested filename for
+  // Print -> Save as PDF, so the title carries the dated file stem
+  // (e.g. 552-West-43rd-Street-first_engagement_2026-07-30).
+  const stem = (filenameStem || `${title.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '')}_${new Date().toISOString().slice(0, 10)}`)
+    .replace(/\.(pdf|html)$/i, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${stem}</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,500;1,600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><style>${externalDeckCss()}</style></head><body><div class="deck-action-bar"><div style="font-size:13px;font-weight:900;color:#F4D26A">${safeTitle}</div><div><button class="gold" onclick="document.title='${stem}';setTimeout(function(){window.focus();window.print()},150)">Print / Save PDF</button><button class="white" onclick="var blob=new Blob([document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='${stem}.html';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove()},1000)">Download HTML</button><a class="outline" href="mailto:info@camelot.nyc?cc=dgoldoff@camelot.nyc&subject=${encodedSubject}&body=${encodedBody}">Email</a></div></div>${slides}</body></html>`;
 }
 
 function logoBadge(): string {
-  // Matches the "First Meeting Briefing" treatment (white wordmark + shadow on the
+  // Matches the "Board Interview Agenda" treatment (white wordmark + shadow on the
   // gold badge, "PROPERTY MANAGEMENT" sub-label) across every report that uses
-  // this shared deck shell -- Introduction Deck, HOA reports, etc.
+  // this shared deck shell -- Intro to Camelot, HOA reports, etc.
   return `<div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">PROPERTY MANAGEMENT</span></div></div>`;
 }
 
@@ -946,7 +952,7 @@ export function generateFirstEmailIntroReport(d: MasterReportData): string {
   const hasRisks = d.violationsOpen > 0 || d.ecbPenaltyBalance > 0 || Boolean(d.ll97?.period1Penalty);
   const landmarks = landmarkLabels(d);
   const slides = `
-<div class="slide slide-dark"><div style="position:absolute;inset:0;background:#1f303d"><img src="${subjectImage}" alt="${escapeHtml(d.buildingName || d.address)} subject property image" style="width:100%;height:100%;object-fit:cover;opacity:.56" onerror="this.style.display='none'"></div><div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(34,47,58,.98) 0%,rgba(34,47,58,.74) 48%,rgba(34,47,58,.34) 100%)"></div><div style="position:absolute;right:62px;bottom:58px;width:410px;z-index:2"><div style="font-size:9px;font-weight:900;letter-spacing:1.2px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">The Property &mdash; ${escapeHtml(streetLine(d.address))}</div><div style="height:215px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111;margin-bottom:10px">${(() => { const primary = bestExteriorImage(d); const aimed = d.buildingPhotos?.streetView || ''; if (!primary && !aimed) { return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:11px;font-weight:700;text-align:center;padding:12px">No exterior photo available for ${escapeHtml(streetLine(d.address))}</div>`; } const src = primary || aimed; const fallback = (primary && aimed) ? aimed : ''; return `<img src="${src}" alt="${escapeHtml(d.address)} building facade" style="width:100%;height:100%;object-fit:cover" ${fallback ? `onerror="this.onerror=null;this.src='${fallback}'"` : `onerror="this.style.display='none'"`}>`; })()}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:9px;font-weight:900;letter-spacing:1.2px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">Location &mdash; ${neighborhoodName(d)}</div><div style="height:130px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(placeEmbedUrl(d), `${neighborhoodName(d)} location map`)}</div></div><div><div style="font-size:9px;font-weight:900;letter-spacing:1.2px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">From Camelot HQ &mdash; Transit</div><div style="height:130px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(directionsEmbedUrl(d, 'transit'), 'Subway route from Camelot HQ, 57 West 57th Street')}</div></div></div></div><div class="pad" style="position:relative;z-index:3">${logoBadge()}<div style="height:100%;display:flex;flex-direction:column;justify-content:center;max-width:720px"><div style="font-size:13px;color:#B8973A;text-transform:uppercase;letter-spacing:2.5px;font-weight:800">Introduction Deck - Camelot Property Management</div><h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:68px;line-height:.95;color:#F4D26A;font-style:italic;margin:12px 0 4px">${escapeHtml(d.buildingName || streetLine(d.address))}</h1><div style="font-size:19px;color:rgba(255,255,255,.78);font-weight:600;margin-bottom:14px">New York, NY${d.zipCode ? ` ${d.zipCode}` : ''} &nbsp;&middot;&nbsp; ${neighborhoodName(d)}</div><p style="font-size:20px;color:rgba(255,255,255,.84);line-height:1.55">New Yorkers managing New York buildings since 2006 &mdash; a short introduction to what our people and our platform can do for ${escapeHtml(d.buildingName || streetLine(d.address))}.</p><div style="margin-top:18px;max-width:620px;border-left:3px solid #B8973A;padding:10px 14px;background:rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.76);line-height:1.55">${JACKIE_INTELLIGENT_REPORT_NOTE}</div><div style="margin-top:52px"><div style="font-size:15px;color:rgba(255,255,255,.88);font-weight:700">${escapeHtml(d.address)}${d.zipCode ? ` &middot; ${d.zipCode}` : ''}</div><div style="font-size:12px;color:rgba(255,255,255,.62);margin-top:3px">${neighborhoodName(d)}${d.borough ? ` &middot; ${d.borough.charAt(0).toUpperCase() + d.borough.slice(1)}` : ''} &middot; ${today}</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${[d.propertyType || null, unitsBreakdownLabel(d), bblLabel(d), d.yearBuilt ? `Built ${d.yearBuilt}` : null].filter(Boolean).map(chip => `<span style="font-size:10.5px;font-weight:800;color:#F4D26A;border:1px solid rgba(244,210,106,.45);border-radius:999px;padding:3px 10px;background:rgba(0,0,0,.25)">${chip}</span>`).join('')}</div></div>${preparedForBlock(d)}</div></div></div>
+<div class="slide slide-dark"><div style="position:absolute;inset:0;background:#1f303d"><img src="${subjectImage}" alt="${escapeHtml(d.buildingName || d.address)} subject property image" style="width:100%;height:100%;object-fit:cover;opacity:.56" onerror="this.style.display='none'"></div><div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(34,47,58,.98) 0%,rgba(34,47,58,.74) 48%,rgba(34,47,58,.34) 100%)"></div><div style="position:absolute;right:62px;bottom:58px;width:410px;z-index:2"><div style="font-size:9px;font-weight:900;letter-spacing:1.2px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">The Property &mdash; ${escapeHtml(streetLine(d.address))}</div><div style="height:215px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111;margin-bottom:10px">${(() => { const primary = bestExteriorImage(d); const aimed = d.buildingPhotos?.streetView || ''; if (!primary && !aimed) { return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:11px;font-weight:700;text-align:center;padding:12px">No exterior photo available for ${escapeHtml(streetLine(d.address))}</div>`; } const src = primary || aimed; const fallback = (primary && aimed) ? aimed : ''; return `<img src="${src}" alt="${escapeHtml(d.address)} building facade" style="width:100%;height:100%;object-fit:cover" ${fallback ? `onerror="this.onerror=null;this.src='${fallback}'"` : `onerror="this.style.display='none'"`}>`; })()}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><div style="font-size:9px;font-weight:900;letter-spacing:1.2px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">Location &mdash; ${neighborhoodName(d)}</div><div style="height:130px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(placeEmbedUrl(d), `${neighborhoodName(d)} location map`)}</div></div><div><div style="font-size:9px;font-weight:900;letter-spacing:1.2px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">From Camelot HQ &mdash; Transit</div><div style="height:130px;border:1px solid rgba(244,210,106,.55);box-shadow:0 18px 40px rgba(0,0,0,.28);overflow:hidden;background:#111">${rawIframeFrame(directionsEmbedUrl(d, 'transit'), 'Subway route from Camelot HQ, 57 West 57th Street')}</div></div></div></div><div class="pad" style="position:relative;z-index:3">${logoBadge()}<div style="height:100%;display:flex;flex-direction:column;justify-content:center;max-width:720px"><div style="font-size:13px;color:#B8973A;text-transform:uppercase;letter-spacing:2.5px;font-weight:800">Intro to Camelot</div><h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:68px;line-height:.95;color:#F4D26A;font-style:italic;margin:12px 0 4px">${escapeHtml(d.buildingName || streetLine(d.address))}</h1><div style="font-size:19px;color:rgba(255,255,255,.78);font-weight:600;margin-bottom:14px">New York, NY${d.zipCode ? ` ${d.zipCode}` : ''} &nbsp;&middot;&nbsp; ${neighborhoodName(d)}</div><p style="font-size:20px;color:rgba(255,255,255,.84);line-height:1.55">New Yorkers managing New York buildings since 2006 &mdash; a short introduction to what our people and our platform can do for ${escapeHtml(d.buildingName || streetLine(d.address))}.</p><div style="margin-top:18px;max-width:620px;border-left:3px solid #B8973A;padding:10px 14px;background:rgba(255,255,255,.08);font-size:11px;color:rgba(255,255,255,.76);line-height:1.55">${JACKIE_INTELLIGENT_REPORT_NOTE}</div><div style="margin-top:52px"><div style="font-size:15px;color:rgba(255,255,255,.88);font-weight:700">${escapeHtml(d.address)}${d.zipCode ? ` &middot; ${d.zipCode}` : ''}</div><div style="font-size:12px;color:rgba(255,255,255,.62);margin-top:3px">${neighborhoodName(d)}${d.borough ? ` &middot; ${d.borough.charAt(0).toUpperCase() + d.borough.slice(1)}` : ''} &middot; ${today}</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${[d.propertyType || null, unitsBreakdownLabel(d), bblLabel(d), d.yearBuilt ? `Built ${d.yearBuilt}` : null].filter(Boolean).map(chip => `<span style="font-size:10.5px;font-weight:800;color:#F4D26A;border:1px solid rgba(244,210,106,.45);border-radius:999px;padding:3px 10px;background:rgba(0,0,0,.25)">${chip}</span>`).join('')}</div></div>${preparedForBlock(d)}</div></div></div>
 <div class="slide"><div class="pad" style="padding:38px 64px 40px">${logoBadge()}<div class="section-title" style="margin-bottom:12px">Cover Letter</div><div style="display:grid;grid-template-columns:1.14fr .86fr;gap:16px;align-items:stretch"><div class="article-wrap" style="background:#fff;border:1px solid rgba(184,151,58,.38);border-left:5px solid #B8973A;border-radius:6px;padding:21px 28px;box-shadow:0 14px 28px rgba(26,31,54,.06);max-height:548px;overflow:hidden">${articleImageFloat(d, 1, 'Property-specific visual context', 'right', 178)}${coverLetterParagraphs(d)}</div><div style="display:grid;gap:10px">${contextualImageCard(d, 2, `Street-level view — ${d.address}`, 254)}${localServicesCard(d, 208)}</div></div><div class="source-note">Prepared by Camelot Property Management for ${d.buildingName || d.address} - ${today}</div></div></div>
 <div class="slide"><div class="pad" style="padding:40px 64px">${logoBadge()}<div class="section-title" style="margin-bottom:13px">Property Snapshot &amp; New York Reach</div><div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:15px"><div><div class="gold-card" style="margin-bottom:8px;padding:12px 14px"><div class="sub-heading">Property Snapshot</div><table style="font-size:12px"><tr><td>Owner / Entity</td><td>${escapeHtml(ownerEntityName(d) || String((d as any).dofOwner || '') || 'To verify (HPD / ACRIS)')}</td></tr><tr><td>Type</td><td>${d.propertyType || 'Residential'}</td></tr><tr><td>Units</td><td>${unitsBreakdownLabel(d)}</td></tr><tr><td>Stories / Built</td><td>${d.stories ? `${d.stories} stories` : 'Stories: verify'} &middot; ${d.yearBuilt || 'year: verify'}</td></tr><tr><td>Block / Lot</td><td>${bblLabel(d)}</td></tr><tr><td>Neighborhood</td><td>${neighborhoodName(d)}</td></tr><tr><td>Current Management</td><td>${d.managementCompany ? `${escapeHtml(d.managementCompany)} <span style="font-size:10px;color:#888">(HPD registration &mdash; verify)</span>` : 'To verify &mdash; HPD / DOB / PropertyShark'}</td></tr></table></div><div class="gold-card" style="margin-bottom:8px;padding:12px 14px"><div class="sub-heading">Talking Points for Our First Conversation</div><p class="body-text" style="font-size:12.5px;line-height:1.45">${hasRisks ? `When we speak, we would walk you through what the public record shows today &mdash; ${d.violationsOpen} open HPD violation(s), ${fmt$(d.ecbPenaltyBalance)} in ECB penalty balance, and ${d.ll97?.period1Penalty ? fmt$(d.ll97.period1Penalty) + ' in modeled LL97 exposure' : 'LL97 status to confirm'} &mdash; and exactly how we monitor, resolve, and prevent items like these for the buildings we manage.` : `Your building's public record is comparatively clean. When we speak, we would talk about keeping it that way while tightening financial reporting, vendor pricing, and resident service &mdash; and where we typically find savings and new revenue.`} This page is a sample of the day-one visibility our platform gives ownership.</p></div></div><div style="display:grid;grid-template-columns:1fr;gap:8px;align-content:start">${propertyImageCard(d, `${d.buildingName || d.address} &mdash; street-level property view`, 128)}${iframeCard(siteSatelliteEmbedUrl(d), 'Property site satellite view', `Satellite close-up &mdash; ${d.buildingName || d.address} site location`, 96)}<div class="gold-card" style="padding:9px 12px;margin:0"><div class="sub-heading" style="font-size:14px;margin-bottom:4px">Nearby Commuting &amp; Entry Points</div>${(() => {
       const subs = (d as any).nearbySubways as Array<{ name: string; routes: string; miles: number }> | undefined;
@@ -961,7 +967,11 @@ ${mdsAccountingSlide()}
 ${residentPortalSlide(d)}
 ${onboardingChecklistSlide(d)}
 <div class="slide slide-dark"><div style="position:absolute;inset:0"><img src="${rotatingPropertyImage(d, 3)}" alt="${escapeHtml(d.buildingName || d.address)} closing visual context" style="width:100%;height:100%;object-fit:cover;opacity:.26" onerror="this.style.display='none'"></div><div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(34,47,58,.98),rgba(34,47,58,.9),rgba(34,47,58,.68))"></div><div class="pad" style="position:relative;z-index:3">${logoBadge()}<div style="height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center;max-width:980px;margin:0 auto"><div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:48px;font-style:italic;color:#B8973A;margin-bottom:14px">Proposed Next Step</div><p style="font-size:20px;line-height:1.55;color:rgba(255,255,255,.86);margin-bottom:24px">We would welcome the opportunity to meet with the board, ownership, or decision-makers for ${d.buildingName || d.address}.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px"><div class="gold-card" style="background:rgba(255,255,255,.96);text-align:left"><div class="sub-heading" style="font-size:18px">Zoom or Google Meet</div><p class="small">Best for a quick first screen share, report review, and Q&amp;A.</p></div><div class="gold-card" style="background:rgba(255,255,255,.96);text-align:left"><div class="sub-heading" style="font-size:18px">Phone Call</div><p class="small">A focused 15-minute call to confirm priorities and timing.</p></div><div class="gold-card" style="background:rgba(255,255,255,.96);text-align:left"><div class="sub-heading" style="font-size:18px">In-Person Meeting</div><p class="small">Camelot can meet near the building or at our New York office.</p></div></div><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:6px auto 22px"><a href="https://calendar.google.com/calendar/u/0/r/eventedit?text=Camelot+Management+Discussion+-+${encodeURIComponent(d.buildingName || d.address)}&details=${encodeURIComponent('Please generate a Google Meet link for this Camelot management discussion.\n\nSubject property: ' + (d.buildingName || d.address))}&add=${CAMELOT_CONTACT_EMAIL}" target="_blank" style="background:#B8973A;color:#fff;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Google Meet</a><a href="https://zoom.us/start/videomeeting" target="_blank" rel="noopener" style="background:#2D8CFF;color:#fff;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Zoom</a><a href="tel:+12122069939;ext=701" style="background:#fff;color:#314655;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Call 212-206-9939 x701</a></div><div style="font-size:15px;color:rgba(255,255,255,.82);line-height:1.9"><strong style="color:#B8973A">${CAMELOT_CONTACT_NAME}, ${CAMELOT_CONTACT_TITLE}</strong><br>${CAMELOT_PHONE}<br>${CAMELOT_CONTACT_EMAIL} | ${CAMELOT_GENERAL_EMAIL}<br>${CAMELOT_WEBSITE}<br>${CAMELOT_OFFICE_ADDRESS}</div></div></div></div>`;
-  const html = deckShell(`Camelot Introduction Deck - ${d.buildingName || d.address}`, enrichEveryOtherDeckPage(slides, d));
+  const html = deckShell(
+    `Intro to Camelot - ${d.buildingName || d.address}`,
+    enrichEveryOtherDeckPage(slides, d),
+    buildJackiePackageFilename(d, 'first_email_intro', 'pdf'),
+  );
   return sanitizeJackieKnownPropertyHtml(html, d).data;
 }
 
@@ -976,7 +986,7 @@ export function generateBoardMeetingDeck(d: MasterReportData): string {
     .replace(/<!-- SLIDE 1: Cover[\s\S]*?<!-- SLIDE 2:/, `${meetingDeckCoverSlide(d)}\n\n<!-- SLIDE 2:`)
     .replace('<!-- SLIDE 13: Next Steps (Dark) -->', `${insert}\n<!-- SLIDE 13: Next Steps (Dark) -->`)
     .replace(/REALTY GROUP/g, 'PROPERTY MANAGEMENT')
-    .replace(/Property Intelligence Report/g, 'First Meeting Briefing')
+    .replace(/Property Intelligence Report/g, 'Board Interview Agenda')
     .replace('<!-- SLIDE 14: Thank You (Dark) -->', '<!-- SLIDE 15: Thank You (Dark) -->')
     .replace(exact22East22 ? /220 East 22nd Street_2022|220 East 22nd Street|220 E 22nd St/g : /$a/, exact22East22 ? '22 East 22nd Street' : '');
   return sanitizeJackieKnownPropertyHtml(html, d).data;
@@ -1008,12 +1018,12 @@ function meetingDeckCoverSlide(d: MasterReportData): string {
     ['Access', access],
     ['Use', use],
   ];
-  return `<!-- SLIDE 1: Cover (First Meeting Briefing) -->
+  return `<!-- SLIDE 1: Cover (Board Interview Agenda) -->
 <div class="slide slide-dark cover-slide" style="background:linear-gradient(110deg, rgba(20,31,43,0.96) 0%, rgba(20,31,43,0.86) 50%, rgba(20,31,43,0.42) 100%), url('${image}') center/cover no-repeat; background-size:cover;">
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">PROPERTY MANAGEMENT</span></div></div>
   <div style="display:flex;height:100%">
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:70px 42px 68px 64px">
-      <div style="font-size:13px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px">First Meeting Briefing</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px">Board Interview Agenda</div>
       <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;color:#B8973A;font-style:italic;font-weight:600;margin-bottom:12px;line-height:1.04">${displayName}</div>
       <div style="font-size:18px;color:rgba(255,255,255,0.82);margin-bottom:7px">${displayAddress}</div>
       <div style="font-size:15px;color:rgba(255,255,255,0.64);margin-bottom:24px">${displayHood} - ${displayBoro}</div>
@@ -1041,16 +1051,46 @@ export function generateJackieReportPackage(d: MasterReportData, reportPackage: 
   return '';
 }
 
+/**
+ * Count prior saved proposals for this address so Proposal & Agreement
+ * files carry an incrementing version number (V.1, V.2, ...). Reads the
+ * report library directly from browser storage to avoid a circular import
+ * with jackie-report-library; degrades to V.1 anywhere storage is absent.
+ */
+function nextProposalVersion(address: string): number {
+  try {
+    const raw = localStorage.getItem('camelot_generated_jackie_report_library_v1')
+      || sessionStorage.getItem('camelot_generated_jackie_report_library_v1') || '[]';
+    const records: Array<{ address?: string; packageType?: string }> = JSON.parse(raw);
+    const needle = (address || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const prior = records.filter(r =>
+      r.packageType === 'appendix_full' &&
+      (r.address || '').toLowerCase().replace(/[^a-z0-9]/g, '') === needle
+    ).length;
+    return prior + 1;
+  } catch {
+    return 1;
+  }
+}
+
+// Filename conventions (per David, July 30 2026):
+//   Intro to Camelot:        {property-address}-first_engagement_{date}
+//   Board Interview Agenda:  {building-or-address}-Board_Interview_Agenda_{date}
+//   Proposal & Agreement:    {association-or-address}-Proposal_and_Agreement_V.{n}_{date}
 export function buildJackiePackageFilename(d: MasterReportData, reportPackage: JackieReportPackage, extension = 'html'): string {
   d = normalizePitchReportData(d);
-  const client = cleanFileNamePart(d.buildingName || d.address || 'Client');
   const dateStamp = new Date().toISOString().slice(0, 10);
-  const suffix = reportPackage === 'first_email_intro'
-    ? 'CamelotIntroductionDeck'
-    : reportPackage === 'board_meeting_deck'
-      ? 'CamelotFirstMeetingBriefing'
-      : 'CamelotProposal90DayPlan';
-  return `${client}_${suffix}__${dateStamp}.${extension}`;
+  if (reportPackage === 'first_email_intro') {
+    const address = cleanFileNamePart(d.address || d.buildingName || 'Property');
+    return `${address}-first_engagement_${dateStamp}.${extension}`;
+  }
+  if (reportPackage === 'board_meeting_deck') {
+    const client = cleanFileNamePart(d.buildingName || d.address || 'Prospective-Lead');
+    return `${client}-Board_Interview_Agenda_${dateStamp}.${extension}`;
+  }
+  const client = cleanFileNamePart(d.buildingName || d.address || 'Client-Association');
+  const version = nextProposalVersion(d.address || d.buildingName || '');
+  return `${client}-Proposal_and_Agreement_V.${version}_${dateStamp}.${extension}`;
 }
 
 /**

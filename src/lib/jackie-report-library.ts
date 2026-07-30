@@ -149,6 +149,7 @@ const trackReportInDatabase = (record: SavedJackieReport) => {
       building_bbl: (record.dataSnapshot as any)?.bbl || null,
       generated_by: 'Camelot OS — Engagement Reports',
       report_data: {
+        folder: 'New Business Leads and Pitches',
         report_number: record.reportNumber,
         package_type: record.packageType,
         package_label: record.packageLabel,

@@ -2,6 +2,7 @@
 
 const HUBSPOT_BASE_URL = 'https://api.hubapi.com';
 
+const CAMELOT_PIPELINE_LABEL = 'Camelot OS New Management Leads';
 const PIPELINE_STAGES = [
   'New Building Lead',
   'Needs Research',
@@ -166,6 +167,39 @@ async function setup() {
       }
     } catch (error) {
       log(`Pipeline check failed for HUBSPOT_PIPELINE_ID=${pipelineId}: ${error.message}`);
+    }
+
+    // Ensure the named Camelot pipeline exists: "Camelot OS New Management
+    // Leads" (per David, July 30 2026). Creates it with the full stage set
+    // if no deal pipeline carries that label yet; logs its id so
+    // HUBSPOT_PIPELINE_ID can be pinned in the environment.
+    try {
+      const all = await hubspot('/crm/v3/pipelines/deals');
+      const existing = (all.results || []).find((p) => p.label === CAMELOT_PIPELINE_LABEL);
+      if (existing) {
+        log(`Camelot pipeline exists: "${existing.label}" (${existing.id}) — set HUBSPOT_PIPELINE_ID=${existing.id}`);
+      } else if (dryRun) {
+        log(`DRY RUN: would create deal pipeline "${CAMELOT_PIPELINE_LABEL}" with ${PIPELINE_STAGES.length} stages`);
+      } else {
+        const created = await hubspot('/crm/v3/pipelines/deals', {
+          method: 'POST',
+          body: {
+            label: CAMELOT_PIPELINE_LABEL,
+            displayOrder: 1,
+            stages: PIPELINE_STAGES.map((label, index) => ({
+              label,
+              displayOrder: index,
+              metadata: {
+                isClosed: String(label === 'Won' || label === 'Lost / Nurture'),
+                probability: label === 'Won' ? '1.0' : label === 'Lost / Nurture' ? '0.0' : String(Math.min(0.9, 0.05 + index * 0.08).toFixed(2)),
+              },
+            })),
+          },
+        });
+        log(`Created deal pipeline "${created.label}" (${created.id}) — set HUBSPOT_PIPELINE_ID=${created.id}`);
+      }
+    } catch (error) {
+      log(`Camelot pipeline ensure failed: ${error.message}`);
     }
   }
 

@@ -53,9 +53,9 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 ];
 
 const DETAIL_REPORT_LABELS: Record<DetailReportPackage, string> = {
-  first_email_intro: 'Introduction Deck',
-  board_meeting_deck: 'First Meeting Briefing',
-  appendix_full: 'Proposal & 90-Day Plan',
+  first_email_intro: 'Intro to Camelot',
+  board_meeting_deck: 'Board Interview Agenda',
+  appendix_full: 'Proposal & Agreement',
 };
 
 type DetailReportPreview = {
@@ -415,7 +415,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       toast.success(`${DETAIL_REPORT_LABELS[reportPackage]} preview ready`, { id: 'detail-report-preview' });
     } catch (err) {
       console.error('Detail report preview failed:', err);
-      toast.error('Report preview failed. Try Proposal & 90-Day or refresh this property card.', { id: 'detail-report-preview' });
+      toast.error('Report preview failed. Try Proposal & Agreement or refresh this property card.', { id: 'detail-report-preview' });
     } finally {
       setPackageLoading(null);
     }
@@ -655,7 +655,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
         building: guardedBuilding,
         reportData: data,
         packageType: 'appendix_full',
-        packageLabel: 'Proposal & 90-Day Plan',
+        packageLabel: 'Proposal & Agreement',
         action: 'previewed',
         filename: `${(data.buildingName || data.address).replace(/[^a-zA-Z0-9]+/g, '-')}-Full-Jackie.pdf`,
         html,
@@ -908,7 +908,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
               className="flex items-center gap-1.5 text-xs bg-camelot-gold text-camelot-navy px-3 py-1.5 rounded-lg font-medium hover:bg-camelot-gold-light transition-colors disabled:opacity-50"
             >
               {packageLoading === 'preview:board_meeting_deck' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-              First Meeting Briefing
+              Board Interview Agenda
             </button>
             <button
               onClick={() => handleEmailPackagePDF('board_meeting_deck')}
@@ -919,7 +919,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
               Email Agenda
             </button>
             <button onClick={() => handlePreviewPackage('appendix_full')} disabled={!!packageLoading} className="flex items-center gap-1.5 text-xs bg-camelot-gold text-camelot-navy px-3 py-1.5 rounded-lg font-medium hover:bg-camelot-gold-light transition-colors disabled:opacity-50">
-              {packageLoading === 'preview:appendix_full' ? <><Loader2 size={13} className="animate-spin" /> Preparing...</> : <><FileText size={13} /> Proposal & 90-Day</>}
+              {packageLoading === 'preview:appendix_full' ? <><Loader2 size={13} className="animate-spin" /> Preparing...</> : <><FileText size={13} /> Proposal & Agreement</>}
             </button>
             <button onClick={handleSendEmail} className="flex items-center gap-1.5 text-xs bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors">
               <Mail size={13} /> Quick Email

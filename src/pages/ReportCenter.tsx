@@ -1210,13 +1210,13 @@ export default function ReportCenter() {
                   <Eye className="w-4 h-4" /> Preview Selected Package
                 </button>
                 <button onClick={handlePreviewPitch} className="px-4 py-2 bg-[#0D2240] text-white rounded-lg hover:bg-[#1a3a5c] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> Introduction Deck (6-8)
+                  <Eye className="w-4 h-4" /> Intro to Camelot (6-8)
                 </button>
                 <button onClick={handlePreviewBoardDeck} className="px-4 py-2 bg-[#5B4A1F] text-white rounded-lg hover:bg-[#473916] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> First Meeting Briefing (15)
+                  <Eye className="w-4 h-4" /> Board Interview Agenda (15)
                 </button>
                 <button onClick={handlePreviewBrochure} className="px-4 py-2 bg-[#A89035] text-white rounded-lg hover:bg-[#8A7A2C] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> Appendix: Proposal & 90-Day
+                  <Eye className="w-4 h-4" /> Appendix: Proposal & Agreement
                 </button>
                 <button onClick={handleDownloadPitchHTML} className="px-4 py-2 bg-[#3A4B5B] text-white rounded-lg hover:bg-[#2d3d4d] text-sm font-medium flex items-center gap-2">
                   <Download className="w-4 h-4" /> Download Selected HTML
@@ -1327,7 +1327,7 @@ export default function ReportCenter() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
               <button onClick={handlePreviewPitch} className="px-4 py-3 bg-[#0D2240] text-white rounded-lg hover:bg-[#1a3a5c] font-medium flex flex-col items-center gap-1 text-sm">
-                <Eye className="w-5 h-5" /> Introduction Deck
+                <Eye className="w-5 h-5" /> Intro to Camelot
               </button>
               <button onClick={handlePreviewBrochure} className="px-4 py-3 bg-[#A89035] text-white rounded-lg hover:bg-[#8A7A2C] font-medium flex flex-col items-center gap-1 text-sm">
                 <Eye className="w-5 h-5" /> Appendix

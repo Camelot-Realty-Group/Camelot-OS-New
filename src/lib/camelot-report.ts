@@ -3983,8 +3983,8 @@ export function validateJackieReport(
   const is36East22 = is36East22ndStreetSubject(d.address, d.buildingName, d.managementCompany);
   const is279Cpw = is279CentralParkWestSubject(d.address, d.buildingName, d.managementCompany);
   const inferredPackage: JackieValidationPackage = options.packageType
-    || (/Introduction Deck/i.test(html) ? 'first_email_intro'
-      : /First Meeting Briefing|First Meeting Briefing|Board Meeting Deck/i.test(html) ? 'board_meeting_deck'
+    || (/Intro to Camelot/i.test(html) ? 'first_email_intro'
+      : /Board Interview Agenda|Board Interview Agenda|Board Meeting Deck/i.test(html) ? 'board_meeting_deck'
       : 'appendix_full');
   const isFirstEmailIntro = inferredPackage === 'first_email_intro';
   const isBoardMeetingDeck = inferredPackage === 'board_meeting_deck';
@@ -4005,14 +4005,14 @@ export function validateJackieReport(
       ]
     : isFirstEmailIntro
     ? [
-        'Introduction Deck',
+        'Intro to Camelot',
         'Cover Letter',
         'Property Snapshot &amp; New York Reach',
         'Proposed Next Step',
       ]
     : isBoardMeetingDeck
     ? [
-        'First Meeting Briefing',
+        'Board Interview Agenda',
         'The Property',
         'Building Intelligence',
         'Why Camelot',
@@ -4258,7 +4258,7 @@ export function validateJackieReport(
     });
   }
 
-  // Introduction Deck and First Meeting Briefing are client-facing summaries.
+  // Intro to Camelot and Board Interview Agenda are client-facing summaries.
   // They must pass identity, render, photo, unit-count, and known-property
   // guardrails, but they intentionally do not include every appendix-only
   // source-stack, legal, portfolio, and diligence slide.

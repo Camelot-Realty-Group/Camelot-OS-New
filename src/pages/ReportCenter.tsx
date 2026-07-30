@@ -97,7 +97,7 @@ function reportDataToBuilding(d: MasterReportData, inquiry?: { name?: string; em
       email: inquiry.email || undefined,
       phone: inquiry.phone || undefined,
       company: inquiry.organization || d.buildingName || d.dofOwner || undefined,
-      source: 'Jackie report inquiry contact',
+      source: 'Engagement report inquiry contact',
     });
   }
   (d.boardMembers || []).forEach(member => {
@@ -107,7 +107,7 @@ function reportDataToBuilding(d: MasterReportData, inquiry?: { name?: string; em
       email: (member as any).email,
       phone: (member as any).phone,
       company: d.buildingName || d.dofOwner || undefined,
-      source: 'Jackie report contact research',
+      source: 'Engagement report contact research',
     });
   });
 
@@ -129,9 +129,9 @@ function reportDataToBuilding(d: MasterReportData, inquiry?: { name?: string; em
     score: d.scoutScore,
     signals: (d.distressSignals || []).map(signal => signal.description),
     contacts,
-    enriched_data: { source: 'Jackie Report Center', reportFocus: d.reportFocus, bbl: d.bbl },
+    enriched_data: { source: 'Engagement Report Center', reportFocus: d.reportFocus, bbl: d.bbl },
     current_management: d.managementCompany || undefined,
-    source: 'Jackie Report Center',
+    source: 'Engagement Report Center',
     status: 'proposal',
     tags: ['jackie-report', `package:${d.reportFocus?.selectedFocus || 'general'}`],
     pipeline_stage: 'proposal',
@@ -188,7 +188,7 @@ function ReleaseWorkflowPanel({
             {qa.failures ? <ShieldX size={24} /> : <ShieldCheck size={24} />}
           </div>
           <div>
-            <h2 className={`text-lg font-bold ${qa.failures ? 'text-red-950' : 'text-emerald-950'}`}>Jackie Verified Release</h2>
+            <h2 className={`text-lg font-bold ${qa.failures ? 'text-red-950' : 'text-emerald-950'}`}>Verified Release</h2>
             <p className={`text-sm mt-1 ${qa.failures ? 'text-red-800' : 'text-emerald-800'}`}>
               {qa.failures
                 ? 'Review issues found. Jackie can still preview, export, and draft while the team cleans up source or render warnings.'
@@ -404,7 +404,7 @@ export default function ReportCenter() {
           email: inquiryEmail || reportData.reportFocus?.inquiryEmail,
           phone: inquiryPhone || reportData.reportFocus?.inquiryPhone,
           company: inquiryOrganization || reportData.reportFocus?.inquiryOrganization,
-          source: 'Jackie Report Center inquiry fields',
+          source: 'Engagement Report Center inquiry fields',
         },
       ],
     });
@@ -1210,13 +1210,13 @@ export default function ReportCenter() {
                   <Eye className="w-4 h-4" /> Preview Selected Package
                 </button>
                 <button onClick={handlePreviewPitch} className="px-4 py-2 bg-[#0D2240] text-white rounded-lg hover:bg-[#1a3a5c] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> First Email Intro (6-8)
+                  <Eye className="w-4 h-4" /> Introduction Deck (6-8)
                 </button>
                 <button onClick={handlePreviewBoardDeck} className="px-4 py-2 bg-[#5B4A1F] text-white rounded-lg hover:bg-[#473916] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> 1st Meeting Handout (15)
+                  <Eye className="w-4 h-4" /> First Meeting Briefing (15)
                 </button>
                 <button onClick={handlePreviewBrochure} className="px-4 py-2 bg-[#A89035] text-white rounded-lg hover:bg-[#8A7A2C] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> Appendix: Full Jackie
+                  <Eye className="w-4 h-4" /> Appendix: Proposal & 90-Day
                 </button>
                 <button onClick={handleDownloadPitchHTML} className="px-4 py-2 bg-[#3A4B5B] text-white rounded-lg hover:bg-[#2d3d4d] text-sm font-medium flex items-center gap-2">
                   <Download className="w-4 h-4" /> Download Selected HTML
@@ -1327,7 +1327,7 @@ export default function ReportCenter() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
               <button onClick={handlePreviewPitch} className="px-4 py-3 bg-[#0D2240] text-white rounded-lg hover:bg-[#1a3a5c] font-medium flex flex-col items-center gap-1 text-sm">
-                <Eye className="w-5 h-5" /> First Email Intro
+                <Eye className="w-5 h-5" /> Introduction Deck
               </button>
               <button onClick={handlePreviewBrochure} className="px-4 py-3 bg-[#A89035] text-white rounded-lg hover:bg-[#8A7A2C] font-medium flex flex-col items-center gap-1 text-sm">
                 <Eye className="w-5 h-5" /> Appendix

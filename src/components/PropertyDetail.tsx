@@ -53,9 +53,9 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 ];
 
 const DETAIL_REPORT_LABELS: Record<DetailReportPackage, string> = {
-  first_email_intro: 'First Email Intro',
-  board_meeting_deck: '1st Meeting Handout',
-  appendix_full: 'Full Jackie Appendix',
+  first_email_intro: 'Introduction Deck',
+  board_meeting_deck: 'First Meeting Briefing',
+  appendix_full: 'Proposal & 90-Day Plan',
 };
 
 type DetailReportPreview = {
@@ -415,7 +415,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       toast.success(`${DETAIL_REPORT_LABELS[reportPackage]} preview ready`, { id: 'detail-report-preview' });
     } catch (err) {
       console.error('Detail report preview failed:', err);
-      toast.error('Report preview failed. Try Full Jackie or refresh this property card.', { id: 'detail-report-preview' });
+      toast.error('Report preview failed. Try Proposal & 90-Day or refresh this property card.', { id: 'detail-report-preview' });
     } finally {
       setPackageLoading(null);
     }
@@ -645,7 +645,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       } else if (qa.warnings > 0) {
         toast.success(`Jackie internal report opened with ${qa.warnings} review warning(s)`);
       } else {
-        toast.success('Jackie report verified and opened');
+        toast.success('Report verified and opened');
       }
       const w = window.open('', '_blank');
       if (!w) { toast.error('Pop-up blocked — allow pop-ups for this site'); return; }
@@ -655,7 +655,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
         building: guardedBuilding,
         reportData: data,
         packageType: 'appendix_full',
-        packageLabel: 'Full Jackie Appendix',
+        packageLabel: 'Proposal & 90-Day Plan',
         action: 'previewed',
         filename: `${(data.buildingName || data.address).replace(/[^a-zA-Z0-9]+/g, '-')}-Full-Jackie.pdf`,
         html,
@@ -908,7 +908,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
               className="flex items-center gap-1.5 text-xs bg-camelot-gold text-camelot-navy px-3 py-1.5 rounded-lg font-medium hover:bg-camelot-gold-light transition-colors disabled:opacity-50"
             >
               {packageLoading === 'preview:board_meeting_deck' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-              1st Meeting Handout
+              First Meeting Briefing
             </button>
             <button
               onClick={() => handleEmailPackagePDF('board_meeting_deck')}
@@ -919,7 +919,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
               Email Agenda
             </button>
             <button onClick={() => handlePreviewPackage('appendix_full')} disabled={!!packageLoading} className="flex items-center gap-1.5 text-xs bg-camelot-gold text-camelot-navy px-3 py-1.5 rounded-lg font-medium hover:bg-camelot-gold-light transition-colors disabled:opacity-50">
-              {packageLoading === 'preview:appendix_full' ? <><Loader2 size={13} className="animate-spin" /> Preparing...</> : <><FileText size={13} /> Full Jackie</>}
+              {packageLoading === 'preview:appendix_full' ? <><Loader2 size={13} className="animate-spin" /> Preparing...</> : <><FileText size={13} /> Proposal & 90-Day</>}
             </button>
             <button onClick={handleSendEmail} className="flex items-center gap-1.5 text-xs bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors">
               <Mail size={13} /> Quick Email

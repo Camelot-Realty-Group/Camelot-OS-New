@@ -534,7 +534,7 @@ export default function Search() {
     localStorage.setItem('camelot-os-v10-operator-profile', JSON.stringify(next));
   };
   const commandCards = [
-    { label: 'Last Reports', value: 'Jackie, Arthur, Sentinel', note: 'Recent report packages stay visible from each bot workspace.', icon: FileText },
+    { label: 'Last Reports', value: 'Engagement, Arthur, Sentinel', note: 'Recent report packages stay visible from each bot workspace.', icon: FileText },
     { label: 'Saved Files', value: 'Exports + HTML', note: 'Download, print, email, and staged HTML actions are grouped by workflow.', icon: Download },
     { label: 'Critical Items', value: 'Review blockers', note: 'Source conflicts, missing images, and failed report checks should surface here.', icon: AlertTriangle },
     { label: 'Time Stamp', value: timestamp, note: 'V10 is designed around dated, numbered, attributable output.', icon: Clock },
@@ -542,7 +542,7 @@ export default function Search() {
   const botCards = [
     { name: 'Scout', route: '/results', icon: SearchIcon, text: 'Source, score, and organize new management targets.' },
     { name: 'Daily Hunt', route: '/daily-hunt', icon: Activity, text: 'Upload or review lead lists, verify facts, and queue Pipeline-ready opportunities.' },
-    { name: 'Jackie', route: '/report-center', icon: Award, text: 'Build client-ready introductions, decks, and full property intelligence reports.' },
+    { name: 'Engagement Reports', route: '/report-center', icon: Award, text: 'Build client-ready introductions, decks, and full property intelligence reports.' },
     { name: 'Sentinel', route: '/sentinel', icon: BarChart3, text: 'Track market movement, distress, timing, and benchmark signals.' },
     { name: 'Arthur', route: '/arthur', icon: BriefcaseBusiness, text: 'Underwrite investments, produce models, and queue broker follow-up.' },
     { name: 'Merlin Content', route: '/content-engine', icon: Megaphone, text: 'Generate, approve, schedule, publish, and track Camelot content.' },

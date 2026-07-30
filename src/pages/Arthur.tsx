@@ -187,7 +187,7 @@ export default function Arthur() {
     openEmailDraft({
       to: '',
       subject: `Arthur Investment Report - ${selected.address}`,
-      body: `To the investment review team,\n\nAttached is the Arthur Investment Report for ${selected.address}. The opportunity includes ${selected.units} units, estimated base IRR of ${model ? (model.irr * 100).toFixed(1) : 'TBD'}%, and an underwriting package that should be reviewed alongside Jackie operator diligence.\n\nSincerely,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`,
+      body: `To the investment review team,\n\nAttached is the Arthur Investment Report for ${selected.address}. The opportunity includes ${selected.units} units, estimated base IRR of ${model ? (model.irr * 100).toFixed(1) : 'TBD'}%, and an underwriting package that should be reviewed alongside Camelot operator diligence.\n\nSincerely,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`,
     });
     toast(`"${reportFilename}" was saved to your Downloads — attach it to the draft before sending.`, { duration: 10000, icon: '📎' });
   };

@@ -600,7 +600,7 @@ function getLpcLandmarkFallbackLabels(address: string, neighborhoodName = '', kn
   if (/manhattan|new york/i.test(key)) {
     return [
       'LPC Discover NYC Landmarks: verify nearby designated buildings and districts',
-      'NYC landmark and historic district context: reviewed during Jackie source check',
+      'NYC landmark and historic district context: reviewed during Camelot OS source check',
       'Neighborhood civic, cultural, and transit anchors: verify by address before release',
       'Camelot HQ: 57 West 57th Street, Suite 410',
     ];
@@ -3983,8 +3983,8 @@ export function validateJackieReport(
   const is36East22 = is36East22ndStreetSubject(d.address, d.buildingName, d.managementCompany);
   const is279Cpw = is279CentralParkWestSubject(d.address, d.buildingName, d.managementCompany);
   const inferredPackage: JackieValidationPackage = options.packageType
-    || (/First Email Intro/i.test(html) ? 'first_email_intro'
-      : /Meeting Agenda Deck|1st Meeting Handout|Board Meeting Deck/i.test(html) ? 'board_meeting_deck'
+    || (/Introduction Deck/i.test(html) ? 'first_email_intro'
+      : /First Meeting Briefing|First Meeting Briefing|Board Meeting Deck/i.test(html) ? 'board_meeting_deck'
       : 'appendix_full');
   const isFirstEmailIntro = inferredPackage === 'first_email_intro';
   const isBoardMeetingDeck = inferredPackage === 'board_meeting_deck';
@@ -4005,14 +4005,14 @@ export function validateJackieReport(
       ]
     : isFirstEmailIntro
     ? [
-        'First Email Intro',
+        'Introduction Deck',
         'Cover Letter',
         'Property Snapshot &amp; New York Reach',
         'Proposed Next Step',
       ]
     : isBoardMeetingDeck
     ? [
-        'Meeting Agenda Deck',
+        'First Meeting Briefing',
         'The Property',
         'Building Intelligence',
         'Why Camelot',
@@ -4258,7 +4258,7 @@ export function validateJackieReport(
     });
   }
 
-  // First Email Intro and Meeting Agenda Deck are client-facing summaries.
+  // Introduction Deck and First Meeting Briefing are client-facing summaries.
   // They must pass identity, render, photo, unit-count, and known-property
   // guardrails, but they intentionally do not include every appendix-only
   // source-stack, legal, portfolio, and diligence slide.

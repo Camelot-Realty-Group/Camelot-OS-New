@@ -63,11 +63,11 @@ const navigation: NavSection[] = [
     ],
   },
   {
-    title: 'Jackie — Pitches',
+    title: 'Engagement — Pitches',
     items: [
       { label: 'Instant Proposal', href: '/instant-proposal', icon: <Zap size={18} /> },
       { label: 'Proposal Library', href: '/proposals', icon: <FileText size={18} /> },
-      { label: 'Jackie Reports', href: '/report-center', icon: <Crown size={18} /> },
+      { label: 'Engagement Reports', href: '/report-center', icon: <Crown size={18} /> },
     ],
   },
   {

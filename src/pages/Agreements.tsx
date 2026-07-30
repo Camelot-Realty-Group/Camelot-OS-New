@@ -131,7 +131,7 @@ export default function Agreements() {
       });
       toast.success(`Pulled data for ${data.buildingName || input.propertyAddress}`);
     } catch (err) {
-      toast.error('Failed to pull Jackie data — fill in manually');
+      toast.error('Failed to pull report data — fill in manually');
       console.error(err);
     } finally {
       setJackieLoading(false);
@@ -160,7 +160,7 @@ export default function Agreements() {
       applyJackieData(data, null);
       toast.success(`Pulled fresh Jackie data for ${data.buildingName || input.propertyAddress}`);
     } catch (err) {
-      toast.error('Failed to pull Jackie data - fill in manually');
+      toast.error('Failed to pull report data - fill in manually');
       console.error(err);
     } finally {
       setJackieLoading(false);
@@ -170,7 +170,7 @@ export default function Agreements() {
   const loadArchivedJackie = () => {
     const record = jackieArchive.find(item => item.id === selectedArchiveId);
     if (!record?.dataSnapshot) {
-      toast.error('Choose a saved Jackie report with a data snapshot');
+      toast.error('Choose a saved Engagement report with a data snapshot');
       return;
     }
     applyJackieData(record.dataSnapshot, record);
@@ -239,7 +239,7 @@ export default function Agreements() {
   // Auto-generate all fields from Jackie data
   const autoFill = () => {
     if (!jackieData) {
-      toast.error('Pull Jackie data first');
+      toast.error('Pull report data first');
       return;
     }
     const d = jackieData;
@@ -254,7 +254,7 @@ export default function Agreements() {
       selectedTier: 'intelligence',
       customMonthlyFee: null,
     });
-    toast.success('Auto-filled from Jackie data');
+    toast.success('Auto-filled from Engagement report data');
   };
 
   const tierOptions: Array<{ key: AgreementInput['selectedTier']; label: string; desc: string }> = [
@@ -275,7 +275,7 @@ export default function Agreements() {
   );
   const resetPricingToJackie = () => {
     if (!jackieData) {
-      toast.error('Load Jackie data first');
+      toast.error('Load report data first');
       return;
     }
     update({
@@ -283,7 +283,7 @@ export default function Agreements() {
       tieredPricing: jackieData.tieredPricing,
       customMonthlyFee: null,
     });
-    toast.success('Agreement pricing reset to Jackie Intelligence');
+    toast.success('Agreement pricing reset to Camelot Intelligence');
   };
 
   return (
@@ -346,7 +346,7 @@ export default function Agreements() {
           <div className="bg-[#F8F3E3] border border-camelot-gold/30 rounded-lg p-3 mb-3">
             <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
               <div className="flex-1">
-                <div className="text-xs font-bold text-[#5B4A1F] uppercase tracking-wider">Use Saved Jackie Report</div>
+                <div className="text-xs font-bold text-[#5B4A1F] uppercase tracking-wider">Use Saved Engagement Report</div>
                 <p className="text-[11px] text-gray-600 mt-1">
                   Agreements can pull the same archived Jackie facts, Intelligence pricing, ownership, BBL, and report context instead of starting from a separate script.
                 </p>
@@ -357,7 +357,7 @@ export default function Agreements() {
                 onFocus={() => setJackieArchive(loadLocalJackieReportLibrary())}
                 className="lg:w-80 px-3 py-2 border border-camelot-gold/30 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-camelot-gold/40"
               >
-                <option value="">Select archived Jackie report</option>
+                <option value="">Select archived Engagement report</option>
                 {jackieArchive.filter(record => record.dataSnapshot).map(record => (
                   <option key={record.id} value={record.id}>
                     {record.reportNumber} - {record.address} - {formatLibraryDate(record.generatedAt)}
@@ -507,7 +507,7 @@ export default function Agreements() {
           </div>
           <div className="grid lg:grid-cols-3 gap-3">
             <div className="bg-white rounded-lg border border-camelot-gold/25 p-3">
-              <div className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Jackie Source</div>
+              <div className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Intelligence Source</div>
               <div className="mt-1 text-sm font-bold text-gray-900">
                 {linkedJackieReport ? linkedJackieReport.reportNumber : jackieData ? 'Fresh Jackie Data' : 'Not linked'}
               </div>
@@ -520,7 +520,7 @@ export default function Agreements() {
               <div className="mt-1 text-sm font-bold text-gray-900">
                 {jackieIntelligenceMonthly ? `$${jackieIntelligenceMonthly.toLocaleString()}/mo` : 'To be set'}
               </div>
-              <div className="text-xs text-gray-500 mt-1">Jackie Intelligence package should be the starting point.</div>
+              <div className="text-xs text-gray-500 mt-1">The Camelot Intelligence package should be the starting point.</div>
             </div>
             <div className={cn(
               'rounded-lg border p-3',
@@ -528,7 +528,7 @@ export default function Agreements() {
             )}>
               <div className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Agreement Pricing Check</div>
               <div className={cn('mt-1 text-sm font-bold', pricingMatchesJackie ? 'text-emerald-700' : 'text-amber-700')}>
-                {pricingMatchesJackie ? 'Matches Jackie Intelligence' : 'Review before sending'}
+                {pricingMatchesJackie ? 'Matches Camelot Intelligence' : 'Review before sending'}
               </div>
               <div className="text-xs text-gray-600 mt-1">
                 Current agreement fee: {currentMonthlyFee ? `$${currentMonthlyFee.toLocaleString()}/mo` : 'not set'}.

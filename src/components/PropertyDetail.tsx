@@ -385,9 +385,25 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       };
     }
     const { generateJackieReportPackage, buildJackiePackageFilename } = await import('@/lib/pitch-report');
+    const html = generateJackieReportPackage(data, reportPackage);
+    // Cross-page fact consistency gate: warn loudly when the rendered
+    // report contradicts the building's canonical data (unit counts,
+    // stories, year built) so nothing conflicting reaches a prospect.
+    try {
+      const { checkReportConsistency, summarizeConsistencyFindings } = await import('@/lib/report-consistency');
+      const consistency = checkReportConsistency(data, html);
+      if (!consistency.clean) {
+        toast.error(
+          `Fact check: this report contradicts building data — review before sending.\n${summarizeConsistencyFindings(consistency)}`,
+          { duration: 10000 }
+        );
+      }
+    } catch (err) {
+      console.warn('Consistency check skipped:', err);
+    }
     return {
       data,
-      html: generateJackieReportPackage(data, reportPackage),
+      html,
       filename: buildJackiePackageFilename(data, reportPackage, 'pdf'),
     };
   };

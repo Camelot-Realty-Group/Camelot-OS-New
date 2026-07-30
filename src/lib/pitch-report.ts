@@ -337,6 +337,11 @@ function externalDeckCss(): string {
   .deck-action-bar .white { background:#fff;color:#34444f; }
   .deck-action-bar .outline { background:transparent;color:#F4D26A;border:1px solid #B8973A; }
   .slide { width: 1280px; height: 720px; margin: 20px auto; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); background:#FAF8F5; counter-increment: slide; }
+  /* Layout guard: grid/flex children default to min-width:auto, which lets
+     long text push columns past the slide edge and get clipped. Forcing
+     min-width:0 + wrap keeps copy inside its column on every slide. */
+  .slide * { min-width: 0; }
+  .slide p, .slide div, .slide td, .slide li { overflow-wrap: break-word; }
   .slide::after { content: counter(slide); position:absolute; right:24px; bottom:16px; font-family: Arial, sans-serif; font-size:10px; color:#7d8490; z-index:9; }
   .slide-dark { background: #34444f; color: #fff; }
   .pad { padding: 54px 64px; }
@@ -1130,8 +1135,13 @@ export function generatePitchReport(d: MasterReportData): string {
   const alternateSvUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x500&location=${encodeURIComponent(displayAddress)}&heading=115&fov=90&key=${GOOGLE_MAPS_KEY}`;
   const interiorImage = reportPhotoStack.find((src, idx) => idx > 0 && src !== exteriorImage) || alternateSvUrl;
   const subjectImage = exteriorImage;
+  // Use the SAME units source everywhere in the deck: when a residential/
+  // commercial breakdown exists, the stat card shows the true total so it
+  // can never contradict the "X residential + Y commercial = Z total"
+  // narrative elsewhere in the report.
+  const unitsForCard = Number((d as any).unitsTotalAll || 0) || Number(d.units || 0);
   const factCards = [
-    { label: 'Units', value: d.units ? fmtN(d.units) : 'Verify' },
+    { label: 'Units', value: unitsForCard ? fmtN(unitsForCard) : 'Verify' },
     { label: 'Stories', value: d.stories ? fmtN(d.stories) : 'Verify' },
     { label: 'Built', value: d.yearBuilt ? String(d.yearBuilt) : 'Verify' },
     { label: 'Type', value: d.propertyType || 'Residential' },
@@ -1170,6 +1180,8 @@ export function generatePitchReport(d: MasterReportData): string {
   body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: #1a1f36; font-size: 16px; line-height: 1.6; background: #e0e0e0; counter-reset: slide; }
   
   .slide { width: 1280px; height: 720px; margin: 20px auto; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .slide * { min-width: 0; }
+  .slide p, .slide div, .slide td, .slide li { overflow-wrap: break-word; }
   .slide { counter-increment: slide; }
   .slide:not(.cover-slide)::before { content: 'Camelot Property Management  |  57 West 57th Street, Suite 410, New York, NY 10019  |  (212) 206-9939 x701  |  info@camelot.nyc'; position:absolute; left:58px; bottom:14px; font-size:9px; color:#7b8491; z-index:6; }
   .slide:not(.cover-slide)::after { content: counter(slide); position:absolute; right:26px; bottom:14px; font-size:10px; color:#1a2744; z-index:6; }

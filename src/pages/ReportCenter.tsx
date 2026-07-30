@@ -9,6 +9,7 @@ import { openBrochureForPrint, downloadAsHTML, downloadAsPDF, triggerCSVDownload
 import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import { formatLibraryDate, loadLocalJackieReportLibrary, packageLabelFor, removeJackieReportRecord, saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
+import { checkReportConsistency, summarizeConsistencyFindings } from '@/lib/report-consistency';
 import { pushBuildingToIntegrations } from '@/lib/integrations';
 import { trackReportWorkflowEvent } from '@/lib/report-crm-tracking';
 import type { Building, Contact } from '@/types'; import { findBuildingPhotos } from '@/lib/building-photos';
@@ -914,6 +915,17 @@ export default function ReportCenter() {
   ) => {
     const qa = validateJackieReport(d, html, { packageType });
     setReleaseQA(qa);
+    // Cross-page fact consistency: block release when the rendered report
+    // contradicts the building's canonical data (e.g. two different unit
+    // counts on different pages).
+    const consistency = checkReportConsistency(d, html);
+    if (!consistency.clean) {
+      toast.error(
+        `Fact consistency check failed — fix before release:\n${summarizeConsistencyFindings(consistency)}`,
+        { duration: 10000 }
+      );
+      if (mode === 'release') return false;
+    }
     if (qa.failures > 0) {
       const detail = qa.checks.filter(c => c.status === 'fail').slice(0, 4).map(c => `${c.name}: ${c.detail}`).join('\n');
       if (mode === 'internal') {

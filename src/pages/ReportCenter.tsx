@@ -10,6 +10,7 @@ import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import { formatLibraryDate, loadLocalJackieReportLibrary, packageLabelFor, removeJackieReportRecord, saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
 import { checkReportConsistency, summarizeConsistencyFindings } from '@/lib/report-consistency';
+import { PARTNER_AUDIENCES, buildPartnerPitchFilename, generatePartnerPitchDeck } from '@/lib/partner-pitch';
 import { pushBuildingToIntegrations } from '@/lib/integrations';
 import { trackReportWorkflowEvent } from '@/lib/report-crm-tracking';
 import type { Building, Contact } from '@/types'; import { findBuildingPhotos } from '@/lib/building-photos';
@@ -1374,6 +1375,49 @@ export default function ReportCenter() {
               <button onClick={handlePushSelectedHubSpot} className="px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium flex flex-col items-center gap-1 text-sm">
                 <Link2 className="w-5 h-5" /> Push to HubSpot
               </button>
+            </div>
+          </div>
+
+          {/* Professional Partner Pitch Decks — law / accounting / audit */}
+          <div className="bg-white rounded-xl border p-6 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Professional Partner Pitch Decks</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Firm-level decks for the professionals who serve boards and landlords: who Camelot is, history,
+                track record, markets, case studies, how we work with their teams — closing on a coffee meeting.
+                Generated decks are archived below and tracked in the database under New Business Leads and Pitches.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {PARTNER_AUDIENCES.map((aud) => (
+                <button
+                  key={aud.key}
+                  onClick={() => {
+                    const html = generatePartnerPitchDeck(aud.key);
+                    const filename = buildPartnerPitchFilename(aud.key, 'pdf');
+                    openBrochureForPrint(html, filename);
+                    const record: SavedJackieReport = {
+                      id: crypto.randomUUID(),
+                      reportNumber: `PP-${Date.now().toString(36).toUpperCase()}`,
+                      address: `Camelot Partner Pitch — ${aud.label}`,
+                      buildingName: `Partner Pitch: ${aud.label}`,
+                      packageType: 'partner_pitch' as SavedJackieReport['packageType'],
+                      packageLabel: `Partner Pitch — ${aud.label}`,
+                      filename,
+                      html,
+                      focus: [],
+                      generatedAt: new Date().toISOString(),
+                    };
+                    setSavedReports(saveJackieReportRecord(record));
+                    toast.success(`${aud.label} partner deck opened and archived`);
+                  }}
+                  className="text-left border border-[#A89035]/40 rounded-xl p-4 hover:bg-[#F7F1DE] transition-colors"
+                >
+                  <div className="text-sm font-bold text-gray-900">{aud.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{aud.description}</div>
+                  <div className="text-[11px] font-bold text-[#A89035] uppercase tracking-wider mt-3">Generate deck →</div>
+                </button>
+              ))}
             </div>
           </div>
 

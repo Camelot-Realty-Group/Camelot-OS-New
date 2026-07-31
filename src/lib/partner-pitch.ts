@@ -454,6 +454,23 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
       </div>
       <div class="src">Portfolio figures published at camelot.nyc, July 2026.</div>${foot}`),
 
+    // 2B — THE CONSOLIDATION STORY (why now)
+    sl(`${logo}<div class="kicker">The State of the Industry</div><h2>What Happened to the Big Five</h2><div class="rule"></div>
+      <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start">
+        <div>
+          <p class="body dropcap" style="font-size:15px">AKAM. FirstService. Douglas Elliman. Halstead. Maxwell-Kates. New York's largest management brands are now publicly traded or private-equity owned — and boards feel what that changes. The person-to-person relationship between a board and its manager gets replaced by a ticket queue. Call the hotline, reach someone overseas who has never seen your building and doesn't know your account, and watch your relationship reduce to a ticket number — because at scale, that's what's cheapest.</p>
+          <p class="body" style="font-size:14px;margin-top:12px">And when companies are bought, re-bought, merged, and sold again, service continuity is the casualty: the right arm stops talking to the left. Boards tell us this every week — it's why they're switching.</p>
+          <div class="pullquote" style="margin-top:14px">We became the alternative on purpose: the eye back on the relationship.</div>
+        </div>
+        <div>
+          <div class="card" style="border-left-color:#1a2130"><strong>We want to scale — deliberately.</strong> Camelot is growing, and growing with partners like you: bigger buildings, new relationships, and the service model the consolidators abandoned.</div>
+          <div class="card"><strong>We're building the all-star team.</strong> We actively recruit the best people leaving the big firms — senior property managers, account managers, controllers, and compliance professionals who are tired of managing ticket queues instead of buildings.</div>
+          <div class="card"><strong>Humans + AI, not humans replaced by AI.</strong> Our people carry the board relationship; Camelot OS automation carries the paperwork, deadlines, and data. That pairing is how a boutique outruns a conglomerate.</div>
+          <div class="card" style="background:#22303a;color:rgba(255,255,255,.9);border-left-color:#F4D26A"><strong style="color:#F4D26A">Grow with us.</strong> Help us reach the bigger buildings and the talent inside those firms — and we'll help your practice grow right alongside.</div>
+        </div>
+      </div>
+      <div class="src">Industry consolidation is public record; service observations reflect what boards and professionals report to Camelot when switching. See also: camelot.nyc/why-boards-switch.</div>${foot}`),
+
     // 3 — TWO DECADES (timeline + markets)
     sl(`${logo}<div class="kicker">Who We Are</div><h2>Two Decades of New York Buildings</h2><div class="rule"></div>
       <p class="body" style="max-width:900px">Camelot is an independently owned New York firm: senior property managers, in-house accounting, legal leadership, brokerage expertise, and practical automation — members of REBNY, NYARM, IREM, BOMA New York, and CNYC. <strong>Where we work:</strong> ${MARKETS}.</p>

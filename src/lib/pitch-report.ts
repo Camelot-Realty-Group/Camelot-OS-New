@@ -21,7 +21,7 @@ export type JackieReportPackage = 'first_email_intro' | 'board_meeting_deck' | '
 
 export const JACKIE_REPORT_PACKAGES: Array<{ key: JackieReportPackage; label: string; pages: string; description: string }> = [
   { key: 'first_email_intro', label: 'Intro to Camelot', pages: '6-8 pages', description: 'Short board-safe teaser for first outreach.' },
-  { key: 'board_meeting_deck', label: 'Board Interview Agenda', pages: '15 pages', description: 'Main presentation for first board/ownership meetings.' },
+  { key: 'board_meeting_deck', label: 'Prospective Client Interview Agenda', pages: '15 pages', description: 'Main presentation for first board/ownership meetings.' },
   { key: 'appendix_full', label: 'Property Intelligence Dossier', pages: 'Full dossier', description: 'Everything Camelot OS found on the property: public records, compliance, market intel, cost-reduction program, transition plan, and diligence appendix.' },
 ];
 
@@ -396,7 +396,7 @@ function deckShell(title: string, slides: string, filenameStem?: string): string
 }
 
 function logoBadge(): string {
-  // Matches the "Board Interview Agenda" treatment (white wordmark + shadow on the
+  // Matches the "Prospective Client Interview Agenda" treatment (white wordmark + shadow on the
   // gold badge, "PROPERTY MANAGEMENT" sub-label) across every report that uses
   // this shared deck shell -- Intro to Camelot, HOA reports, etc.
   return `<div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">PROPERTY MANAGEMENT</span></div></div>`;
@@ -523,7 +523,7 @@ function enrichEveryOtherDeckPage(slides: string, d: MasterReportData): string {
   return parts.map((part, index) => {
     if (!part.startsWith('<div class="slide')) return part;
     const slideNumber = index + 1;
-    const alreadyHasVisual = /<img\b|<iframe\b|class="context-photo-chip"|class="photo-frame"|class="visual-card"|class="image-frame"/i.test(part);
+    const alreadyHasVisual = /<img\b|<iframe\b|class="context-photo-chip"|class="photo-frame"|class="visual-card"|class="image-frame"|no-visual-chip/i.test(part);
     if (slideNumber > 1 && !alreadyHasVisual) {
       return part.replace(/<\/div>\s*$/s, `${everyOtherPageVisualChip(d, visualIndex++, 'Property / Neighborhood')}\n</div>`);
     }
@@ -569,7 +569,7 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
     : (() => {
         const subways = (d as any).nearbySubways as Array<{ name: string; routes: string; miles: number }> | undefined;
         if (subways && subways.length) {
-          const rows = subways.map(s => {
+          const rows = subways.slice(0, 2).map(s => {
             const walkMin = Math.max(1, Math.round(s.miles * 20));
             return [s.name, s.routes.split(/\s+/).join(' / '), `MTA station &middot; approx. ${s.miles.toFixed(2)} mi`, `~${walkMin} min walk`];
           });
@@ -583,8 +583,10 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
           } else {
             rows.push(['From Camelot HQ', 'Transit / car', '57 West 57th Street, Suite 410 to your door', 'senior staff on-site fast']);
           }
-          rows.push(['Bus / ferry / Citi Bike / rideshare', 'Mapped at onboarding', 'Full mobility map delivered with the first building report', 'context']);
-          return rows;
+          // Cap the panel so it can never overflow the printed page: at most
+          // two subway rows plus the Camelot HQ row (David, July 31 2026 —
+          // page 3 map + rows were running off the page).
+          return rows.slice(0, 3);
         }
         return [
           ['Nearest transit', 'Verify', 'Confirm against MTA / Google Maps during final review', 'nearby'],
@@ -593,7 +595,7 @@ function closestSubwayPanel(d: MasterReportData, exact22East22 = false): string 
         ];
       })();
   const query = exact22East22 ? '23 Street Station N R W Broadway East 23rd Street New York NY' : `${d.address} nearest subway`;
-  return `<div class="gold-card" style="padding:16px 18px;height:100%"><div class="sub-heading" style="font-size:18px;margin-bottom:8px">Closest Subway Access</div><p class="body-text" style="font-size:12px;line-height:1.45;margin-bottom:10px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:150px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:10px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
+  return `<div class="gold-card" style="padding:14px 16px;height:100%;overflow:hidden"><div class="sub-heading" style="font-size:17px;margin-bottom:6px">Closest Subway Access</div><p class="body-text" style="font-size:11.5px;line-height:1.4;margin-bottom:8px">Transit access helps frame resident convenience, vendor routing, and day-to-day operating practicality.</p><div style="height:112px;border:1px solid rgba(184,151,58,.32);border-radius:8px;overflow:hidden;background:#EDE9DF;margin-bottom:8px">${rawIframeFrame(`https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${encodeURIComponent(query)}&zoom=16`, 'Closest subway map')}</div>${stops.slice(0, 3).map(([name, train, location, distance]) => `<div style="display:grid;grid-template-columns:70px 1fr;gap:9px;align-items:start;border-top:1px solid rgba(184,151,58,.18);padding-top:8px;margin-top:8px"><div style="background:#34444f;color:#F4D26A;border-radius:999px;text-align:center;font-size:11px;font-weight:900;padding:5px 7px">${train}</div><div><div style="font-size:12px;font-weight:900;color:#1a2744">${name} <span style="color:#B8973A">(${distance})</span></div><div style="font-size:11px;line-height:1.35;color:#4a5568">${location}</div></div></div>`).join('')}</div>`;
 }
 
 function rawIframeFrame(src: string, title: string): string {
@@ -980,18 +982,19 @@ ${onboardingChecklistSlide(d)}
   return sanitizeJackieKnownPropertyHtml(html, d).data;
 }
 
-export function generateBoardMeetingDeck(d: MasterReportData): string {
+export function generateBoardMeetingDeck(d: MasterReportData, intake?: AgendaIntake): string {
   d = normalizePitchReportData(d);
   if (isHoaExecutiveOpportunity(d)) return generateHoaBoardMeetingDeck(d);
   if (isJacksonHeights85th(d)) return generateJackson85thBoardDeck(d);
   const base = generatePitchReport(d);
   const insert = `${executiveTeamSlide()}`;
+  const agendaSlide = intake ? `${agendaCoverLetterSlide(d, intake)}\n\n` : '';
   const exact22East22 = /\b22\s+e(?:ast)?\.?\s+22(?:nd)?\s+(?:st|street)\b/i.test(`${d.address} ${d.buildingName || ''}`) && !/\b220\s+e(?:ast)?\.?\s+22(?:nd)?\s+(?:st|street)\b/i.test(`${d.address}`);
   const html = base
-    .replace(/<!-- SLIDE 1: Cover[\s\S]*?<!-- SLIDE 2:/, `${meetingDeckCoverSlide(d)}\n\n<!-- SLIDE 2:`)
+    .replace(/<!-- SLIDE 1: Cover[\s\S]*?<!-- SLIDE 2:/, `${meetingDeckCoverSlide(d)}\n\n${agendaSlide}<!-- SLIDE 2:`)
     .replace('<!-- SLIDE 13: Next Steps (Dark) -->', `${insert}\n<!-- SLIDE 13: Next Steps (Dark) -->`)
     .replace(/REALTY GROUP/g, 'PROPERTY MANAGEMENT')
-    .replace(/Property Intelligence Report/g, 'Board Interview Agenda')
+    .replace(/Property Intelligence Report/g, 'Prospective Client Interview Agenda')
     .replace('<!-- SLIDE 14: Thank You (Dark) -->', '<!-- SLIDE 15: Thank You (Dark) -->')
     .replace(exact22East22 ? /220 East 22nd Street_2022|220 East 22nd Street|220 E 22nd St/g : /$a/, exact22East22 ? '22 East 22nd Street' : '');
   return sanitizeJackieKnownPropertyHtml(html, d).data;
@@ -1023,12 +1026,12 @@ function meetingDeckCoverSlide(d: MasterReportData): string {
     ['Access', access],
     ['Use', use],
   ];
-  return `<!-- SLIDE 1: Cover (Board Interview Agenda) -->
+  return `<!-- SLIDE 1: Cover (Prospective Client Interview Agenda) -->
 <div class="slide slide-dark cover-slide" style="background:linear-gradient(110deg, rgba(20,31,43,0.96) 0%, rgba(20,31,43,0.86) 50%, rgba(20,31,43,0.42) 100%), url('${image}') center/cover no-repeat; background-size:cover;">
   <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">PROPERTY MANAGEMENT</span></div></div>
   <div style="display:flex;height:100%">
     <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:70px 42px 68px 64px">
-      <div style="font-size:13px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px">Board Interview Agenda</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.58);text-transform:uppercase;letter-spacing:3px;margin-bottom:12px">Prospective Client Interview Agenda</div>
       <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;color:#B8973A;font-style:italic;font-weight:600;margin-bottom:12px;line-height:1.04">${displayName}</div>
       <div style="font-size:18px;color:rgba(255,255,255,0.82);margin-bottom:7px">${displayAddress}</div>
       <div style="font-size:15px;color:rgba(255,255,255,0.64);margin-bottom:24px">${displayHood} - ${displayBoro}</div>
@@ -1050,15 +1053,78 @@ function meetingDeckCoverSlide(d: MasterReportData): string {
 </div>`;
 }
 
-export function generateJackieReportPackage(d: MasterReportData, reportPackage: JackieReportPackage): string {
+export function generateJackieReportPackage(d: MasterReportData, reportPackage: JackieReportPackage, intake?: AgendaIntake): string {
   if (reportPackage === 'first_email_intro') return generateFirstEmailIntroReport(d);
-  if (reportPackage === 'board_meeting_deck') return generateBoardMeetingDeck(d);
+  if (reportPackage === 'board_meeting_deck') return generateBoardMeetingDeck(d, intake);
   return '';
+}
+
+/**
+ * Pre-call discovery answers collected BEFORE the Prospective Client
+ * Interview Agenda deck is generated (David, July 31 2026): the deck is an
+ * agenda for a real conversation, so the operator must first tell us what
+ * they know about the building and its decision makers. These answers drive
+ * the "Call Agenda & Discussion Highlights" page at the front of the deck.
+ */
+export interface AgendaIntake {
+  spokeWithDecisionMakers?: string;
+  painPoints?: string;
+  residentManager?: string;
+  budget?: string;
+  capitalProjects?: string;
+  vendors?: string;
+  desiredOutcomes?: string;
+  otherNotes?: string;
+}
+
+export function agendaIntakeHasContent(intake?: AgendaIntake): boolean {
+  if (!intake) return false;
+  return Object.values(intake).some(v => typeof v === 'string' && v.trim().length > 0);
+}
+
+function agendaCoverLetterSlide(d: MasterReportData, intake: AgendaIntake): string {
+  const esc = (s?: string) => escapeHtml((s || '').trim());
+  const topics: Array<[string, string | undefined]> = [
+    ['Pain points to address', intake.painPoints],
+    ['Resident manager & staffing', intake.residentManager],
+    ['Budget & financial direction', intake.budget],
+    ['Capital projects & Local Law needs', intake.capitalProjects],
+    ['Vendor performance & pricing', intake.vendors],
+    ['What ownership wants to see different', intake.desiredOutcomes],
+    ['Additional notes', intake.otherNotes],
+  ];
+  const filled = topics.filter(([, v]) => v && v.trim());
+  const agendaItems = [
+    ...filled.map(([t]) => t),
+    'How Camelot would approach the first 90 days',
+    'Proposed fee framework & next steps',
+  ];
+  const spoke = (intake.spokeWithDecisionMakers || '').trim();
+  return `<div class="slide slide-cream">
+  <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">PROPERTY MANAGEMENT</span></div></div>
+  <div class="pad">
+    <div class="section-title">Call Agenda &amp; Discussion Highlights</div>
+    <p class="body-text" style="margin-bottom:14px">Built from our pre-call notes on ${escapeHtml(d.buildingName || d.address)}${spoke ? ` &mdash; decision-maker contact so far: ${esc(spoke)}` : ''}. This is the conversation we suggest having with the board, ownership, or decision makers on the next Zoom or call.</p>
+    <div style="display:grid;grid-template-columns:.72fr 1.28fr;gap:16px">
+      <div class="gold-card" style="padding:14px 16px">
+        <div class="sub-heading" style="font-size:17px;margin-bottom:8px">Agenda</div>
+        ${agendaItems.map((t, i) => `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px"><div style="width:24px;height:24px;border-radius:50%;background:#34444f;color:#F4D26A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex:0 0 24px">${i + 1}</div><div style="font-size:12.5px;font-weight:800;color:#1a2744;line-height:1.35;padding-top:3px">${t}</div></div>`).join('')}
+      </div>
+      <div style="display:grid;gap:9px;align-content:start">
+        ${filled.length
+          ? filled.map(([t, v]) => `<div class="gold-card" style="padding:11px 14px;margin:0"><div style="font-size:13px;font-weight:900;color:#1a2744;margin-bottom:3px">${t}</div><div style="font-size:11.5px;color:#4a5568;line-height:1.45">${esc(v)}</div></div>`).join('')
+          : `<div class="gold-card" style="padding:14px 16px"><div style="font-size:13px;font-weight:900;color:#1a2744;margin-bottom:4px">First conversation still ahead</div><div style="font-size:12px;color:#4a5568;line-height:1.5">No pre-call notes were entered, so this agenda covers the standard discovery ground: pain points, resident manager satisfaction, budget health, capital and Local Law plans, vendor pricing, and what ownership wants done differently. Capture the answers on the call and re-run this deck to get a tailored agenda.</div></div>`}
+      </div>
+    </div>
+    <div class="source-note">Pre-call discovery captured in Camelot OS before generating this agenda; facts elsewhere in this deck remain source-checked against public records.</div>
+  </div>
+  <!-- no-visual-chip -->
+</div>`;
 }
 
 // Filename conventions (per David, July 30-31 2026):
 //   Intro to Camelot:              {property-address}-first_engagement_{date}
-//   Board Interview Agenda:        {building-or-address}-Board_Interview_Agenda_{date}
+//   Prospective Client Interview Agenda:        {building-or-address}-Client_Interview_Agenda_{date}
 //   Property Intelligence Dossier: {association-or-address}-Intelligence_Dossier_{date}
 export function buildJackiePackageFilename(d: MasterReportData, reportPackage: JackieReportPackage, extension = 'html'): string {
   d = normalizePitchReportData(d);
@@ -1069,7 +1135,7 @@ export function buildJackiePackageFilename(d: MasterReportData, reportPackage: J
   }
   if (reportPackage === 'board_meeting_deck') {
     const client = cleanFileNamePart(d.buildingName || d.address || 'Prospective-Lead');
-    return `${client}-Board_Interview_Agenda_${dateStamp}.${extension}`;
+    return `${client}-Client_Interview_Agenda_${dateStamp}.${extension}`;
   }
   const client = cleanFileNamePart(d.buildingName || d.address || 'Client-Association');
   return `${client}-Intelligence_Dossier_${dateStamp}.${extension}`;
@@ -1356,8 +1422,8 @@ export function generatePitchReport(d: MasterReportData): string {
           <div style="font-size:9.5px;color:#888;margin-top:6px">Neighborhood benchmarks &mdash; how your building marks against them (sales, rents, sponsor units) is quantified in the full report.</div>
         </div>
       </div>
-      <div style="flex:0 0 400px;display:grid;gap:8px;align-content:start">
-        ${contextualImageCard(d, 0, `The property &mdash; ${escapeHtml(streetLine(d.address))}`, 132)}
+      <div style="flex:0 0 400px;display:grid;gap:8px;align-content:start;max-height:100%;min-height:0;overflow:hidden">
+        ${contextualImageCard(d, 0, `The property &mdash; ${escapeHtml(streetLine(d.address))}`, 106)}
         ${closestSubwayPanel(d, exact22East22)}
       </div>
     </div>
@@ -1540,7 +1606,7 @@ export function generatePitchReport(d: MasterReportData): string {
     </div>
     </div>
   </div>
-  ${everyOtherPageVisualChip(d, 2, 'Transition Context')}
+  <!-- no-visual-chip: photo chip removed per David July 31 2026 — it overlapped the Governance card -->
 </div>
 
 <!-- SLIDE 11: Proposed Investment -->

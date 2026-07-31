@@ -330,6 +330,12 @@ export async function trackReportWorkflowEvent({
     hubspotQueued: true,
     metadata: {
       ...(metadata || {}),
+      // Who sent it + when, so every HubSpot activity reads like a complete
+      // sales log entry: sender, report, recipients, property, date, and the
+      // follow-up task that keeps the lead from going cold (David, July 31 2026).
+      sentBy: 'Camelot OS — David Goldoff <merlin@camelot.nyc>',
+      sentAt: generatedAt,
+      reportAbout: `${packageLabel} for ${propertyName} (${propertyAddress})`,
       ctaScenarioId: ctaScenario.id,
       ctaLabel: ctaScenario.label,
       primaryCta: ctaScenario.primaryCta,

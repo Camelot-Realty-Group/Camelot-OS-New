@@ -2,7 +2,7 @@ import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Search, FileText, Download, Mail, Send, Phone, Table2, Link2, Loader2, Eye, Copy, Check, X, ShieldCheck, ShieldX, AlertTriangle, Printer } from 'lucide-react';
 import { REPORT_FOCUS_THEMES, buildJackieIntelReportFilename, buildMasterReport, generateBrochureHTML, generateColdCallerSheet, generateEmailDraft, generateCSVExport, validateJackieReport, type MasterReportData, type QACheckResult, type ReportFocusInput, type ReportFocusKey } from '@/lib/camelot-report';
-import { JACKIE_REPORT_PACKAGES, buildJackiePackageFilename, generateBoardMeetingDeck, generateFirstEmailIntroReport, generateJackieReportPackage, generatePitchEmail, type JackieReportPackage } from '@/lib/pitch-report';
+import { JACKIE_REPORT_PACKAGES, buildJackiePackageFilename, generateBoardMeetingDeck, generateFirstEmailIntroReport, generateJackieReportPackage, generatePitchEmail, type AgendaIntake, type JackieReportPackage } from '@/lib/pitch-report';
 import { applyJackieFactAuthority, sanitizeJackieKnownPropertyHtml } from '@/lib/jackie-fact-authority';
 import { generatePitchDeck } from '@/lib/pitch-deck-pptx';
 import { openBrochureForPrint, downloadAsHTML, downloadAsPDF, triggerCSVDownload, copyToClipboard, openEmailDraft, sendCamelotEmail, getEmailConfigStatus, type EmailConfigStatus } from '@/lib/pdf-generator';
@@ -271,6 +271,8 @@ export default function ReportCenter() {
   const [inquiryRole, setInquiryRole] = useState('');
   const [inquiryNotes, setInquiryNotes] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<JackieReportPackage>('board_meeting_deck');
+  const [agendaIntakeOpen, setAgendaIntakeOpen] = useState(false);
+  const [agendaIntake, setAgendaIntake] = useState<AgendaIntake>({});
   const [savedReports, setSavedReports] = useState<SavedJackieReport[]>(() => loadLocalJackieReportLibrary());
   const [releaseQA, setReleaseQA] = useState<QACheckResult | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
@@ -467,7 +469,7 @@ export default function ReportCenter() {
 
   const generateSelectedPackageHTML = (d: MasterReportData): string => {
     if (selectedPackage === 'appendix_full') return generateBrochureHTML(d);
-    return generateJackieReportPackage(d, selectedPackage);
+    return generateJackieReportPackage(d, selectedPackage, selectedPackage === 'board_meeting_deck' ? agendaIntake : undefined);
   };
 
   const handlePreviewSelectedPackage = () => {
@@ -488,10 +490,22 @@ export default function ReportCenter() {
     openPackageAndArchive(d, 'first_email_intro', html, buildJackiePackageFilename(d, 'first_email_intro', 'pdf'), buildJackiePackageFilename(d, 'first_email_intro', 'html'));
   };
 
+  // The agenda deck is an agenda for a real conversation — so before it can
+  // be generated, the operator answers the pre-call discovery questions
+  // (David, July 31 2026). The answers become the "Call Agenda & Discussion
+  // Highlights" page at the front of the deck.
   const handlePreviewBoardDeck = () => {
     const d = getDataWithPhotos();
     if (!d) return;
-    const html = generateBoardMeetingDeck(d);
+    setAgendaIntakeOpen(true);
+  };
+
+  const buildBoardDeckWithIntake = (intake: AgendaIntake) => {
+    setAgendaIntakeOpen(false);
+    setAgendaIntake(intake);
+    const d = getDataWithPhotos();
+    if (!d) return;
+    const html = generateBoardMeetingDeck(d, intake);
     if (!verifyJackieRelease(d, html, 'internal', 'board_meeting_deck')) return;
     openPackageAndArchive(d, 'board_meeting_deck', html, buildJackiePackageFilename(d, 'board_meeting_deck', 'pdf'), buildJackiePackageFilename(d, 'board_meeting_deck', 'html'));
   };
@@ -1004,7 +1018,7 @@ export default function ReportCenter() {
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Jackie</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900">Pitch Deck Report Packager</h1>
         <p className="text-sm md:text-base text-gray-500 mt-1">Camelot&rsquo;s AI pitch engine — Property Intelligence Reports, management proposals, and email drafts. One address, every output.</p>
       </div>
 
@@ -1226,7 +1240,7 @@ export default function ReportCenter() {
                   <Eye className="w-4 h-4" /> Intro to Camelot (6-8)
                 </button>
                 <button onClick={handlePreviewBoardDeck} className="px-4 py-2 bg-[#5B4A1F] text-white rounded-lg hover:bg-[#473916] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> Board Interview Agenda (15)
+                  <Eye className="w-4 h-4" /> Prospective Client Interview Agenda (15)
                 </button>
                 <button onClick={handlePreviewBrochure} className="px-4 py-2 bg-[#A89035] text-white rounded-lg hover:bg-[#8A7A2C] text-sm font-medium flex items-center gap-2">
                   <Eye className="w-4 h-4" /> Property Intelligence Dossier
@@ -1571,6 +1585,58 @@ export default function ReportCenter() {
                 {copied ? 'Copied!' : 'Copy to Clipboard'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {agendaIntakeOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setAgendaIntakeOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b bg-gray-50 rounded-t-xl">
+              <h3 className="text-lg font-bold text-gray-900">Before we build this agenda…</h3>
+              <p className="text-sm text-gray-600 mt-1">What do you know about this building, and have you spoken to any of its decision makers? We'll turn your answers into the agenda for your next Zoom or phone call — pain points get highlighted at the front of the deck.</p>
+            </div>
+            <form
+              className="p-5 space-y-3"
+              onSubmit={e => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                buildBoardDeckWithIntake({
+                  spokeWithDecisionMakers: String(fd.get('spoke') || ''),
+                  painPoints: String(fd.get('painPoints') || ''),
+                  residentManager: String(fd.get('residentManager') || ''),
+                  budget: String(fd.get('budget') || ''),
+                  capitalProjects: String(fd.get('capitalProjects') || ''),
+                  vendors: String(fd.get('vendors') || ''),
+                  desiredOutcomes: String(fd.get('desiredOutcomes') || ''),
+                  otherNotes: String(fd.get('otherNotes') || ''),
+                });
+              }}
+            >
+              {[
+                ['spoke', 'Have you spoken to the decision makers? Who, and when?', 'e.g., Board president Jane R., intro call July 28 — via Otter/Zoom/Meet notes'],
+                ['painPoints', 'What are their pain points with this property?', 'e.g., slow repairs, opaque financials, unhappy with current management'],
+                ['residentManager', 'Are they happy with their resident manager / staff?', 'e.g., super is well liked but overloaded; no weekend coverage'],
+                ['budget', "What's wrong (or right) with the budget? What's their budget direction?", 'e.g., running a deficit, want to avoid an assessment'],
+                ['capitalProjects', 'Capital projects / Local Law needs? Assessment coming?', 'e.g., LL11 facade cycle due 2027, boiler replacement being discussed'],
+                ['vendors', 'Do they like their current vendors and pricing?', 'e.g., locked into an expensive elevator contract'],
+                ['desiredOutcomes', 'What would they like to see different? Where should the property go financially?', 'e.g., cut operating costs 10%, better board reporting'],
+                ['otherNotes', 'Anything else important before the board / landlord call?', 'e.g., building may interview 2 other firms; decision by Labor Day'],
+              ].map(([name, label, placeholder]) => (
+                <div key={name}>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
+                  <textarea name={name} rows={2} placeholder={placeholder} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
+                </div>
+              ))}
+              <div className="flex items-center justify-between pt-2 pb-1">
+                <button type="button" onClick={() => buildBoardDeckWithIntake({})} className="text-sm text-gray-500 hover:text-gray-700 underline">
+                  Skip — build with a generic discovery agenda
+                </button>
+                <button type="submit" className="px-5 py-2.5 bg-[#5B4A1F] text-white rounded-lg hover:bg-[#473916] text-sm font-semibold">
+                  Build Interview Agenda Deck
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

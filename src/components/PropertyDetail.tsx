@@ -54,7 +54,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 
 const DETAIL_REPORT_LABELS: Record<DetailReportPackage, string> = {
   first_email_intro: 'Intro to Camelot',
-  board_meeting_deck: 'Board Interview Agenda',
+  board_meeting_deck: 'Prospective Client Interview Agenda',
   appendix_full: 'Property Intelligence Dossier',
 };
 
@@ -924,7 +924,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
               className="flex items-center gap-1.5 text-xs bg-camelot-gold text-camelot-navy px-3 py-1.5 rounded-lg font-medium hover:bg-camelot-gold-light transition-colors disabled:opacity-50"
             >
               {packageLoading === 'preview:board_meeting_deck' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-              Board Interview Agenda
+              Prospective Client Interview Agenda
             </button>
             <button
               onClick={() => handleEmailPackagePDF('board_meeting_deck')}

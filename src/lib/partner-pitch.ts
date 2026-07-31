@@ -290,9 +290,43 @@ function hqMapEmbed(height: number): string {
   return `<div class="mapframe" style="height:${height}px"><iframe src="https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=57+West+57th+Street+Suite+410+New+York+NY+10019&zoom=15" style="width:100%;height:100%;border:0" loading="lazy" title="Camelot HQ — 57 West 57th Street"></iframe></div>`;
 }
 
-function coverageMapEmbed(height: number): string {
-  return `<div class="mapframe" style="height:${height}px"><iframe src="https://www.google.com/maps/embed/v1/view?key=${GOOGLE_MAPS_KEY}&center=40.72,-73.95&zoom=10&maptype=roadmap" style="width:100%;height:100%;border:0" loading="lazy" title="Camelot coverage — New York metro"></iframe></div>`;
+/** Real Camelot photography from the corporate brochure (Camelot-owned imagery). */
+const ASSET_BASE = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+const camelotPhoto = (file: string) => `${ASSET_BASE}/images/camelot/${file}`;
+
+const PORTFOLIO_PHOTOS: Array<{ file: string; caption: string }> = [
+  { file: 'park-avenue.jpg', caption: 'Park Avenue — prewar white-glove' },
+  { file: '301-east-50.jpg', caption: '301 East 50th Street' },
+  { file: 'mott-street.jpg', caption: 'Mott Street — Chinatown portfolio' },
+  { file: 'soho-loft.jpg', caption: 'SoHo cast-iron lofts' },
+  { file: 'penelope-night.jpg', caption: 'New-development condominium' },
+  { file: 'prewar-corner.jpg', caption: 'Prewar co-op, uptown' },
+  { file: 'resident-app.jpg', caption: 'Residents on the Camelot app' },
+  { file: 'modern-entry.jpg', caption: 'Full-service modern entry' },
+];
+
+/**
+ * The real portfolio map: gold pins on a selection of Camelot-managed and
+ * portfolio buildings (addresses from camelot.nyc and case studies).
+ */
+const PORTFOLIO_PINS = [
+  '949 Park Ave, New York, NY', '301 E 50th St, New York, NY', '111 Mott St, New York, NY',
+  '250 Bowery, New York, NY', '58 White St, New York, NY', '137 Franklin St, New York, NY',
+  '39 Spring St, New York, NY', '201 E 15th St, New York, NY', '930 St Nicholas Ave, New York, NY',
+  '22 E 22nd St, New York, NY', '748 E 9th St, New York, NY', '300 W 11th St, New York, NY',
+];
+
+function portfolioDotMap(height: number): string {
+  const markers = `size:small%7Ccolor:0xC9A227%7C${PORTFOLIO_PINS.map(a => encodeURIComponent(a)).join('%7C')}`;
+  const url = `https://maps.googleapis.com/maps/api/staticmap?size=640x${Math.round(height / 2)}&scale=2&maptype=roadmap&markers=${markers}&key=${GOOGLE_MAPS_KEY}`;
+  return `<div class="mapframe" style="height:${height}px"><img src="${url}" alt="Camelot portfolio map — gold pins on managed and portfolio buildings" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>`;
 }
+
+const PORTFOLIO_NEIGHBORHOODS = [
+  'SoHo', 'Nolita', 'Chinatown', 'Tribeca', 'Bowery', 'Gramercy',
+  'Flatiron', 'Midtown East', 'Park Avenue', 'West Village', 'East Village', 'Washington Heights',
+  'Sunnyside', 'Long Island City', 'Jackson Heights', 'Brooklyn Heights', 'Riverdale', 'Westchester',
+];
 
 // ---------------------------------------------------------------------------
 // The deck
@@ -389,8 +423,10 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
   const sl = (inner: string, cls = '') => `<div class="pslide ${cls}">${inner}</div>`;
 
   const slides = [
-    // 1 — MAGAZINE COVER
-    sl(`<div class="cover-grid"></div><div class="cover-in">
+    // 1 — MAGAZINE COVER (real Camelot skyline photography under the art)
+    sl(`<div style="position:absolute;inset:0"><img src="${camelotPhoto('skyline-sunset.jpg')}" alt="New York skyline — Camelot photography" style="width:100%;height:100%;object-fit:cover;opacity:.38" onerror="this.style.display='none'"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(26,33,48,.92) 0%,rgba(34,48,58,.82) 55%,rgba(43,61,73,.7) 100%)"></div>
+    <div class="cover-grid"></div><div class="cover-in">
       <div class="cover-mast">C A M E L O T</div>
       <div class="cover-mastsub">The Partnership Portfolio &middot; New York</div>
       <div class="cover-issue"><span>For ${esc(audienceLabel)}</span><span>${issueDate}</span><span>Est. 2006</span></div>
@@ -411,11 +447,12 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
               ? 'Take the keys, secure the cash, report like a fiduciary — within days of appointment.'
               : 'Audit quality depends on management quality. We build for your fieldwork.'}</div>
         <div class="grid3" style="grid-template-columns:1fr">
-          <div class="stat"><b>2006</b><span>Founded in New York</span></div>
-          <div class="stat"><b>Co-op &middot; Condo &middot; Rental</b><span>Full portfolio coverage</span></div>
-          <div class="stat"><b>In-House</b><span>Accounting &middot; brokerage &middot; compliance</span></div>
+          <div class="stat"><b>41 Buildings</b><span>$240M under management</span></div>
+          <div class="stat"><b>$1.5B</b><span>Estimated gross portfolio value &middot; 1M+ sq ft</span></div>
+          <div class="stat"><b>48 hrs</b><span>Guaranteed response time</span></div>
         </div>
-      </div>${foot}`),
+      </div>
+      <div class="src">Portfolio figures published at camelot.nyc, July 2026.</div>${foot}`),
 
     // 3 — TWO DECADES (timeline + markets)
     sl(`${logo}<div class="kicker">Who We Are</div><h2>Two Decades of New York Buildings</h2><div class="rule"></div>
@@ -429,20 +466,27 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
       ${deliverableThumbnails()}
       <p class="body" style="margin-top:8px;font-size:12.5px;color:#8a8174">Ask us to run a live report on any building you or your clients care about — it takes minutes and it's free.</p>${foot}`),
 
-    // 5 — MAPS: the office + the territory
+    // 4B — THE PORTFOLIO, IN PICTURES (real Camelot photography)
+    sl(`${logo}<div class="kicker">The Portfolio</div><h2>The Buildings We Answer For</h2><div class="rule"></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        ${PORTFOLIO_PHOTOS.map(p => `<figure style="margin:0"><div style="height:196px;border:1px solid rgba(26,33,48,.18);overflow:hidden;background:#EDE9DF;box-shadow:0 10px 22px rgba(26,33,48,.1)"><img src="${camelotPhoto(p.file)}" alt="${esc(p.caption)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.parentElement.style.display='none'"></div><figcaption style="font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#8a8174;font-weight:700;margin-top:6px">${esc(p.caption)}</figcaption></figure>`).join('')}
+      </div>
+      <div class="src">Camelot-owned photography from the corporate portfolio; resident-app imagery from the Camelot resident platform.</div>${foot}`),
+
+    // 5 — MAPS: the real portfolio dots + the office
     sl(`${logo}<div class="kicker">The Territory</div><h2>Where We Manage &mdash; and Where to Find Us</h2><div class="rule"></div>
       <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:start">
         <div>
-          ${coverageMapEmbed(300)}
-          <div class="src">New York metro coverage — live Google map</div>
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:10px">
-            ${['Manhattan', 'Brooklyn', 'Queens', 'The Bronx', 'Staten Island', 'Riverdale', 'Westchester', 'Long Island', 'New Jersey', 'Connecticut'].map(a => `<div style="border:1px solid rgba(184,151,58,.4);background:#fff;padding:7px 6px;font-size:10px;font-weight:800;color:#1a2130;text-align:center">${a}</div>`).join('')}
+          ${portfolioDotMap(320)}
+          <div class="src">Gold pins: a selection of Camelot-managed and portfolio buildings (camelot.nyc case studies &amp; portfolio) — the full 41-building list lives at camelot.nyc/managed-buildings.</div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px">
+            ${PORTFOLIO_NEIGHBORHOODS.map(a => `<div style="border:1px solid rgba(184,151,58,.4);background:#fff;padding:6px 5px;font-size:9.5px;font-weight:800;color:#1a2130;text-align:center">${a}</div>`).join('')}
           </div>
         </div>
         <div>
-          ${hqMapEmbed(300)}
+          ${hqMapEmbed(320)}
           <div class="src">Headquarters — 57 West 57th Street, Suite 410 (coffee is on us)</div>
-          <p class="body" style="font-size:12.5px;margin-top:10px">A building-by-building portfolio map is shared in person — we don't publish client addresses in outreach materials.</p>
+          <p class="body" style="font-size:12.5px;margin-top:10px">The neighborhoods above are where the portfolio actually lives — from Chinatown walk-ups to Park Avenue prewars to Sunnyside condominiums. Boots on the ground in every one.</p>
         </div>
       </div>${foot}`),
 
@@ -455,7 +499,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     sl(`${logo}<div class="kicker">Working Together</div><h2>How We Work With ${esc(firmName || audienceLabel)}</h2><div class="rule"></div>
       ${audience === 'brokerage' || audience === 'receivership'
         ? `<div style="display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start"><div>${copy.howWeHelp.slice(0, 4).map(item => `<div class="card">${esc(item)}</div>`).join('')}</div><div>${savingsTargetChart()}</div></div>`
-        : `<div class="grid2">${copy.howWeHelp.map(item => `<div class="card">${esc(item)}</div>`).join('')}</div>`}
+        : `<div style="display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start"><div>${copy.howWeHelp.map(item => `<div class="card">${esc(item)}</div>`).join('')}</div><div><div class="chart"><div class="chart-title">The Numbers Don't Lie</div><div class="stat" style="margin-bottom:10px"><b>$45,000</b><span>Avg. first-90-day savings boards find</span></div><div class="stat" style="margin-bottom:10px"><b>48 hrs</b><span>Guaranteed response vs. weeks at large firms</span></div><div class="stat"><b>73%</b><span>Boards report better communication after switching</span></div><div class="src">Published at camelot.nyc, July 2026.</div></div><div style="height:130px;border:1px solid rgba(184,151,58,.3);overflow:hidden;margin-top:10px"><img src="${camelotPhoto('app-desk.jpg')}" alt="Camelot resident platform" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div></div></div>`}
       ${foot}`),
 
     // 8 — THE VALUE EXCHANGE

@@ -157,25 +157,36 @@ function slide(inner: string, cls = ''): string {
   return `<div class="pslide ${cls}"><div class="logo">CAMELOT<span>PROPERTY MANAGEMENT</span></div>${inner}</div>`;
 }
 
-export function buildPartnerPitchFilename(audience: PartnerAudience, extension = 'pdf'): string {
+/** Optional personalization for a partner deck — the specific firm and contact. */
+export interface PartnerFirmInfo {
+  firmName?: string;
+  contactName?: string;
+}
+
+export function buildPartnerPitchFilename(audience: PartnerAudience, extension = 'pdf', firm?: PartnerFirmInfo): string {
   const label = audience === 'law' ? 'Law-Firms'
     : audience === 'accounting' ? 'Accounting-Firms'
     : audience === 'audit' ? 'Audit-Practices'
     : audience === 'brokerage' ? 'Commercial-Brokerages'
     : 'Receivers-Lenders-Auctions';
   const date = new Date().toISOString().slice(0, 10);
-  return `Camelot-Partner-Pitch-${label}_${date}.${extension}`;
+  const firmSlug = (firm?.firmName || '').trim().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  return firmSlug
+    ? `Camelot-Partner-Pitch-${firmSlug}_${date}.${extension}`
+    : `Camelot-Partner-Pitch-${label}_${date}.${extension}`;
 }
 
 export function partnerAudienceLabel(audience: PartnerAudience): string {
   return PARTNER_AUDIENCES.find(a => a.key === audience)?.label || 'Professional Partners';
 }
 
-export function generatePartnerPitchDeck(audience: PartnerAudience): string {
+export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: PartnerFirmInfo): string {
   const copy = AUDIENCE_COPY[audience];
   const audienceLabel = partnerAudienceLabel(audience);
+  const firmName = (firm?.firmName || '').trim();
+  const contactName = (firm?.contactName || '').trim();
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const stem = buildPartnerPitchFilename(audience, 'pdf').replace(/\.pdf$/, '');
+  const stem = buildPartnerPitchFilename(audience, 'pdf', firm).replace(/\.pdf$/, '');
 
   const css = `
   * { margin:0; padding:0; box-sizing:border-box; min-width:0; }
@@ -205,9 +216,10 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
   const slides = [
     // 1 — Cover
     slide(`<div style="height:100%;display:flex;flex-direction:column;justify-content:center">
-      <div class="eyebrow">For ${esc(audienceLabel)} Serving Boards & Landlords</div>
+      <div class="eyebrow">${firmName ? `Prepared for ${esc(firmName)}` : `For ${esc(audienceLabel)} Serving Boards & Landlords`}</div>
       <h1 style="font-size:64px;max-width:1000px">${esc(copy.title)}</h1>
       <p class="body" style="margin-top:22px;font-size:19px;max-width:900px">${esc(copy.hook)}</p>
+      ${firmName ? `<p class="body" style="margin-top:20px;font-size:15px;color:#F4D26A">Prepared personally for ${contactName ? `${esc(contactName)} and the team at ` : ''}${esc(firmName)}.</p>` : ''}
       <p class="body" style="margin-top:28px;font-size:13px;color:#8a8174">Camelot Property Management Services Corp. &middot; ${today}</p>
     </div>${foot}`, 'dark'),
 
@@ -251,7 +263,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
       <p class="body" style="font-size:12px;color:#8a8174;margin-top:10px">Client-specific references available under separate cover once permission is confirmed.</p>${foot}`),
 
     // 4 — How we work with your team
-    slide(`<div class="eyebrow">Working Together</div><h2>How We Work With ${esc(audienceLabel)}</h2>
+    slide(`<div class="eyebrow">Working Together</div><h2>How We Work With ${esc(firmName || audienceLabel)}</h2>
       <div class="grid2">${copy.howWeHelp.map(item => `<div class="card">${esc(item)}</div>`).join('')}</div>${foot}`),
 
     // 5 — The value exchange
@@ -273,8 +285,8 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
 
     // 6 — Coffee CTA
     slide(`<div style="height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center">
-      <h1 style="font-size:56px">Let's Grab a Coffee</h1>
-      <p class="body" style="margin:22px auto 0;max-width:760px;font-size:18px">Thirty minutes, near your office or ours at 57 West 57th Street. We'll compare notes on the boards and landlords we both serve and find the two or three ways we can make each other's work easier this year.</p>
+      <h1 style="font-size:56px">Let's Grab a Coffee${contactName ? `, ${esc(contactName.split(' ')[0])}` : ''}</h1>
+      <p class="body" style="margin:22px auto 0;max-width:760px;font-size:18px">Thirty minutes, near ${firmName ? `${esc(firmName)}'s office` : 'your office'} or ours at 57 West 57th Street. We'll compare notes on the boards and landlords we both serve and find the two or three ways we can make each other's work easier this year.</p>
       <p class="body" style="margin:30px auto 0;font-size:15px;line-height:1.9">${esc(DAVID_GOLDOFF_SIGNATURE_TEXT).replace(/\n/g, '<br>')}</p>
     </div>${foot}`, 'dark'),
   ].join('\n');

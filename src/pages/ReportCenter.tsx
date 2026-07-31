@@ -10,7 +10,7 @@ import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import { formatLibraryDate, loadLocalJackieReportLibrary, packageLabelFor, removeJackieReportRecord, saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
 import { checkReportConsistency, summarizeConsistencyFindings } from '@/lib/report-consistency';
-import { PARTNER_AUDIENCES, buildPartnerPitchFilename, generatePartnerPitchDeck } from '@/lib/partner-pitch';
+import { PARTNER_AUDIENCES, buildPartnerPitchFilename, generatePartnerPitchDeck, partnerAudienceLabel, type PartnerAudience, type PartnerFirmInfo } from '@/lib/partner-pitch';
 import { pushBuildingToIntegrations } from '@/lib/integrations';
 import { trackReportWorkflowEvent } from '@/lib/report-crm-tracking';
 import type { Building, Contact } from '@/types'; import { findBuildingPhotos } from '@/lib/building-photos';
@@ -273,6 +273,7 @@ export default function ReportCenter() {
   const [selectedPackage, setSelectedPackage] = useState<JackieReportPackage>('board_meeting_deck');
   const [agendaIntakeOpen, setAgendaIntakeOpen] = useState(false);
   const [agendaIntake, setAgendaIntake] = useState<AgendaIntake>({});
+  const [partnerPitchAudience, setPartnerPitchAudience] = useState<PartnerAudience | null>(null);
   const [savedReports, setSavedReports] = useState<SavedJackieReport[]>(() => loadLocalJackieReportLibrary());
   const [releaseQA, setReleaseQA] = useState<QACheckResult | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
@@ -1406,25 +1407,7 @@ export default function ReportCenter() {
               {PARTNER_AUDIENCES.map((aud) => (
                 <button
                   key={aud.key}
-                  onClick={() => {
-                    const html = generatePartnerPitchDeck(aud.key);
-                    const filename = buildPartnerPitchFilename(aud.key, 'pdf');
-                    openBrochureForPrint(html, filename);
-                    const record: SavedJackieReport = {
-                      id: crypto.randomUUID(),
-                      reportNumber: `PP-${Date.now().toString(36).toUpperCase()}`,
-                      address: `Camelot Partner Pitch — ${aud.label}`,
-                      buildingName: `Partner Pitch: ${aud.label}`,
-                      packageType: 'partner_pitch' as SavedJackieReport['packageType'],
-                      packageLabel: `Partner Pitch — ${aud.label}`,
-                      filename,
-                      html,
-                      focus: [],
-                      generatedAt: new Date().toISOString(),
-                    };
-                    setSavedReports(saveJackieReportRecord(record));
-                    toast.success(`${aud.label} partner deck opened and archived`);
-                  }}
+                  onClick={() => setPartnerPitchAudience(aud.key)}
                   className="text-left border border-[#A89035]/40 rounded-xl p-4 hover:bg-[#F7F1DE] transition-colors"
                 >
                   <div className="text-sm font-bold text-gray-900">{aud.label}</div>
@@ -1585,6 +1568,66 @@ export default function ReportCenter() {
                 {copied ? 'Copied!' : 'Copy to Clipboard'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {partnerPitchAudience && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPartnerPitchAudience(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b bg-gray-50 rounded-t-xl">
+              <h3 className="text-lg font-bold text-gray-900">Personalize this deck</h3>
+              <p className="text-sm text-gray-600 mt-1">{partnerAudienceLabel(partnerPitchAudience)} — add the firm so the cover, working-together page, and coffee invite speak to them by name.</p>
+            </div>
+            <form
+              className="p-5 space-y-3"
+              onSubmit={e => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                const aud = partnerPitchAudience;
+                setPartnerPitchAudience(null);
+                const firm: PartnerFirmInfo = {
+                  firmName: String(fd.get('firmName') || '').trim(),
+                  contactName: String(fd.get('contactName') || '').trim(),
+                };
+                const label = partnerAudienceLabel(aud);
+                const html = generatePartnerPitchDeck(aud, firm);
+                const filename = buildPartnerPitchFilename(aud, 'pdf', firm);
+                openBrochureForPrint(html, filename);
+                const record: SavedJackieReport = {
+                  id: crypto.randomUUID(),
+                  reportNumber: `PP-${Date.now().toString(36).toUpperCase()}`,
+                  address: firm.firmName ? `Partner Pitch — ${firm.firmName}` : `Camelot Partner Pitch — ${label}`,
+                  buildingName: firm.firmName || `Partner Pitch: ${label}`,
+                  packageType: 'partner_pitch' as SavedJackieReport['packageType'],
+                  packageLabel: `Partner Pitch — ${label}${firm.firmName ? ` (${firm.firmName})` : ''}`,
+                  filename,
+                  html,
+                  inquiryContact: firm.contactName || undefined,
+                  focus: [],
+                  generatedAt: new Date().toISOString(),
+                };
+                setSavedReports(saveJackieReportRecord(record));
+                toast.success(`${firm.firmName || label} partner deck opened and archived`);
+              }}
+            >
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Firm name</label>
+                <input name="firmName" placeholder="e.g., Braverman Greenspun P.C." className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Contact name (optional)</label>
+                <input name="contactName" placeholder="e.g., Sarah Cohen, Partner" className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
+              </div>
+              <div className="flex items-center justify-between pt-2 pb-1">
+                <button type="button" onClick={e => { e.preventDefault(); (e.currentTarget.closest('form') as HTMLFormElement)?.reset(); (e.currentTarget.closest('form') as HTMLFormElement)?.requestSubmit(); }} className="text-sm text-gray-500 hover:text-gray-700 underline">
+                  Skip — generic deck
+                </button>
+                <button type="submit" className="px-5 py-2.5 bg-[#5B4A1F] text-white rounded-lg hover:bg-[#473916] text-sm font-semibold">
+                  Generate Deck
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

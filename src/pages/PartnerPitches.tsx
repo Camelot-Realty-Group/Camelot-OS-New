@@ -6,7 +6,7 @@
  * its own card with the firm/contact inputs IN PLAIN SIGHT — type the firm,
  * hit Generate, deck opens personalized and archives to the library.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { Briefcase, Building2, Calculator, Coffee, FileSearch, Gavel, Landmark } from 'lucide-react';
 import {
@@ -18,7 +18,7 @@ import {
 import { openBrochureForPrint } from '@/lib/pdf-generator';
 import { saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
 
-const AUDIENCE_ICONS: Record<PartnerAudience, JSX.Element> = {
+const AUDIENCE_ICONS: Record<PartnerAudience, ReactNode> = {
   law: <Gavel size={22} />,
   accounting: <Calculator size={22} />,
   audit: <FileSearch size={22} />,

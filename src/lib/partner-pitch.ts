@@ -448,8 +448,8 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
          public/images/camelot/illustrations/ and it takes over automatically;
          until then the full-service entry photo stands in. -->
     <div style="position:absolute;left:0;top:0;bottom:0;width:288px;overflow:hidden">
-      <img src="${illus('doorman-welcome.jpg')}" alt="A doorman opening the door with a smile — welcome to Camelot" style="width:100%;height:100%;object-fit:cover;opacity:.34" onerror="this.src='${camelotPhoto('modern-entry.jpg')}';this.onerror=function(){this.style.display='none'};">
-      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,33,48,.25) 0%,rgba(26,33,48,.55) 70%,#1f2937f2 100%)"></div>
+      <img src="${illus('doorman-welcome.jpg')}" alt="A doorman opening the door with a smile — welcome to Camelot" style="width:100%;height:100%;object-fit:cover;opacity:.48" onerror="this.src='${camelotPhoto('modern-entry.jpg')}';this.onerror=function(){this.style.display='none'};">
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,33,48,.15) 0%,rgba(26,33,48,.42) 70%,#1f2937f2 100%)"></div>
       <div style="position:absolute;left:22px;bottom:88px;right:18px">
         <div style="font-family:'Great Vibes','Cormorant Garamond',cursive;font-size:34px;color:#F4D26A;text-shadow:0 2px 10px rgba(0,0,0,.5)">Welcome home.</div>
         <div style="height:1px;background:rgba(244,210,106,.5);margin:8px 0"></div>

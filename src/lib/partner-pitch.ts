@@ -19,7 +19,7 @@
  */
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from './camelot-signature';
 import { GOOGLE_MAPS_KEY } from './maps-key';
-import { CAMELOT_PORTFOLIO, portfolioMapAddresses } from './camelot-portfolio';
+import { CAMELOT_PORTFOLIO, portfolioLatLngs } from './camelot-portfolio';
 
 export type PartnerAudience = 'law' | 'accounting' | 'audit' | 'brokerage' | 'receivership';
 
@@ -316,8 +316,10 @@ const PORTFOLIO_PHOTOS: Array<{ file: string; caption: string }> = [
  */
 // THE canonical managed-portfolio pins — sourced from CAMELOT_PORTFOLIO
 // (src/lib/camelot-portfolio.ts), the list David supplied July 31 2026 with
-// the instruction "never forget this list." 42 properties, one pin each.
-const PORTFOLIO_PINS = portfolioMapAddresses();
+// the instruction "never forget this list." 42 properties, one pin each,
+// as verified lat/lng coordinates (Static Maps only geocodes ~15 address
+// markers per request — coordinates render all 42 reliably).
+const PORTFOLIO_PINS = portfolioLatLngs().map(([lat, lng]) => `${lat},${lng}`);
 
 /** AI illustrations supplied by David (July 31 2026) — labeled per brand rule. */
 const illus = (file: string) => `${ASSET_BASE}/images/camelot/illustrations/${file}`;
@@ -450,18 +452,20 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     sl(`${logo}<div class="kicker">The Thesis</div><h2>${esc(copy.title)}</h2><div class="rule"></div>
       <p class="body dropcap" style="font-size:16.5px;max-width:760px">${esc(copy.hook)}</p>
       <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:26px;margin-top:18px;align-items:start">
-        <div class="pullquote">${audience === 'law' || audience === 'accounting'
-          ? 'When your firm recommends Camelot, your firm stays on with the client. A commitment, not a courtesy.'
-          : audience === 'brokerage'
-            ? 'One building can’t move a vendor’s pricing. A portfolio of accounts can.'
-            : audience === 'receivership'
-              ? 'Take the keys, secure the cash, report like a fiduciary — within days of appointment.'
-              : 'Audit quality depends on management quality. We build for your fieldwork.'}</div>
+        <div>
+          <div class="pullquote">${audience === 'law' || audience === 'accounting'
+            ? 'When your firm recommends Camelot, your firm stays on with the client. A commitment, not a courtesy.'
+            : audience === 'brokerage'
+              ? 'One building can’t move a vendor’s pricing. A portfolio of accounts can.'
+              : audience === 'receivership'
+                ? 'Take the keys, secure the cash, report like a fiduciary — within days of appointment.'
+                : 'Audit quality depends on management quality. We build for your fieldwork.'}</div>
+          <div style="margin-top:14px;max-width:560px">${illusCard('board-meeting.jpg', 'Board meeting — the relationship the big firms abandoned', 150, 'The board relationship, kept human')}</div>
+        </div>
         <div class="grid3" style="grid-template-columns:1fr;gap:10px">
           <div class="stat"><b>${CAMELOT_PORTFOLIO.length} Buildings</b><span>$240M under management</span></div>
           <div class="stat"><b>$1.5B</b><span>Estimated gross portfolio value &middot; 1M+ sq ft</span></div>
           <div class="stat"><b>48 hrs</b><span>Guaranteed response time</span></div>
-          ${illusCard('board-meeting.jpg', 'Board meeting — the relationship the big firms abandoned', 118, 'The board relationship, kept human')}
         </div>
       </div>
       <div class="src">Portfolio figures published at camelot.nyc, July 2026.</div>${foot}`),
@@ -487,9 +491,10 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     sl(`${logo}<div class="kicker">Who We Are</div><h2>Two Decades of New York Buildings</h2><div class="rule"></div>
       <p class="body" style="max-width:900px">Camelot is an independently owned New York firm: senior property managers, in-house accounting, legal leadership, brokerage expertise, and practical automation — members of REBNY, NYARM, IREM, BOMA New York, and CNYC. <strong>Where we work:</strong> ${MARKETS}.</p>
       ${historyTimeline()}
-      <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-top:14px;align-items:center">
-        <p class="body" style="font-size:13.5px"><strong>Where we're going:</strong> disciplined growth — adding well-run buildings and association clients where our operating model raises the standard, backed by the Camelot OS platform that gives every client day-one visibility into their own building's public record.</p>
-        ${illusCard('golden-facades.jpg', 'Prewar, brick, and modern facades at golden hour — the range of the Camelot portfolio', 118, 'Prewar to new development')}
+      <div class="rule" style="margin:20px 0 16px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:stretch">
+        <div style="display:flex;flex-direction:column;justify-content:center"><p class="body" style="font-size:14px;line-height:1.7"><strong>Where we're going:</strong> disciplined growth — adding well-run buildings and association clients where our operating model raises the standard, backed by the Camelot OS platform that gives every client day-one visibility into their own building's public record.</p></div>
+        ${illusCard('golden-facades.jpg', 'Prewar, brick, and modern facades at golden hour — the range of the Camelot portfolio', 148, 'Prewar to new development')}
       </div>${foot}`),
 
     // 4 — THE INTELLIGENCE + embedded deliverable thumbnails
@@ -572,6 +577,35 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
           <div class="card">Clients whose buildings run properly — fewer emergencies landing on your desk, better records behind every engagement</div>
           <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
           <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>
+          <figure style="margin:10px 0 0">
+            <div style="height:132px;border:1px solid rgba(184,151,58,.4);background:linear-gradient(160deg,#1a2130,#22303a);overflow:hidden;display:flex;align-items:center;justify-content:center">
+              <svg viewBox="0 0 460 170" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A doorman greeting a guest with a handshake beneath the awning">
+                <g stroke="#C9A227" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M96 34 H364" />
+                  <path d="M96 34 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 16 0" />
+                  <path d="M112 34 V150 M348 34 V150" stroke-width="1.6" opacity=".7" />
+                  <rect x="196" y="52" width="68" height="98" rx="2" stroke-width="1.6" opacity=".65" />
+                  <line x1="230" y1="52" x2="230" y2="150" stroke-width="1.2" opacity=".5" />
+                  <!-- doorman (left, capped) -->
+                  <circle cx="168" cy="78" r="11" />
+                  <path d="M156 74 q12 -9 24 0" stroke-width="3" />
+                  <path d="M155 76 h10" stroke-width="3" />
+                  <path d="M168 89 v34 M168 96 q-12 4 -16 18 M168 96 q14 2 26 12" />
+                  <path d="M160 150 l4 -26 M176 150 l-4 -26" />
+                  <path d="M162 96 h12" stroke-width="1.4" opacity=".7" />
+                  <!-- guest (right) -->
+                  <circle cx="292" cy="76" r="11" />
+                  <path d="M292 87 v36 M292 94 q12 3 18 16 M292 94 q-14 3 -26 14" />
+                  <path d="M284 150 l6 -27 M300 150 l-5 -27" />
+                  <!-- handshake -->
+                  <path d="M194 108 q18 8 36 0" stroke-width="3.4" />
+                  <circle cx="212" cy="110" r="4.5" fill="#F4D26A" stroke="none" />
+                </g>
+                <text x="230" y="164" text-anchor="middle" fill="#F4D26A" font-size="9" letter-spacing="3" font-family="Georgia,serif">WELCOMED BY NAME, AT THE DOOR</text>
+              </svg>
+            </div>
+            <figcaption style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#8a8174;font-weight:700;margin-top:5px">Greeted at the door — ${AI_LABEL}</figcaption>
+          </figure>
         </div>
         <div>
           <p class="body" style="font-weight:700;margin-bottom:8px">What we ask of you:</p>

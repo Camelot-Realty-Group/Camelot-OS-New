@@ -436,11 +436,23 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
 
   const slides = [
     // 1 — MAGAZINE COVER (real Camelot skyline photography under the art)
-    sl(`<div style="position:absolute;inset:0"><img src="${camelotPhoto('skyline-sunset.jpg')}" alt="New York skyline — Camelot photography" style="width:100%;height:100%;object-fit:cover;opacity:.38" onerror="this.style.display='none'"></div>
-    <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(26,33,48,.92) 0%,rgba(34,48,58,.82) 55%,rgba(43,61,73,.7) 100%)"></div>
-    <div class="cover-grid"></div><div class="cover-in">
+    sl(`<div style="position:absolute;inset:0"><img src="${camelotPhoto('skyline-sunset.jpg')}" alt="New York skyline — Camelot photography" style="width:100%;height:100%;object-fit:cover;opacity:.55" onerror="this.style.display='none'"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(26,33,48,.88) 0%,rgba(34,48,58,.76) 55%,rgba(43,61,73,.58) 100%)"></div>
+    <!-- Welcome panel: doorman opening the door. Drop doorman-welcome.jpg into
+         public/images/camelot/illustrations/ and it takes over automatically;
+         until then the full-service entry photo stands in. -->
+    <div style="position:absolute;left:0;top:0;bottom:0;width:288px;overflow:hidden">
+      <img src="${illus('doorman-welcome.jpg')}" alt="A doorman opening the door with a smile — welcome to Camelot" style="width:100%;height:100%;object-fit:cover;opacity:.34" onerror="this.src='${camelotPhoto('modern-entry.jpg')}';this.onerror=function(){this.style.display='none'};">
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,33,48,.25) 0%,rgba(26,33,48,.55) 70%,#1f2937f2 100%)"></div>
+      <div style="position:absolute;left:22px;bottom:88px;right:18px">
+        <div style="font-family:'Great Vibes','Cormorant Garamond',cursive;font-size:34px;color:#F4D26A;text-shadow:0 2px 10px rgba(0,0,0,.5)">Welcome home.</div>
+        <div style="height:1px;background:rgba(244,210,106,.5);margin:8px 0"></div>
+        <div style="font-size:9px;letter-spacing:2.6px;text-transform:uppercase;color:rgba(255,255,255,.85)">New Yorkers Serving New Yorkers</div>
+      </div>
+    </div>
+    <div class="cover-grid"></div><div class="cover-in" style="padding-left:340px">
       <div class="cover-mast">C A M E L O T</div>
-      <div class="cover-mastsub">The Partnership Portfolio &middot; New York</div>
+      <div class="cover-mastsub">Camelot Property Management &middot; New Yorkers Serving New Yorkers</div>
       <div class="cover-issue"><span>For ${esc(audienceLabel)}</span><span>${issueDate}</span><span>Est. 2006</span></div>
       <div class="cover-title">${esc(copy.title)}</div>
       <div class="cover-lines">${copy.coverLines.map(l => `<div class="cover-line">${esc(l)}</div>`).join('')}</div>

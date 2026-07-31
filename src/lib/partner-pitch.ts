@@ -578,33 +578,8 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
           <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
           <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>
           <figure style="margin:10px 0 0">
-            <div style="height:132px;border:1px solid rgba(184,151,58,.4);background:linear-gradient(160deg,#1a2130,#22303a);overflow:hidden;display:flex;align-items:center;justify-content:center">
-              <svg viewBox="0 0 460 170" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A doorman greeting a guest with a handshake beneath the awning">
-                <g stroke="#C9A227" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M96 34 H364" />
-                  <path d="M96 34 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 17 0 q8 14 16 0" />
-                  <path d="M112 34 V150 M348 34 V150" stroke-width="1.6" opacity=".7" />
-                  <rect x="196" y="52" width="68" height="98" rx="2" stroke-width="1.6" opacity=".65" />
-                  <line x1="230" y1="52" x2="230" y2="150" stroke-width="1.2" opacity=".5" />
-                  <!-- doorman (left, capped) -->
-                  <circle cx="168" cy="78" r="11" />
-                  <path d="M156 74 q12 -9 24 0" stroke-width="3" />
-                  <path d="M155 76 h10" stroke-width="3" />
-                  <path d="M168 89 v34 M168 96 q-12 4 -16 18 M168 96 q14 2 26 12" />
-                  <path d="M160 150 l4 -26 M176 150 l-4 -26" />
-                  <path d="M162 96 h12" stroke-width="1.4" opacity=".7" />
-                  <!-- guest (right) -->
-                  <circle cx="292" cy="76" r="11" />
-                  <path d="M292 87 v36 M292 94 q12 3 18 16 M292 94 q-14 3 -26 14" />
-                  <path d="M284 150 l6 -27 M300 150 l-5 -27" />
-                  <!-- handshake -->
-                  <path d="M194 108 q18 8 36 0" stroke-width="3.4" />
-                  <circle cx="212" cy="110" r="4.5" fill="#F4D26A" stroke="none" />
-                </g>
-                <text x="230" y="164" text-anchor="middle" fill="#F4D26A" font-size="9" letter-spacing="3" font-family="Georgia,serif">WELCOMED BY NAME, AT THE DOOR</text>
-              </svg>
-            </div>
-            <figcaption style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#8a8174;font-weight:700;margin-top:5px">Greeted at the door — ${AI_LABEL}</figcaption>
+            <div style="border:1px solid rgba(184,151,58,.4);overflow:hidden;background:#22303a;box-shadow:0 10px 22px rgba(26,33,48,.12)"><img src="${illus('camelot-legacy.jpg')}" alt="Don't let it be forgot, that for one brief, shining moment there was a Camelot — New Yorkers for New Yorkers" style="width:100%;display:block" onerror="this.parentElement.parentElement.style.display='none'"></div>
+            <figcaption style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#8a8174;font-weight:700;margin-top:5px">The name is a promise — from the Camelot Intel Report</figcaption>
           </figure>
         </div>
         <div>
@@ -614,15 +589,32 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
         </div>
       </div>${foot}`),
 
-    // 9 — COFFEE CLOSER (dark, with HQ map)
+    // 9 — THE CLOSER (dark, cheeky: coffee / golf / steak + scheduling buttons)
     sl(`<div style="position:relative;z-index:2;height:100%;display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center;padding-bottom:20px">
       <div>
-        <h1 style="font-size:54px">Let's Grab a Coffee${contactName ? `, ${esc(contactName.split(' ')[0])}` : ''}</h1>
+        <h1 style="font-size:46px;line-height:1.08">Coffee Is for Closers.<br>Golf Is for Winners.</h1>
+        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:21px;color:rgba(255,255,255,.85);margin-top:12px">And if you don't golf${contactName ? `, ${esc(contactName.split(' ')[0])}` : ''} &mdash; there's always a steak.</p>
         <div class="rule"></div>
-        <p class="body" style="font-size:17px">Thirty minutes, near ${firmName ? `${esc(firmName)}'s office` : 'your office'} or ours at 57 West 57th Street. We'll compare notes on the boards and landlords we both serve and find the two or three ways we can make each other's work easier this year.</p>
-        <p class="body" style="margin-top:22px;font-size:14px;line-height:1.85">${esc(DAVID_GOLDOFF_SIGNATURE_TEXT).replace(/\n/g, '<br>')}</p>
+        <p class="body" style="font-size:15px">Thirty minutes, near ${firmName ? `${esc(firmName)}'s office` : 'your office'} or ours at 57 West 57th Street. Or meet us at the driving range at <strong style="color:#F4D26A">Chelsea Piers Golf Club</strong> &mdash; our favorite conference room, with a 200-yard view of the Hudson. We'll compare notes on the boards and landlords we both serve and find the two or three ways we can make each other's work easier this year.</p>
+        <p class="body" style="margin-top:18px;font-size:13px;line-height:1.8">${esc(DAVID_GOLDOFF_SIGNATURE_TEXT).replace(/\n/g, '<br>')}</p>
       </div>
-      <div>${hqMapEmbed(420)}<div class="src" style="color:rgba(255,255,255,.55)">57 West 57th Street, Suite 410 &mdash; ${today}</div></div>
+      <div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          ${[
+            ['&#9749;', 'Coffee', '57 W 57th, or your corner spot'],
+            ['&#9971;', 'Golf', 'Chelsea Piers driving range'],
+            ['&#127830;', 'Steak', 'You pick the room'],
+            ['&#129309;', 'Boardroom', 'Yours or ours'],
+          ].map(([icon, t, c]) => `<div style="border:1px solid rgba(244,210,106,.4);background:rgba(255,255,255,.06);padding:14px 12px;text-align:center"><div style="font-size:26px;margin-bottom:6px">${icon}</div><div style="font-size:13px;font-weight:900;color:#F4D26A;letter-spacing:1px;text-transform:uppercase">${t}</div><div style="font-size:10.5px;color:rgba(255,255,255,.7);margin-top:3px">${c}</div></div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <a href="https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(`Camelot Partnership Discussion${firmName ? ' — ' + firmName : ''}`)}&details=${encodeURIComponent('Please generate a Google Meet link for this Camelot partnership discussion.')}&add=dgoldoff@camelot.nyc" target="_blank" style="background:#B8973A;color:#fff;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Schedule &middot; Google Meet</a>
+          <a href="https://zoom.us/start/videomeeting" target="_blank" rel="noopener" style="background:#2D8CFF;color:#fff;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Zoom</a>
+          <a href="tel:+12122069939;ext=701" style="background:#fff;color:#314655;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Call 212-206-9939 x701</a>
+          <a href="mailto:dgoldoff@camelot.nyc?subject=${encodeURIComponent(`Coffee, golf, or steak${firmName ? ' — ' + firmName : ''}`)}" style="background:rgba(255,255,255,.12);color:#F4D26A;border:1px solid rgba(244,210,106,.5);text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Email to Schedule</a>
+        </div>
+        <div class="src" style="color:rgba(255,255,255,.55);text-align:center;margin-top:10px">New Yorkers for New Yorkers &mdash; a management partner for a New Yorker's state of mind &middot; ${today}</div>
+      </div>
     </div>${foot}`, 'dark'),
   ].join('\n');
 

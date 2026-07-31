@@ -45,6 +45,16 @@ import {
   type ContentItem,
   type ContentStatus,
 } from '@/lib/content-engine';
+import {
+  AUTOMATION_SCHEDULE,
+  buildCampaignPackage,
+  CTA_HIERARCHY,
+  persistCampaignPackage,
+  logContentRun,
+  runBrandSafetyCheck,
+  type CampaignPackage,
+  type FunnelStage,
+} from '@/lib/marketing-engine';
 
 const statusStyles: Record<ContentStatus, string> = {
   draft: 'bg-slate-100 text-slate-700 border-slate-200',
@@ -151,6 +161,8 @@ export default function ContentEngine() {
       </div>
 
       <main className="px-8 py-8 space-y-6">
+        <CampaignPackageBuilder />
+
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           <MetricCard icon={ClipboardCheck} label="Pending Approval" value={stats.pending} detail="David/Sam review required" />
           <MetricCard icon={CheckCircle2} label="Approved" value={stats.approved} detail="Ready for scheduling" />
@@ -570,5 +582,105 @@ function RoadmapCard({ icon: Icon, title, text }: { icon: LucideIcon; title: str
       <h3 className="font-bold text-slate-950">{title}</h3>
       <p className="text-sm text-slate-600 mt-2 leading-relaxed">{text}</p>
     </div>
+  );
+}
+
+/**
+ * Campaign Package Builder — Phase 1 of the Marketing & Content Automation
+ * Module: one researched idea becomes a full multi-channel campaign, routed
+ * through brand/safety checks into the human approval queue. No auto-publish.
+ */
+function CampaignPackageBuilder() {
+  const [campaignName, setCampaignName] = useState('');
+  const [audience, setAudience] = useState('Condo boards');
+  const [funnel, setFunnel] = useState<FunnelStage>('awareness');
+  const [draftBody, setDraftBody] = useState('');
+  const [pkg, setPkg] = useState<CampaignPackage | null>(null);
+  const brand = useMemo(() => (draftBody.trim() ? runBrandSafetyCheck(draftBody, { hasSources: false }) : null), [draftBody]);
+
+  const audiences = ['Condo boards', 'Co-op boards', 'Landlords', 'Developers', 'Family offices', 'Private equity', 'Foreign investors', 'Public adjusters', 'Litigators', 'Construction professionals', 'Engineers', 'Residents'];
+
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.22em] text-camelot-gold font-bold">Marketing OS — Phase 1</div>
+          <h2 className="text-lg font-bold text-slate-950 mt-1">Campaign Package Builder</h2>
+          <p className="text-sm text-slate-600 mt-1 max-w-3xl">
+            One researched idea &rarr; a 12-item channel campaign (article, GBP, LinkedIn &times;2, Facebook, Instagram, X,
+            newsletter, YouTube, Reels, cold-call point, follow-up email), each with its own secure approval token.
+            Packages persist to the database and stop at <strong>Pending Review</strong> — nothing publishes without a documented human approval.
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-6">
+        <div className="space-y-3">
+          <input value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="Campaign name — e.g., LL97 penalties hit co-op budgets" className="w-full border rounded-lg px-3 py-2 text-sm" />
+          <div className="grid grid-cols-2 gap-3">
+            <select value={audience} onChange={e => setAudience(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
+              {audiences.map(a => <option key={a}>{a}</option>)}
+            </select>
+            <select value={funnel} onChange={e => setFunnel(e.target.value as FunnelStage)} className="border rounded-lg px-3 py-2 text-sm">
+              <option value="awareness">Awareness</option>
+              <option value="consideration">Consideration</option>
+              <option value="high_intent">High intent</option>
+              <option value="investment_partnership">Investment &amp; partnership</option>
+            </select>
+          </div>
+          <textarea value={draftBody} onChange={e => setDraftBody(e.target.value)} rows={5} placeholder="Paste draft copy here to run the live Brand & Safety Check (approved CTAs, personal-cell block, banned claims, no mechanical positioning)..." className="w-full border rounded-lg px-3 py-2 text-sm" />
+          {brand && (
+            <div className={`rounded-lg border p-3 text-sm ${brand.passed ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-red-300 bg-red-50 text-red-800'}`}>
+              <div className="font-bold mb-1">{brand.passed ? 'Brand & Safety: PASSED' : 'Brand & Safety: BLOCKED'}</div>
+              {brand.findings.length === 0 ? <div>No findings.</div> : brand.findings.map((f, i) => (
+                <div key={i} className="mb-1"><span className="font-semibold uppercase text-[10px] mr-1">{f.severity}</span>{f.detail}</div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (!campaignName.trim()) { toast.error('Name the campaign first'); return; }
+              const built = buildCampaignPackage({ campaignName: campaignName.trim(), primaryAudience: audience, funnelStage: funnel });
+              setPkg(built);
+              persistCampaignPackage(built);
+              logContentRun({ module: 'seo_gbp_engine', outputsGenerated: built.items.length, notes: `Package ${built.packageId} created from dashboard` });
+              toast.success(`Package ${built.packageId} created — 12 items queued at Generated`);
+            }}
+            className="px-5 py-2.5 bg-camelot-navy text-white rounded-lg text-sm font-semibold hover:bg-camelot-navy/90"
+          >
+            Build 12-Item Campaign Package
+          </button>
+        </div>
+        <div>
+          {pkg ? (
+            <div className="rounded-xl border border-slate-200 bg-[#FFFEFB] p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-bold text-slate-950">{pkg.packageId}</div>
+                <div className="text-xs text-slate-500">{pkg.primaryAudience} &middot; {pkg.funnelStage.replace('_', ' ')}</div>
+              </div>
+              <div className="text-xs text-slate-500 mb-2">Primary CTA: <strong>{pkg.primaryCta}</strong></div>
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {pkg.items.map(item => (
+                  <div key={item.secureToken} className="flex items-center justify-between text-xs border border-slate-100 rounded px-2 py-1.5">
+                    <span className="font-semibold text-slate-800">{item.channel}</span>
+                    <span className="text-slate-400 font-mono">{item.secureToken.slice(0, 8)}&hellip;</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-2">Each token is the item-level approval key — a vague &ldquo;looks good&rdquo; email approves nothing.</div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500">
+              <div className="font-bold text-slate-700 mb-2">Automation schedule (America/New_York)</div>
+              {AUTOMATION_SCHEDULE.map(row => (
+                <div key={row.when} className="flex justify-between border-b border-slate-100 py-1">
+                  <span>{row.when}</span><span className="text-slate-700 font-semibold">{row.what}</span>
+                </div>
+              ))}
+              <div className="mt-3 text-xs">CTA ladder: {CTA_HIERARCHY.awareness[0]} &rarr; {CTA_HIERARCHY.consideration[0]} &rarr; {CTA_HIERARCHY.high_intent[0]} &rarr; {CTA_HIERARCHY.investment_partnership[0]}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

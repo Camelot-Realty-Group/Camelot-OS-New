@@ -30,7 +30,10 @@ export default function PartnerPitches() {
   const [forms, setForms] = useState<Record<string, { firmName: string; contactName: string }>>({});
 
   const setField = (key: PartnerAudience, field: 'firmName' | 'contactName', value: string) =>
-    setForms(prev => ({ ...prev, [key]: { firmName: '', contactName: '', ...prev[key], [field]: value } }));
+    setForms(prev => {
+      const current = prev[key] || { firmName: '', contactName: '' };
+      return { ...prev, [key]: { ...current, [field]: value } };
+    });
 
   const generate = (key: PartnerAudience, label: string) => {
     const firm = { firmName: (forms[key]?.firmName || '').trim(), contactName: (forms[key]?.contactName || '').trim() };

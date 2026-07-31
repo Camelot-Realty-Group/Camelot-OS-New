@@ -92,7 +92,13 @@ export default function PartnerPitches() {
       }] : [],
       enriched_data: { audience: key, channel: 'professional_partner' },
       status: 'active',
-    } as Building;
+      tags: ['partner_pitch', key],
+      pipeline_stage: 'contacted',
+      violations_count: 0,
+      open_violations_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   };
 
   const trackAction = (key: PartnerAudience, label: string, action: ReportWorkflowAction, filename: string, html: string) => {

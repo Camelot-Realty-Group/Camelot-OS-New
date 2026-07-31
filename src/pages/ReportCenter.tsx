@@ -1585,6 +1585,7 @@ export default function ReportCenter() {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
                 const aud = partnerPitchAudience;
+                if (!aud) return;
                 setPartnerPitchAudience(null);
                 const firm: PartnerFirmInfo = {
                   firmName: String(fd.get('firmName') || '').trim(),

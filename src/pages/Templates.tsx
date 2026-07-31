@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FileText, Download, Loader2, Sparkles, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
+import { FileText, Download, Loader2, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -9,10 +9,11 @@ import {
   type TemplateField,
 } from '@/lib/document-templates';
 
-// Template Concierge: browse the Camelot document library by category,
-// answer a short set of questions for a template, and download a
-// finished, branded Word document. Templates marked "coming soon" are
-// catalogued but not yet wired to a generator on the server.
+// Template Concierge — restyled July 31 2026 per David: editorial-magazine
+// treatment (Vogue / GQ / Architectural Digest), ink-on-cream, serif display
+// headlines, hairline rules, gold accents. This is the house style for every
+// page going forward. The original dark-theme classes rendered white-on-white
+// inside the light Layout shell and were unreadable.
 
 function FieldInput({
   field,
@@ -24,7 +25,7 @@ function FieldInput({
   onChange: (v: string) => void;
 }) {
   const base =
-    'w-full rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-amber-400/60 focus:outline-none';
+    'w-full rounded-md border border-[#1a2744]/20 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-[#B8973A] focus:ring-1 focus:ring-[#B8973A]/40 focus:outline-none';
   if (field.type === 'textarea') {
     return (
       <textarea
@@ -99,20 +100,25 @@ function TemplateFillPanel({ template, onClose }: { template: DocumentTemplate; 
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-5 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">{template.title}</h3>
-        <button onClick={onClose} className="text-sm text-white/50 hover:text-white">
-          Cancel
+    <div className="rounded-none border border-[#1a2744]/15 border-t-2 border-t-[#B8973A] bg-white p-8 space-y-5 shadow-[0_10px_30px_rgba(26,39,68,0.06)]">
+      <div className="flex items-start justify-between gap-6">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.28em] text-[#B8973A] font-bold mb-2">The Questionnaire</div>
+          <h3 className="font-heading text-3xl italic text-slate-950 leading-tight">{template.title}</h3>
+        </div>
+        <button onClick={onClose} className="text-xs uppercase tracking-[0.18em] text-slate-400 hover:text-slate-900 font-bold mt-2">
+          Close
         </button>
       </div>
-      <p className="text-sm text-white/60">{template.description}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <p className="text-[15px] leading-relaxed text-slate-600 max-w-2xl border-l-2 border-[#B8973A]/50 pl-4 italic">
+        {template.description}
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 pt-1">
         {template.fields.map((field) => (
           <div key={field.key} className={field.type === 'textarea' ? 'sm:col-span-2' : ''}>
-            <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-white/50">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">
               {field.label}
-              {field.required && <span className="text-amber-400"> *</span>}
+              {field.required && <span className="text-[#B8973A]"> *</span>}
             </label>
             <FieldInput
               field={field}
@@ -122,14 +128,16 @@ function TemplateFillPanel({ template, onClose }: { template: DocumentTemplate; 
           </div>
         ))}
       </div>
-      <button
-        onClick={handleGenerate}
-        disabled={busy}
-        className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50"
-      >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        Generate & Download
-      </button>
+      <div className="pt-2 border-t border-[#1a2744]/10">
+        <button
+          onClick={handleGenerate}
+          disabled={busy}
+          className="inline-flex items-center gap-2 bg-[#1a2744] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white hover:bg-[#B8973A] transition-colors disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Generate &amp; Download
+        </button>
+      </div>
     </div>
   );
 }
@@ -140,55 +148,82 @@ export default function Templates() {
   const active = DOCUMENT_TEMPLATES.find((t) => t.id === activeId) || null;
 
   return (
-    <div className="p-6 space-y-8 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-6 w-6 text-amber-400" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Template Concierge</h1>
-          <p className="text-sm text-white/50">
-            Pick a template, answer a few questions, get a branded Camelot Word document — ready to print, email, or
-            download.
+    <div className="min-h-screen bg-[#FAF8F5]">
+      {/* Masthead — magazine cover treatment */}
+      <div className="bg-white border-b border-[#1a2744]/10 px-8 md:px-14 pt-12 pb-10">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="h-px flex-1 bg-[#B8973A]/50" />
+            <div className="text-[11px] uppercase tracking-[0.42em] text-[#B8973A] font-bold">Camelot OS &middot; The Document Library</div>
+            <div className="h-px flex-1 bg-[#B8973A]/50" />
+          </div>
+          <h1 className="font-heading text-5xl md:text-6xl italic text-slate-950 text-center leading-[1.05]">
+            Template Concierge
+          </h1>
+          <p className="text-center text-[15px] text-slate-600 mt-5 max-w-2xl mx-auto leading-relaxed">
+            Choose a document. Answer a short questionnaire. Receive a finished, branded Camelot Word file —
+            ready to print, email, or file. Quietly efficient, impeccably dressed.
           </p>
         </div>
       </div>
 
-      {active && (
-        <TemplateFillPanel template={active} onClose={() => setActiveId(null)} />
-      )}
+      <main className="px-8 md:px-14 py-10 max-w-5xl mx-auto space-y-12">
+        {active && <TemplateFillPanel template={active} onClose={() => setActiveId(null)} />}
 
-      {(Object.keys(grouped) as Array<keyof typeof grouped>).map((category) => (
-        <div key={category} className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/40">{category}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {grouped[category].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => t.ready && setActiveId(t.id)}
-                disabled={!t.ready}
-                className={cn(
-                  'flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-4 text-left transition',
-                  t.ready ? 'hover:border-amber-400/40 hover:bg-white/10 cursor-pointer' : 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                <FileText className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{t.title}</span>
-                    {t.ready ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                    ) : (
-                      <Clock className="h-3.5 w-3.5 text-white/30" />
+        {(Object.keys(grouped) as Array<keyof typeof grouped>).map((category) => (
+          <section key={category}>
+            {/* Section rule — editorial department header */}
+            <div className="flex items-baseline gap-4 mb-5">
+              <h2 className="font-heading text-2xl italic text-slate-950 whitespace-nowrap">{category}</h2>
+              <div className="h-px flex-1 bg-[#1a2744]/15 translate-y-[-4px]" />
+              <span className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-bold">
+                {grouped[category].length} {grouped[category].length === 1 ? 'document' : 'documents'}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {grouped[category].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => t.ready && setActiveId(t.id)}
+                  disabled={!t.ready}
+                  className={cn(
+                    'group flex items-start gap-4 border bg-white p-5 text-left transition-all',
+                    t.ready
+                      ? 'border-[#1a2744]/15 hover:border-[#B8973A] hover:shadow-[0_10px_30px_rgba(26,39,68,0.08)] cursor-pointer'
+                      : 'border-[#1a2744]/10 opacity-55 cursor-not-allowed'
+                  )}
+                >
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center bg-[#1a2744] text-[#F4D26A] group-hover:bg-[#B8973A] group-hover:text-white transition-colors">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[15px] text-slate-950 leading-snug">{t.title}</span>
+                      {t.ready ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                      )}
+                    </div>
+                    <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{t.description}</p>
+                    {!t.ready && (
+                      <p className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold">In production</p>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-white/50">{t.description}</p>
-                  {!t.ready && <p className="mt-1 text-[10px] uppercase tracking-wide text-white/30">Coming soon</p>}
-                </div>
-                {t.ready && <ChevronRight className="h-4 w-4 text-white/30" />}
-              </button>
-            ))}
-          </div>
+                  {t.ready && <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-[#B8973A] transition-colors self-center" />}
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <div className="pt-2 pb-8 text-center">
+          <div className="h-px w-24 bg-[#B8973A]/50 mx-auto mb-4" />
+          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-bold">
+            Camelot Property Management &middot; New York
+          </p>
         </div>
-      ))}
+      </main>
     </div>
   );
 }

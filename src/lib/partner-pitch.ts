@@ -32,6 +32,7 @@ export const PARTNER_AUDIENCES: Array<{ key: PartnerAudience; label: string; des
 
 const AUDIENCE_COPY: Record<PartnerAudience, {
   title: string;
+  titleLines: string[];
   hook: string;
   coverLines: string[];
   howWeHelp: string[];
@@ -39,6 +40,7 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
 }> = {
   law: {
     title: 'A Management Partner Your Clients Will Thank You For',
+    titleLines: ['A Management Partner', 'Your Clients Will Thank You For'],
     hook: 'Your practice lives inside co-op and condo boards: governance, compliance, sponsor disagreements that turn into construction litigation, and managers who stop responding. The underlying problem is usually management, not law. Camelot is the operator you can put behind your advice — and when your firm recommends us, your firm stays on with the client.',
     coverLines: ['The Governance Issue', 'Sponsor disputes, documented', 'Why counsel keeps the client'],
     howWeHelp: [
@@ -56,6 +58,7 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
   },
   accounting: {
     title: 'Clean Books Start With Clean Management',
+    titleLines: ['Clean Books Start With', 'Clean Management'],
     hook: 'Every accountant who serves boards knows the pain: late records, unreconciled accounts, missing invoices, and a manager who goes quiet in March. Camelot was built by people who refuse to run buildings that way — and when your firm recommends us, your firm stays on with the client.',
     coverLines: ['The Year-End Issue', 'Records that arrive complete', 'Presenting to boards, together'],
     howWeHelp: [
@@ -73,6 +76,7 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
   },
   audit: {
     title: 'The Management Company Auditors Prefer',
+    titleLines: ['The Management Company', 'Auditors Prefer'],
     hook: 'Audit quality depends on management quality. Camelot’s controls — segregation of duties, board-approved disbursements, documented reserves activity — are designed so your fieldwork finds order, not chaos.',
     coverLines: ['The Fieldwork Issue', 'PBC lists, returned complete', 'Comparatives that behave'],
     howWeHelp: [
@@ -89,6 +93,7 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
   },
   brokerage: {
     title: 'Your Buyers Need an Operator. Your Deals Need Real Numbers.',
+    titleLines: ['Your Buyers Need an Operator.', 'Your Deals Need Real Numbers.'],
     hook: 'You sell multifamily, mixed-use, and rental buildings to landlords — local, 1031-exchange, and overseas investors alike. Camelot has managed New York rental property since 2006, and we make your deals easier on both sides: an operator your buyer can hand the keys to on day one, and management economics that help the deal pencil.',
     coverLines: ['The Deal-Flow Issue', 'Day-one takeover, delivered', 'Numbers that help deals pencil'],
     howWeHelp: [
@@ -106,6 +111,7 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
   },
   receivership: {
     title: 'An Operator for Properties in Transition',
+    titleLines: ['An Operator for', 'Properties in Transition'],
     hook: 'Receiverships, bankruptcies, lender takeovers, and auction dispositions need a manager who can take the keys on short notice, secure the cash, stabilize the residents, and report like a fiduciary. That is work Camelot has done in New York since 2006.',
     coverLines: ['The Transition Issue', 'Keys taken on short notice', 'Reporting a court can read'],
     howWeHelp: [
@@ -454,7 +460,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
       <div class="cover-mast">C A M E L O T</div>
       <div class="cover-mastsub">Camelot Property Management &middot; New Yorkers Serving New Yorkers</div>
       <div class="cover-issue"><span>For ${esc(audienceLabel)}</span><span>${issueDate}</span><span>Est. 2006</span></div>
-      <div class="cover-title">${esc(copy.title)}</div>
+      <div class="cover-title">${copy.titleLines.map(esc).join('<br>')}</div>
       <div class="cover-lines">${copy.coverLines.map(l => `<div class="cover-line">${esc(l)}</div>`).join('')}</div>
       ${firmName ? `<div class="cover-for">Prepared personally for ${contactName ? `${esc(contactName)} and the team at ` : ''}${esc(firmName)}</div>` : ''}
     </div>`, 'cover dark'),

@@ -447,7 +447,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
       <div style="position:absolute;left:22px;bottom:88px;right:18px">
         <div style="font-family:'Great Vibes','Cormorant Garamond',cursive;font-size:34px;color:#F4D26A;text-shadow:0 2px 10px rgba(0,0,0,.5)">Welcome home.</div>
         <div style="height:1px;background:rgba(244,210,106,.5);margin:8px 0"></div>
-        <div style="font-size:9px;letter-spacing:2.6px;text-transform:uppercase;color:rgba(255,255,255,.85)">New Yorkers Serving New Yorkers</div>
+        <div style="font-size:9.5px;letter-spacing:2.6px;text-transform:uppercase;color:rgba(255,255,255,.88);line-height:1.9">New Yorkers Serving<br>New Yorkers</div>
       </div>
     </div>
     <div class="cover-grid"></div><div class="cover-in" style="padding-left:340px">

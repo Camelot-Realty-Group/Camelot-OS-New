@@ -310,10 +310,20 @@ const PORTFOLIO_PHOTOS: Array<{ file: string; caption: string }> = [
  * portfolio buildings (addresses from camelot.nyc and case studies).
  */
 const PORTFOLIO_PINS = [
-  '949 Park Ave, New York, NY', '301 E 50th St, New York, NY', '111 Mott St, New York, NY',
-  '250 Bowery, New York, NY', '58 White St, New York, NY', '137 Franklin St, New York, NY',
-  '39 Spring St, New York, NY', '201 E 15th St, New York, NY', '930 St Nicholas Ave, New York, NY',
-  '22 E 22nd St, New York, NY', '748 E 9th St, New York, NY', '300 W 11th St, New York, NY',
+  // From Camelot's own RealtyMX buildings directory (idx.realtymx.com, client 703)
+  '43 E 63rd St, New York, NY', '41-34 55th St, Woodside, NY', '83-55 Austin St, Kew Gardens, NY',
+  '13-14 Jackson Ave, Long Island City, NY', '417 Manhattan Ave, New York, NY', '420 E 64th St, New York, NY',
+  '340 W 86th St, New York, NY', '175 Chrystie St, New York, NY', '43-33 48th St, Sunnyside, NY',
+  '71 Washington Pl, New York, NY', '68 Thomas St, New York, NY', '110 E 97th St, New York, NY',
+  '79 Washington Pl, New York, NY', '61-05 39th Ave, Woodside, NY', '788 9th Ave, New York, NY',
+  '402 West Broadway, New York, NY', '465 Washington St, New York, NY', '197 E 7th St, New York, NY',
+  '111 Mott St, New York, NY', '33 Henry St, New York, NY', '110 Madison St, New York, NY',
+  '604 W 178th St, New York, NY', '117 E 29th St, New York, NY', '410 E 50th St, New York, NY',
+  // From camelot.nyc case studies & portfolio history
+  '949 Park Ave, New York, NY', '301 E 50th St, New York, NY', '250 Bowery, New York, NY',
+  '58 White St, New York, NY', '137 Franklin St, New York, NY', '39 Spring St, New York, NY',
+  '201 E 15th St, New York, NY', '930 St Nicholas Ave, New York, NY', '22 E 22nd St, New York, NY',
+  '748 E 9th St, New York, NY', '300 W 11th St, New York, NY',
 ];
 
 function portfolioDotMap(height: number): string {
@@ -323,9 +333,10 @@ function portfolioDotMap(height: number): string {
 }
 
 const PORTFOLIO_NEIGHBORHOODS = [
-  'SoHo', 'Nolita', 'Chinatown', 'Tribeca', 'Bowery', 'Gramercy',
-  'Flatiron', 'Midtown East', 'Park Avenue', 'West Village', 'East Village', 'Washington Heights',
-  'Sunnyside', 'Long Island City', 'Jackson Heights', 'Brooklyn Heights', 'Riverdale', 'Westchester',
+  'SoHo', 'Nolita', 'Chinatown', 'Tribeca', 'Lower East Side', 'Bowery',
+  'East Village', 'West Village', 'Gramercy', 'Flatiron', 'Murray Hill', 'Midtown East',
+  'Midtown West', 'Park Avenue', 'Upper West Side', 'Upper East Side', 'Harlem', 'Washington Heights',
+  'Sunnyside', 'Woodside', 'Kew Gardens', 'Long Island City', 'Brooklyn Heights', 'Riverdale',
 ];
 
 // ---------------------------------------------------------------------------
@@ -511,6 +522,31 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     sl(`${logo}<div class="kicker">Track Record</div><h2>Engagements That Look Like Your Clients</h2><div class="rule"></div>
       ${caseStudies.map((cs, i) => `<div class="card" style="display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start"><div style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:34px;color:#B8973A;line-height:1">${String(i + 1).padStart(2, '0')}</div><div><strong style="color:#1a2130">${esc(cs.title)}.</strong> ${esc(cs.body)}</div></div>`).join('')}
       <div class="src">Engagement history supplied by Camelot leadership; client-specific references available under separate cover once permission is confirmed.</div>${foot}`),
+
+    // 6B — THE RADAR: trending compliance topics + how the teams train
+    sl(`${logo}<div class="kicker">The Radar</div><h2>What's Coming for New York Buildings &mdash; and How We Train for It</h2><div class="rule"></div>
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start">
+        <div>
+          ${[
+            ['Legionnaires’ disease & cooling towers', 'Local Law 77 registration, quarterly testing, and disinfection protocols — the headline risk no board wants. Our supers and managers run the cooling-tower calendar as a drill, not a scramble, with Camelot OS tracking every test date.'],
+            ['Local Law 97 — the carbon clock', 'Penalty period is live. We benchmark, model exposure, and sequence energy work so buildings comply on a budget instead of paying fines on a deadline.'],
+            ['FISP Cycle 10 facades', 'Filing windows, QEWI inspections, and sidewalk-shed math. We calendar the cycle years ahead and bid the work before it becomes an emergency premium.'],
+            ['LL152 gas piping & LL126 parapets/garages', 'The quiet inspections that catch buildings off guard. Every Camelot property carries a live compliance ledger — nothing waits on somebody remembering.'],
+          ].map(([t, c]) => `<div class="card"><strong style="color:#1a2130">${t}.</strong> ${c}</div>`).join('')}
+        </div>
+        <div>
+          <div class="chart"><div class="chart-title">How the Teams Train</div>
+            ${[
+              'Supers, porters, and doormen cross-trained on building mechanicals — boiler rooms, cooling towers, pumps — with photo-documented walkthroughs',
+              'Managers and account teams drilled on the local-law calendar every season; compliance deadlines live in Camelot OS, not in someone’s head',
+              'Front desk trained on the resident app so service requests, packages, and emergencies move without friction',
+              'We embrace what’s trending instead of fearing it: new laws become checklists, checklists become training, training becomes the pitch',
+            ].map(item => `<div class="chart-row" style="grid-template-columns:14px 1fr"><span style="color:#B8973A;font-weight:900">&#10003;</span><span style="font-size:12px;line-height:1.5;color:#3d4756">${item}</span></div>`).join('')}
+          </div>
+          <div style="height:150px;border:1px solid rgba(184,151,58,.3);overflow:hidden;margin-top:10px"><img src="${camelotPhoto('walkup-row.jpg')}" alt="Camelot portfolio buildings" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>
+        </div>
+      </div>
+      <div class="src">Compliance obligations summarized from NYC local law; training practices are Camelot's operating standard.</div>${foot}`),
 
     // 7 — HOW WE WORK WITH YOU (+ savings chart for deal-side audiences)
     sl(`${logo}<div class="kicker">Working Together</div><h2>How We Work With ${esc(firmName || audienceLabel)}</h2><div class="rule"></div>

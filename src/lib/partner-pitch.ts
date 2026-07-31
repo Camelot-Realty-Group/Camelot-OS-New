@@ -13,12 +13,14 @@
  */
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from './camelot-signature';
 
-export type PartnerAudience = 'law' | 'accounting' | 'audit';
+export type PartnerAudience = 'law' | 'accounting' | 'audit' | 'brokerage' | 'receivership';
 
 export const PARTNER_AUDIENCES: Array<{ key: PartnerAudience; label: string; description: string }> = [
   { key: 'law', label: 'Law Firms', description: 'Real estate, co-op/condo, and landlord-tenant practices' },
   { key: 'accounting', label: 'Accounting Firms', description: 'Firms preparing financials and taxes for boards and landlords' },
   { key: 'audit', label: 'Audit Practices', description: 'Auditors of condo, co-op, and HOA financial statements' },
+  { key: 'brokerage', label: 'Commercial Brokerages', description: 'Investment-sales brokers selling multifamily, mixed-use, rental, and office buildings to landlords — including 1031 and overseas buyers' },
+  { key: 'receivership', label: 'Receivers, Lenders & Auctions', description: 'Receiverships, bankruptcies, lender takeovers, and auction dispositions needing an operator on short notice' },
 ];
 
 const AUDIENCE_COPY: Record<PartnerAudience, {
@@ -57,6 +59,38 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
       'Share your close calendar with us — we align our monthly reporting to your deadlines',
     ],
   },
+  brokerage: {
+    title: 'Your Buyers Need an Operator. Your Deals Need Real Numbers.',
+    hook: 'You sell multifamily, mixed-use, and rental buildings to landlords — local, 1031-exchange, and overseas investors alike. Camelot has managed New York rental property since 2006, and we make your deals easier on both sides: an operator your buyer can hand the keys to on day one, and management economics that help the deal pencil.',
+    howWeHelp: [
+      'Day-one takeover for your buyers — banking, rent roll, DHCR registrations, vendor contracts, and staff onboarding handled, including for 1031 and foreign investors who need a fully delegated operator',
+      'Rental income upside through our in-house brokerage arm: unit turns, lease-ups, renewals, and market-rent positioning that raise the building’s income line',
+      'Expense reduction your one-building buyer cannot get alone: our portfolio vendor leverage cuts plumbing, HVAC, electrical, fire safety, boiler, energy, and elevator costs',
+      'AI + automation across operations — rent collection, arrears follow-up, repairs and maintenance, leases, renewals, move-ins/move-outs, and resident retention — on AppFolio or MDS, with owner reporting landlords actually read',
+      'Full regulatory coverage: rent-stabilized, rent-controlled, and market-rate portfolios; DHCR/RGB compliance, registrations, and local-law calendar management',
+    ],
+    whatWeAsk: [
+      'Introduce us to your buyer at contract — a management plan in place before closing makes your deal smoother and your client stickier',
+      'Bring us your transition properties: estates, receiverships, bankruptcies, and buildings whose management is the reason they’re trading',
+      'Let us pre-underwrite operating costs for your setups and OMs — real management numbers instead of pro-forma guesses',
+    ],
+  },
+  receivership: {
+    title: 'An Operator for Properties in Transition',
+    hook: 'Receiverships, bankruptcies, lender takeovers, and auction dispositions need a manager who can take the keys on short notice, secure the cash, stabilize the residents, and report like a fiduciary. That is work Camelot has done in New York since 2006.',
+    howWeHelp: [
+      'Rapid intake: banking and cash controls secured, rent roll verified, vendors triaged, and site secured within days of appointment',
+      'Fiduciary-grade monthly reporting — balance sheet, income statement, bank reconciliations, cash disbursements journal, and charge & collection analysis — court- and lender-ready',
+      'Collections stabilized: arrears workflows, payment plans, and DHCR-compliant handling of stabilized and controlled tenancies',
+      'Compliance triage: HPD, DOB, ECB/OATH violations mapped and prioritized so penalties stop compounding during the hold period',
+      'Disposition support: clean records, verified financials, and an operating story that helps the asset trade at its best number',
+    ],
+    whatWeAsk: [
+      'Add Camelot to your receiver and lender operator lists — we can mobilize on short notice across the five boroughs and the tri-state area',
+      'Call us before the auction: we’ll underwrite the management picture so bidders know what the building really costs to run',
+      'Introduce us to trustees and workout teams that need court-ready reporting from day one',
+    ],
+  },
   audit: {
     title: 'The Management Company Auditors Prefer',
     hook: 'Audit quality depends on management quality. Camelot’s controls — segregation of duties, board-approved disbursements, documented reserves activity — are designed so your fieldwork finds order, not chaos.',
@@ -89,6 +123,27 @@ const CASE_STUDIES: Array<{ title: string; body: string }> = [
   },
 ];
 
+// Rental-portfolio case studies for the brokerage / receivership decks.
+// Engagement history supplied by David Goldoff (July 31 2026); confirm any
+// client-identifying details with leadership before external distribution.
+const RENTAL_CASE_STUDIES: Array<{ title: string; body: string }> = [
+  {
+    title: 'Peak Capital — Manhattan rental portfolio',
+    body: 'Camelot managed the Peak Capital rental portfolio: day-to-day operations, collections, unit turns, vendor management, and owner reporting for an institutional-minded investor group — the full operating layer between the asset and its returns.',
+  },
+  {
+    title: 'MacTaggart Group — London-based investor, ~13 NYC buildings',
+    body: 'For a UK investor with a New York base, Camelot ran a portfolio of roughly thirteen rental buildings spanning Chinatown / Lower Manhattan and prime Brooklyn — Park Slope, Brooklyn Heights, Cobble Hill, and surrounding neighborhoods — proving the delegated-operator model overseas owners need.',
+  },
+  {
+    title: 'Village rentals — East 9th, West 11th & beyond',
+    body: 'Walk-up and elevator rental buildings in the East and West Village (748 East 9th Street, 300 West 11th Street among them): rent-stabilized and market-rate units side by side, DHCR registrations current, and monthly owner packages on MDS/AppFolio that landlords actually read.',
+  },
+];
+
+const caseStudiesFor = (audience: PartnerAudience) =>
+  audience === 'brokerage' || audience === 'receivership' ? RENTAL_CASE_STUDIES : CASE_STUDIES;
+
 const MARKETS = 'New York City’s five boroughs, Westchester, Long Island, New Jersey, and Connecticut';
 
 function esc(v: string): string {
@@ -100,7 +155,11 @@ function slide(inner: string, cls = ''): string {
 }
 
 export function buildPartnerPitchFilename(audience: PartnerAudience, extension = 'pdf'): string {
-  const label = audience === 'law' ? 'Law-Firms' : audience === 'accounting' ? 'Accounting-Firms' : 'Audit-Practices';
+  const label = audience === 'law' ? 'Law-Firms'
+    : audience === 'accounting' ? 'Accounting-Firms'
+    : audience === 'audit' ? 'Audit-Practices'
+    : audience === 'brokerage' ? 'Commercial-Brokerages'
+    : 'Receivers-Lenders-Auctions';
   const date = new Date().toISOString().slice(0, 10);
   return `Camelot-Partner-Pitch-${label}_${date}.${extension}`;
 }
@@ -160,9 +219,9 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
       <p class="body" style="margin-top:24px"><strong>Where we work:</strong> ${MARKETS}.</p>
       <p class="body" style="margin-top:12px"><strong>Where we're going:</strong> disciplined growth — adding well-run buildings and association clients where our operating model raises the standard, backed by the Camelot OS platform that gives every client day-one visibility into their own building's public record.</p>${foot}`),
 
-    // 3 — Track record / case studies
+    // 3 — Track record / case studies (rental portfolio set for brokerage & receivership)
     slide(`<div class="eyebrow">Track Record</div><h2>Engagements That Look Like Your Clients</h2>
-      ${CASE_STUDIES.map(cs => `<div class="card"><strong>${esc(cs.title)}.</strong> ${esc(cs.body)}</div>`).join('')}
+      ${caseStudiesFor(audience).map(cs => `<div class="card"><strong>${esc(cs.title)}.</strong> ${esc(cs.body)}</div>`).join('')}
       <p class="body" style="font-size:12px;color:#8a8174;margin-top:10px">Client-specific references available under separate cover once permission is confirmed.</p>${foot}`),
 
     // 4 — How we work with your team
@@ -175,7 +234,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
         <div>
           <p class="body" style="font-weight:700;margin-bottom:10px">We bring your practice:</p>
           <div class="card">Clients whose buildings run properly — fewer emergencies landing on your desk, better records behind every engagement</div>
-          <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : 'auditors'} we trust</div>
+          <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
           <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>
         </div>
         <div>

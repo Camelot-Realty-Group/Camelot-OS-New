@@ -19,6 +19,7 @@
  */
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from './camelot-signature';
 import { GOOGLE_MAPS_KEY } from './maps-key';
+import { CAMELOT_PORTFOLIO, portfolioMapAddresses } from './camelot-portfolio';
 
 export type PartnerAudience = 'law' | 'accounting' | 'audit' | 'brokerage' | 'receivership';
 
@@ -258,6 +259,10 @@ function deliverableThumbnails(): string {
       </div>
       <div class="thumb-cap">The interview agenda — built from real pre-call discovery</div>
     </div>
+    <div class="thumb">
+      <div class="thumb-doc" style="padding:0"><img src="${illus('deliverables-flatlay.jpg')}" alt="The full Camelot deliverable package laid out" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>
+      <div class="thumb-cap">The full package, on the table — ${AI_LABEL}</div>
+    </div>
   </div>
   <div class="src">Actual Camelot deliverable formats, reproduced in miniature; full samples shared in person.</div>`;
 }
@@ -309,22 +314,17 @@ const PORTFOLIO_PHOTOS: Array<{ file: string; caption: string }> = [
  * The real portfolio map: gold pins on a selection of Camelot-managed and
  * portfolio buildings (addresses from camelot.nyc and case studies).
  */
-const PORTFOLIO_PINS = [
-  // From Camelot's own RealtyMX buildings directory (idx.realtymx.com, client 703)
-  '43 E 63rd St, New York, NY', '41-34 55th St, Woodside, NY', '83-55 Austin St, Kew Gardens, NY',
-  '13-14 Jackson Ave, Long Island City, NY', '417 Manhattan Ave, New York, NY', '420 E 64th St, New York, NY',
-  '340 W 86th St, New York, NY', '175 Chrystie St, New York, NY', '43-33 48th St, Sunnyside, NY',
-  '71 Washington Pl, New York, NY', '68 Thomas St, New York, NY', '110 E 97th St, New York, NY',
-  '79 Washington Pl, New York, NY', '61-05 39th Ave, Woodside, NY', '788 9th Ave, New York, NY',
-  '402 West Broadway, New York, NY', '465 Washington St, New York, NY', '197 E 7th St, New York, NY',
-  '111 Mott St, New York, NY', '33 Henry St, New York, NY', '110 Madison St, New York, NY',
-  '604 W 178th St, New York, NY', '117 E 29th St, New York, NY', '410 E 50th St, New York, NY',
-  // From camelot.nyc case studies & portfolio history
-  '949 Park Ave, New York, NY', '301 E 50th St, New York, NY', '250 Bowery, New York, NY',
-  '58 White St, New York, NY', '137 Franklin St, New York, NY', '39 Spring St, New York, NY',
-  '201 E 15th St, New York, NY', '930 St Nicholas Ave, New York, NY', '22 E 22nd St, New York, NY',
-  '748 E 9th St, New York, NY', '300 W 11th St, New York, NY',
-];
+// THE canonical managed-portfolio pins — sourced from CAMELOT_PORTFOLIO
+// (src/lib/camelot-portfolio.ts), the list David supplied July 31 2026 with
+// the instruction "never forget this list." 42 properties, one pin each.
+const PORTFOLIO_PINS = portfolioMapAddresses();
+
+/** AI illustrations supplied by David (July 31 2026) — labeled per brand rule. */
+const illus = (file: string) => `${ASSET_BASE}/images/camelot/illustrations/${file}`;
+const AI_LABEL = 'Illustration: Camelot Property Management';
+function illusCard(file: string, alt: string, height: number, caption?: string): string {
+  return `<figure style="margin:0"><div style="height:${height}px;border:1px solid rgba(26,33,48,.18);overflow:hidden;background:#EDE9DF;box-shadow:0 10px 22px rgba(26,33,48,.1)"><img src="${illus(file)}" alt="${esc(alt)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.parentElement.style.display='none'"></div><figcaption style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#8a8174;font-weight:700;margin-top:5px">${caption ? esc(caption) + ' — ' : ''}${AI_LABEL}</figcaption></figure>`;
+}
 
 function portfolioDotMap(height: number): string {
   const markers = `size:small%7Ccolor:0xC9A227%7C${PORTFOLIO_PINS.map(a => encodeURIComponent(a)).join('%7C')}`;
@@ -411,7 +411,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
   .tl-dot { width:9px; height:9px; border-radius:50%; background:#C9A227; margin:8px auto; position:relative; z-index:2; box-shadow:0 0 0 4px #FAF8F5; }
   .tl-text { font-size:11.5px; line-height:1.45; color:#3d4756; }
   /* Deliverable thumbnails */
-  .thumb-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; margin-top:6px; }
+  .thumb-row { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:14px; margin-top:6px; }
   .thumb-doc { height:210px; border:1px solid rgba(26,33,48,.2); box-shadow:0 14px 26px rgba(26,33,48,.14); padding:16px 14px; position:relative; overflow:hidden; }
   .thumb-cap { font-size:10.5px; color:#3d4756; margin-top:9px; line-height:1.4; }
   .thumb-mds { background:#fff; }
@@ -457,10 +457,11 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
             : audience === 'receivership'
               ? 'Take the keys, secure the cash, report like a fiduciary — within days of appointment.'
               : 'Audit quality depends on management quality. We build for your fieldwork.'}</div>
-        <div class="grid3" style="grid-template-columns:1fr">
-          <div class="stat"><b>41 Buildings</b><span>$240M under management</span></div>
+        <div class="grid3" style="grid-template-columns:1fr;gap:10px">
+          <div class="stat"><b>${CAMELOT_PORTFOLIO.length} Buildings</b><span>$240M under management</span></div>
           <div class="stat"><b>$1.5B</b><span>Estimated gross portfolio value &middot; 1M+ sq ft</span></div>
           <div class="stat"><b>48 hrs</b><span>Guaranteed response time</span></div>
+          ${illusCard('board-meeting.jpg', 'Board meeting — the relationship the big firms abandoned', 118, 'The board relationship, kept human')}
         </div>
       </div>
       <div class="src">Portfolio figures published at camelot.nyc, July 2026.</div>${foot}`),
@@ -486,7 +487,10 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     sl(`${logo}<div class="kicker">Who We Are</div><h2>Two Decades of New York Buildings</h2><div class="rule"></div>
       <p class="body" style="max-width:900px">Camelot is an independently owned New York firm: senior property managers, in-house accounting, legal leadership, brokerage expertise, and practical automation — members of REBNY, NYARM, IREM, BOMA New York, and CNYC. <strong>Where we work:</strong> ${MARKETS}.</p>
       ${historyTimeline()}
-      <p class="body" style="margin-top:16px;font-size:13.5px"><strong>Where we're going:</strong> disciplined growth — adding well-run buildings and association clients where our operating model raises the standard, backed by the Camelot OS platform that gives every client day-one visibility into their own building's public record.</p>${foot}`),
+      <div style="display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-top:14px;align-items:center">
+        <p class="body" style="font-size:13.5px"><strong>Where we're going:</strong> disciplined growth — adding well-run buildings and association clients where our operating model raises the standard, backed by the Camelot OS platform that gives every client day-one visibility into their own building's public record.</p>
+        ${illusCard('golden-facades.jpg', 'Prewar, brick, and modern facades at golden hour — the range of the Camelot portfolio', 118, 'Prewar to new development')}
+      </div>${foot}`),
 
     // 4 — THE INTELLIGENCE + embedded deliverable thumbnails
     sl(`${logo}<div class="kicker">The Platform</div><h2>A Taste of the Camelot Intelligence</h2><div class="rule"></div>
@@ -506,21 +510,25 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
       <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:start">
         <div>
           ${portfolioDotMap(320)}
-          <div class="src">Gold pins: a selection of Camelot-managed and portfolio buildings (camelot.nyc case studies &amp; portfolio) — the full 41-building list lives at camelot.nyc/managed-buildings.</div>
+          <div class="src">Gold pins: the ${CAMELOT_PORTFOLIO.length} properties Camelot currently manages — the canonical portfolio list, July 2026.</div>
           <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px">
             ${PORTFOLIO_NEIGHBORHOODS.map(a => `<div style="border:1px solid rgba(184,151,58,.4);background:#fff;padding:6px 5px;font-size:9.5px;font-weight:800;color:#1a2130;text-align:center">${a}</div>`).join('')}
           </div>
         </div>
         <div>
-          ${hqMapEmbed(320)}
+          ${illusCard('nyc-map-art.jpg', 'New York rendered in navy and gold — the Camelot territory', 158, 'The territory, in navy & gold')}
+          <div style="margin-top:10px">${hqMapEmbed(158)}</div>
           <div class="src">Headquarters — 57 West 57th Street, Suite 410 (coffee is on us)</div>
-          <p class="body" style="font-size:12.5px;margin-top:10px">The neighborhoods above are where the portfolio actually lives — from Chinatown walk-ups to Park Avenue prewars to Sunnyside condominiums. Boots on the ground in every one.</p>
+          <p class="body" style="font-size:12px;margin-top:8px">Gold pins on the live map: all ${CAMELOT_PORTFOLIO.length} currently managed properties — Chinatown walk-ups to Park Avenue prewars to Sunnyside condominiums. Boots on the ground in every one.</p>
         </div>
       </div>${foot}`),
 
     // 6 — CASE STUDIES (audience-matched, editorial)
     sl(`${logo}<div class="kicker">Track Record</div><h2>Engagements That Look Like Your Clients</h2><div class="rule"></div>
-      ${caseStudies.map((cs, i) => `<div class="card" style="display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start"><div style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:34px;color:#B8973A;line-height:1">${String(i + 1).padStart(2, '0')}</div><div><strong style="color:#1a2130">${esc(cs.title)}.</strong> ${esc(cs.body)}</div></div>`).join('')}
+      <div style="display:grid;grid-template-columns:1.35fr .65fr;gap:16px;align-items:start">
+        <div>${caseStudies.map((cs, i) => `<div class="card" style="display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start"><div style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:34px;color:#B8973A;line-height:1">${String(i + 1).padStart(2, '0')}</div><div><strong style="color:#1a2130">${esc(cs.title)}.</strong> ${esc(cs.body)}</div></div>`).join('')}</div>
+        <div>${illusCard('facade-inspection.jpg', 'Facade inspection high above the city — fieldwork behind every engagement', 300, 'Fieldwork, not paperwork')}</div>
+      </div>
       <div class="src">Engagement history supplied by Camelot leadership; client-specific references available under separate cover once permission is confirmed.</div>${foot}`),
 
     // 6B — THE RADAR: trending compliance topics + how the teams train
@@ -543,7 +551,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
               'We embrace what’s trending instead of fearing it: new laws become checklists, checklists become training, training becomes the pitch',
             ].map(item => `<div class="chart-row" style="grid-template-columns:14px 1fr"><span style="color:#B8973A;font-weight:900">&#10003;</span><span style="font-size:12px;line-height:1.5;color:#3d4756">${item}</span></div>`).join('')}
           </div>
-          <div style="height:150px;border:1px solid rgba(184,151,58,.3);overflow:hidden;margin-top:10px"><img src="${camelotPhoto('walkup-row.jpg')}" alt="Camelot portfolio buildings" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div>
+          <div style="margin-top:10px">${illusCard('boiler-inspection.jpg', 'Manager and superintendent checking the boiler room together', 148, 'Mechanicals, checked in pairs')}</div>
         </div>
       </div>
       <div class="src">Compliance obligations summarized from NYC local law; training practices are Camelot's operating standard.</div>${foot}`),
@@ -551,8 +559,8 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     // 7 — HOW WE WORK WITH YOU (+ savings chart for deal-side audiences)
     sl(`${logo}<div class="kicker">Working Together</div><h2>How We Work With ${esc(firmName || audienceLabel)}</h2><div class="rule"></div>
       ${audience === 'brokerage' || audience === 'receivership'
-        ? `<div style="display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start"><div>${copy.howWeHelp.slice(0, 4).map(item => `<div class="card">${esc(item)}</div>`).join('')}</div><div>${savingsTargetChart()}</div></div>`
-        : `<div style="display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start"><div>${copy.howWeHelp.map(item => `<div class="card">${esc(item)}</div>`).join('')}</div><div><div class="chart"><div class="chart-title">The Numbers Don't Lie</div><div class="stat" style="margin-bottom:10px"><b>$45,000</b><span>Avg. first-90-day savings boards find</span></div><div class="stat" style="margin-bottom:10px"><b>48 hrs</b><span>Guaranteed response vs. weeks at large firms</span></div><div class="stat"><b>73%</b><span>Boards report better communication after switching</span></div><div class="src">Published at camelot.nyc, July 2026.</div></div><div style="height:130px;border:1px solid rgba(184,151,58,.3);overflow:hidden;margin-top:10px"><img src="${camelotPhoto('app-desk.jpg')}" alt="Camelot resident platform" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.display='none'"></div></div></div>`}
+        ? `<div style="display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:start"><div>${copy.howWeHelp.slice(0, 4).map(item => `<div class="card">${esc(item)}</div>`).join('')}</div><div>${savingsTargetChart()}<div style="margin-top:10px">${illusCard('key-handoff.jpg', 'The keys and the records, handed over cleanly', 132, 'Day-one takeover')}</div></div></div>`
+        : `<div style="display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start"><div>${copy.howWeHelp.map(item => `<div class="card">${esc(item)}</div>`).join('')}</div><div><div class="chart"><div class="chart-title">The Numbers Don't Lie</div><div class="stat" style="margin-bottom:10px"><b>$45,000</b><span>Avg. first-90-day savings boards find</span></div><div class="stat" style="margin-bottom:10px"><b>48 hrs</b><span>Guaranteed response vs. weeks at large firms</span></div><div class="stat"><b>73%</b><span>Boards report better communication after switching</span></div><div class="src">Published at camelot.nyc, July 2026.</div></div><div style="margin-top:10px">${illusCard('partner-review.jpg', 'Working the file together — Camelot with counsel and accountants', 128, 'Side by side with your team')}</div></div></div>`}
       ${foot}`),
 
     // 8 — THE VALUE EXCHANGE

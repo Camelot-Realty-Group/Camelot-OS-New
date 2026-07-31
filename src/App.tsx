@@ -38,6 +38,8 @@ const ContentEngine = lazy(() => import('@/pages/ContentEngine'));
 const QAConsole = lazy(() => import('@/pages/QAConsole'));
 const TemplateBilling = lazy(() => import('@/pages/TemplateBilling'));
 const Templates = lazy(() => import('@/pages/Templates'));
+const PartnerPitches = lazy(() => import('@/pages/PartnerPitches'));
+const TradedNY = lazy(() => import('@/pages/TradedNY'));
 
 function page(Page: ComponentType) {
   return (
@@ -92,6 +94,8 @@ export default function App() {
           <Route path="/intelligence" element={page(Intelligence)} />
           <Route path="/reports" element={page(Reports)} />
           <Route path="/report-center" element={page(ReportCenter)} />
+          <Route path="/partner-pitches" element={page(PartnerPitches)} />
+          <Route path="/traded-ny" element={page(TradedNY)} />
           <Route path="/agreements" element={page(Agreements)} />
           <Route path="/sentinel" element={page(Sentinel)} />
           <Route path="/arthur" element={page(Arthur)} />

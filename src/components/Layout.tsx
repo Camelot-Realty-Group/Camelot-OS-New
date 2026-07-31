@@ -32,6 +32,8 @@ import {
   Sparkles,
   Activity,
   Receipt,
+  Newspaper,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/store';
@@ -63,11 +65,18 @@ const navigation: NavSection[] = [
     ],
   },
   {
+    title: 'Traded NY — Deal Flow',
+    items: [
+      { label: 'Traded NY', href: '/traded-ny', icon: <Newspaper size={18} /> },
+    ],
+  },
+  {
     title: 'Engagement — Pitches',
     items: [
       { label: 'Instant Proposal', href: '/instant-proposal', icon: <Zap size={18} /> },
       { label: 'Proposal Library', href: '/proposals', icon: <FileText size={18} /> },
       { label: 'Engagement Reports', href: '/report-center', icon: <Crown size={18} /> },
+      { label: 'Partner Pitch Decks', href: '/partner-pitches', icon: <Briefcase size={18} /> },
     ],
   },
   {

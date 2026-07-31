@@ -22,7 +22,7 @@ export type JackieReportPackage = 'first_email_intro' | 'board_meeting_deck' | '
 export const JACKIE_REPORT_PACKAGES: Array<{ key: JackieReportPackage; label: string; pages: string; description: string }> = [
   { key: 'first_email_intro', label: 'Intro to Camelot', pages: '6-8 pages', description: 'Short board-safe teaser for first outreach.' },
   { key: 'board_meeting_deck', label: 'Board Interview Agenda', pages: '15 pages', description: 'Main presentation for first board/ownership meetings.' },
-  { key: 'appendix_full', label: 'Proposal & Agreement', pages: 'Full appendix', description: 'Proposal of Services, 30-day transition, Management Agreement, and what to expect with Camelot in the first 90 days.' },
+  { key: 'appendix_full', label: 'Property Intelligence Dossier', pages: 'Full dossier', description: 'Everything Camelot OS found on the property: public records, compliance, market intel, cost-reduction program, transition plan, and diligence appendix.' },
 ];
 
 const CAMELOT_EXECUTIVE_TEAM = [
@@ -1056,32 +1056,10 @@ export function generateJackieReportPackage(d: MasterReportData, reportPackage: 
   return '';
 }
 
-/**
- * Count prior saved proposals for this address so Proposal & Agreement
- * files carry an incrementing version number (V.1, V.2, ...). Reads the
- * report library directly from browser storage to avoid a circular import
- * with jackie-report-library; degrades to V.1 anywhere storage is absent.
- */
-function nextProposalVersion(address: string): number {
-  try {
-    const raw = localStorage.getItem('camelot_generated_jackie_report_library_v1')
-      || sessionStorage.getItem('camelot_generated_jackie_report_library_v1') || '[]';
-    const records: Array<{ address?: string; packageType?: string }> = JSON.parse(raw);
-    const needle = (address || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const prior = records.filter(r =>
-      r.packageType === 'appendix_full' &&
-      (r.address || '').toLowerCase().replace(/[^a-z0-9]/g, '') === needle
-    ).length;
-    return prior + 1;
-  } catch {
-    return 1;
-  }
-}
-
-// Filename conventions (per David, July 30 2026):
-//   Intro to Camelot:        {property-address}-first_engagement_{date}
-//   Board Interview Agenda:  {building-or-address}-Board_Interview_Agenda_{date}
-//   Proposal & Agreement:    {association-or-address}-Proposal_and_Agreement_V.{n}_{date}
+// Filename conventions (per David, July 30-31 2026):
+//   Intro to Camelot:              {property-address}-first_engagement_{date}
+//   Board Interview Agenda:        {building-or-address}-Board_Interview_Agenda_{date}
+//   Property Intelligence Dossier: {association-or-address}-Intelligence_Dossier_{date}
 export function buildJackiePackageFilename(d: MasterReportData, reportPackage: JackieReportPackage, extension = 'html'): string {
   d = normalizePitchReportData(d);
   const dateStamp = new Date().toISOString().slice(0, 10);
@@ -1094,8 +1072,7 @@ export function buildJackiePackageFilename(d: MasterReportData, reportPackage: J
     return `${client}-Board_Interview_Agenda_${dateStamp}.${extension}`;
   }
   const client = cleanFileNamePart(d.buildingName || d.address || 'Client-Association');
-  const version = nextProposalVersion(d.address || d.buildingName || '');
-  return `${client}-Proposal_and_Agreement_V.${version}_${dateStamp}.${extension}`;
+  return `${client}-Intelligence_Dossier_${dateStamp}.${extension}`;
 }
 
 /**
@@ -1308,6 +1285,32 @@ export function generatePitchReport(d: MasterReportData): string {
     <div style="font-size:18px;color:#4a5568;line-height:1.8;max-width:900px">${hookText}</div>
   </div>
   ${everyOtherPageVisualChip(d, 1, 'Property / Neighborhood')}
+</div>
+
+<!-- SLIDE 2B: Table of Contents -->
+<div class="slide slide-cream">
+  <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
+  <div class="pad">
+    <div class="section-title">Table of Contents</div>
+    <p class="body-text" style="margin-bottom:16px">What this dossier covers for ${escapeHtml(d.buildingName || d.address)} — every section is built from verified public records, market data, and Camelot's operating playbook.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 18px">
+      ${[
+        ['The Property', 'Snapshot, ownership, and verified building facts'],
+        ['Building Intelligence', 'Violations, permits, energy, and public-record signals'],
+        ['Why Camelot', 'How we compare with the current management approach'],
+        ['About Camelot', 'Who we are, history, and the team behind the work'],
+        ['Core Services', 'What full-service management includes'],
+        ['Compliance & Local Law Review', 'LL97, LL11/FISP, and the city calendar that drives cost'],
+        ['Technology Platform', 'Camelot OS, resident portal, and reporting stack'],
+        ['The 90-Day Transition', 'What the first three months look like, week by week'],
+        ['Proposed Investment', 'Fee framing and the path to a fair number'],
+        ['Operating Cost Reduction Program', 'Vendor leverage, shared savings, and expense strategy'],
+        ['What Our Clients Say', 'References from boards and owners we serve'],
+        ['Next Steps & Contact', 'How to reach David Goldoff and schedule a walkthrough'],
+      ].map(([t, c], i) => `<div style="display:flex;gap:12px;align-items:flex-start;border:1px solid rgba(184,151,58,.28);border-radius:8px;background:#FAF8F5;padding:10px 14px"><div style="width:30px;height:30px;border-radius:50%;background:#34444f;color:#F4D26A;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex:0 0 30px">${i + 1}</div><div><div style="font-size:14px;font-weight:900;color:#1a2744">${t}</div><div style="font-size:11.5px;color:#4a5568;line-height:1.35">${c}</div></div></div>`).join('')}
+    </div>
+    <div class="source-note">Section order matches this document; sections may expand where the property's records warrant deeper coverage.</div>
+  </div>
 </div>
 
 <!-- SLIDE 3: The Property -->
@@ -1567,6 +1570,27 @@ export function generatePitchReport(d: MasterReportData): string {
       </div>
       <div class="body-italic" style="margin-top:26px;text-align:center;font-size:14px">Share your budget, your last audited financials, and the prior manager's report &mdash; and we'll return with a number built for your building, not a template.</div>
     </div>
+  </div>
+</div>
+
+<!-- SLIDE 11B: Operating Cost Reduction Program -->
+<div class="slide slide-cream">
+  <div class="logo-badge"><div class="logo-badge-text">CAMELOT<span class="logo-badge-sub">REALTY GROUP</span></div></div>
+  <div class="pad">
+    <div class="section-title">Operating Cost Reduction Program</div>
+    <p class="body-text" style="margin-bottom:14px">Management fees are a fraction of what a building spends every year on vendors. The larger opportunity for ${escapeHtml(d.buildingName || d.address)} is the operating budget itself — and Camelot brings leverage no single building has on its own.</p>
+    <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:16px">
+      <div style="display:grid;gap:10px">
+        <div class="gold-card" style="padding:14px 16px"><div style="font-size:16px;font-weight:800;color:#1a2744;margin-bottom:4px">Portfolio Vendor Leverage</div><div style="font-size:12px;color:#4a5568;line-height:1.5">We approach every recurring vendor — plumbing, HVAC, electrical, fire &amp; life-safety monitoring, sprinkler, boiler, elevator, energy supply, waste — and negotiate a <strong>15&ndash;30% reduction</strong> on monthly and annual billing. Why would a vendor agree? Because in exchange we open the door to Camelot's entire portfolio of buildings. One building can't move a vendor's pricing; a pipeline of accounts can.</div></div>
+        <div class="gold-card" style="padding:14px 16px"><div style="font-size:16px;font-weight:800;color:#1a2744;margin-bottom:4px">Shared-Savings Model</div><div style="font-size:12px;color:#4a5568;line-height:1.5">Documented savings are shared: approximately <strong>50% stays with the association</strong> — going straight to the building's bottom line and budget — and the balance compensates Camelot for sourcing and negotiating the reduction. The incentive is aligned: Camelot only earns when the building demonstrably spends less. Final split is set in the management agreement.</div></div>
+        <div class="gold-card" style="padding:14px 16px"><div style="font-size:16px;font-weight:800;color:#1a2744;margin-bottom:4px">AI + Automation Expense Review</div><div style="font-size:12px;color:#4a5568;line-height:1.5">Beyond vendor pricing, Camelot OS reviews every expense line — utilities, insurance, service contracts, staffing patterns — using automation to flag anomalies, duplicate charges, off-market pricing, and refinancing or energy-program opportunities.</div></div>
+      </div>
+      <div style="display:grid;gap:10px">
+        <div class="visual-card" style="padding:16px"><div class="sub-heading" style="font-size:18px">First 6&ndash;12 Months</div>${[['Months 1-2 — Collect every vendor contract & 12 months of invoices', 25], ['Months 2-4 — Rebid / renegotiate top spend categories', 55], ['Months 4-8 — Implement, verify invoices against new pricing', 80], ['Months 8-12 — Report documented savings to the board', 100]].map(([label, pct]) => `<div style="margin-bottom:11px"><div style="font-size:12px;font-weight:800;color:#1a2744">${label}</div><div class="mini-bar"><span style="width:${pct}%"></span></div></div>`).join('')}</div>
+        <div class="visual-card" style="padding:14px"><div class="sub-heading" style="font-size:16px;margin-bottom:8px">Spend Categories We Attack First</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${['Plumbing', 'HVAC', 'Electrical', 'Fire & Life Safety', 'Sprinkler Systems', 'Boiler & Heating', 'Energy Supply', 'Elevator', 'Waste & Recycling', 'Insurance Review'].map(item => `<div style="border:1px solid rgba(184,151,58,.28);background:#FAF8F5;border-radius:7px;padding:7px 9px;font-size:11px;font-weight:800;color:#1a2744">${item}</div>`).join('')}</div></div>
+      </div>
+    </div>
+    <div class="source-note">Savings ranges are targets from Camelot's vendor-negotiation playbook, not a guarantee; documented results and the exact shared-savings split are formalized in the management agreement after the expense audit.</div>
   </div>
 </div>
 

@@ -3291,23 +3291,31 @@ export async function buildMasterReport(address: string, borough?: string): Prom
     { source: 'DOB dwelling units', value: Number(raw.dobUnits) || 0, trusted: true },
     { source: 'Energy benchmarking units', value: Number.parseInt(String((raw as any).energy?.number_of_units || ''), 10) || 0, trusted: true },
     { source: 'DOF / PLUTO units', value: dof?.units || 0, trusted: false },
-    { source: 'building-area estimate', value: dof?.buildingArea && dof.buildingArea > 75000 ? Math.round(dof.buildingArea / 850) : 0, trusted: false },
+    // NOTE: the building-area estimate (sqft / 850) is deliberately NOT a
+    // candidate. It once won this race — 115 Central Park West (617,569 sqft
+    // prewar co-op with enormous apartments) "estimated" 727 units and beat
+    // the recorded PLUTO count of 238. An estimate may only be used when NO
+    // recorded count exists anywhere (final fallback below).
   ].filter(c => Number.isFinite(c.value) && c.value > 0);
 
   const trustedUnitCandidates = unitCandidates.filter(c => c.trusted);
   const strongestTrustedUnits = trustedUnitCandidates.reduce((max, c) => Math.max(max, c.value), 0);
-  const strongestAnyUnits = unitCandidates.reduce((max, c) => Math.max(max, c.value), 0);
   const dofUnits = dof?.units || 0;
-  let units = dofUnits || strongestTrustedUnits || strongestAnyUnits || 0;
+  let units = dofUnits || strongestTrustedUnits || 0;
+  let unitsIsEstimate = false;
   if (knownFacts?.units) {
     units = knownFacts.units;
-  } else if (strongestTrustedUnits >= 50 && (!dofUnits || dofUnits <= 5 || strongestTrustedUnits >= dofUnits * 2)) {
+  } else if (strongestTrustedUnits >= 50 && (!dofUnits || dofUnits <= 5)) {
+    // A trusted recorded source (StreetEasy, DOB, energy benchmarking, DOF
+    // abatement roll) may fill in ONLY when DOF/PLUTO has no usable count —
+    // a real PLUTO count is never overridden by a bigger number elsewhere;
+    // when sources conflict, prefer the official tax-lot record and flag it.
     units = strongestTrustedUnits;
-  } else if (strongestAnyUnits >= 50 && (!dofUnits || dofUnits <= 5 || strongestAnyUnits >= dofUnits * 2)) {
-    units = strongestAnyUnits;
   } else if (!units && dof?.buildingArea && dof.buildingArea > 2000) {
     units = Math.round(dof.buildingArea / 850);
+    unitsIsEstimate = true;
   }
+  void unitsIsEstimate;
   const unitSourceSummary = unitCandidates.map(c => `${c.source}: ${c.value}`).join(' | ');
 
   // Cascade stories from DOF → DOB → StreetEasy

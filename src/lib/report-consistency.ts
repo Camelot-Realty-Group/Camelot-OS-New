@@ -14,7 +14,7 @@
 import type { MasterReportData } from './camelot-report';
 
 export interface ConsistencyFinding {
-  field: 'units' | 'stories' | 'year_built';
+  field: 'units' | 'stories' | 'year_built' | 'units_vs_official_record';
   canonical: string;
   found: string;
   snippet: string;
@@ -46,6 +46,26 @@ const snippetAround = (text: string, index: number, span = 60): string => {
 export function checkReportConsistency(d: MasterReportData, html: string): ConsistencyResult {
   const findings: ConsistencyFinding[] = [];
   const text = stripHtml(html);
+
+  // ---- Units vs. official record (DOF/PLUTO) --------------------------
+  // The reconciled unit count must stay anchored to the city's recorded
+  // numbers for the exact tax lot. 115 CPW once shipped as "727 units"
+  // (a sqft-derived estimate) against a recorded 238 — this gate exists so
+  // that class of error blocks release instead of reaching a board.
+  const recordedRes = num((d as any).unitsResidential);
+  const recordedTot = num((d as any).unitsTotalAll);
+  const recordedMax = Math.max(recordedRes, recordedTot);
+  const claimed = num(d.units);
+  if (recordedMax >= 3 && claimed > 0 && (claimed > recordedMax * 1.5 || claimed < recordedRes * 0.5)) {
+    findings.push({
+      field: 'units_vs_official_record',
+      canonical: recordedTot && recordedTot !== recordedRes
+        ? `${recordedRes} residential / ${recordedTot} total (DOF/PLUTO)`
+        : `${recordedMax} (DOF/PLUTO)`,
+      found: String(claimed),
+      snippet: 'Reconciled unit count diverges from the official DOF/PLUTO record for this BBL — verify address/BBL match before release.',
+    });
+  }
 
   // ---- Units ----------------------------------------------------------
   // Accept any of: total units, residential units, commercial/other units,

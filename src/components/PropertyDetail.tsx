@@ -55,7 +55,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
 const DETAIL_REPORT_LABELS: Record<DetailReportPackage, string> = {
   first_email_intro: 'Intro to Camelot',
   board_meeting_deck: 'Board Interview Agenda',
-  appendix_full: 'Proposal & Agreement',
+  appendix_full: 'Property Intelligence Dossier',
 };
 
 type DetailReportPreview = {
@@ -431,7 +431,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
       toast.success(`${DETAIL_REPORT_LABELS[reportPackage]} preview ready`, { id: 'detail-report-preview' });
     } catch (err) {
       console.error('Detail report preview failed:', err);
-      toast.error('Report preview failed. Try Proposal & Agreement or refresh this property card.', { id: 'detail-report-preview' });
+      toast.error('Report preview failed. Try the Property Intelligence Dossier or refresh this property card.', { id: 'detail-report-preview' });
     } finally {
       setPackageLoading(null);
     }
@@ -671,7 +671,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
         building: guardedBuilding,
         reportData: data,
         packageType: 'appendix_full',
-        packageLabel: 'Proposal & Agreement',
+        packageLabel: 'Property Intelligence Dossier',
         action: 'previewed',
         filename: `${(data.buildingName || data.address).replace(/[^a-zA-Z0-9]+/g, '-')}-Full-Jackie.pdf`,
         html,
@@ -935,7 +935,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
               Email Agenda
             </button>
             <button onClick={() => handlePreviewPackage('appendix_full')} disabled={!!packageLoading} className="flex items-center gap-1.5 text-xs bg-camelot-gold text-camelot-navy px-3 py-1.5 rounded-lg font-medium hover:bg-camelot-gold-light transition-colors disabled:opacity-50">
-              {packageLoading === 'preview:appendix_full' ? <><Loader2 size={13} className="animate-spin" /> Preparing...</> : <><FileText size={13} /> Proposal & Agreement</>}
+              {packageLoading === 'preview:appendix_full' ? <><Loader2 size={13} className="animate-spin" /> Preparing...</> : <><FileText size={13} /> Property Intelligence Dossier</>}
             </button>
             <button onClick={handleSendEmail} className="flex items-center gap-1.5 text-xs bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors">
               <Mail size={13} /> Quick Email

@@ -1229,7 +1229,7 @@ export default function ReportCenter() {
                   <Eye className="w-4 h-4" /> Board Interview Agenda (15)
                 </button>
                 <button onClick={handlePreviewBrochure} className="px-4 py-2 bg-[#A89035] text-white rounded-lg hover:bg-[#8A7A2C] text-sm font-medium flex items-center gap-2">
-                  <Eye className="w-4 h-4" /> Appendix: Proposal & Agreement
+                  <Eye className="w-4 h-4" /> Property Intelligence Dossier
                 </button>
                 <button onClick={handleDownloadPitchHTML} className="px-4 py-2 bg-[#3A4B5B] text-white rounded-lg hover:bg-[#2d3d4d] text-sm font-medium flex items-center gap-2">
                   <Download className="w-4 h-4" /> Download Selected HTML

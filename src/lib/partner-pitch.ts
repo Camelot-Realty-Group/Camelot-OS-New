@@ -12,6 +12,7 @@
  * the portfolio without disclosing confidential client specifics.
  */
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from './camelot-signature';
+import { GOOGLE_MAPS_KEY } from './maps-key';
 
 export type PartnerAudience = 'law' | 'accounting' | 'audit' | 'brokerage' | 'receivership';
 
@@ -31,9 +32,10 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
 }> = {
   law: {
     title: 'A Management Partner Your Clients Will Thank You For',
-    hook: 'When boards and landlords call you about violations, arrears, governance disputes, or a manager who has stopped responding — the underlying problem is usually management, not law. Camelot is the operator you can put behind your advice.',
+    hook: 'Your practice lives inside co-op and condo boards: governance, compliance, sponsor disagreements that turn into construction litigation, and managers who stop responding. The underlying problem is usually management, not law. Camelot is the operator you can put behind your advice — and when your firm recommends us, your firm stays on with the client.',
     howWeHelp: [
       'Litigation support done right: organized records, responsive staff, and clean financial exhibits when your matters need them',
+      'Sponsor disputes and construction-defect matters backed by field documentation — inspections, photo records, vendor histories, and cost tracking your case can stand on',
       'Violation and agency workstreams coordinated with counsel — HPD, DOB, ECB/OATH — so legal strategy and field response move together',
       'Governance hygiene: board minutes, notices, elections, and house-rule enforcement that reduce the disputes that become retainers nobody enjoys',
       'A responsible transfer path when your client needs to exit a failing management relationship — we run the transition, you protect the client',
@@ -46,12 +48,13 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
   },
   accounting: {
     title: 'Clean Books Start With Clean Management',
-    hook: 'Every accountant who serves boards knows the pain: late records, unreconciled accounts, missing invoices, and a manager who goes quiet in March. Camelot was built by people who refuse to run buildings that way.',
+    hook: 'Every accountant who serves boards knows the pain: late records, unreconciled accounts, missing invoices, and a manager who goes quiet in March. Camelot was built by people who refuse to run buildings that way — and when your firm recommends us, your firm stays on with the client.',
     howWeHelp: [
       'Controller-level in-house accounting: monthly closes, AP with board approval workflows, and reconciliations your staff can rely on',
-      'Year-end packages delivered complete and on time — general ledger, bank statements, invoices, arrears schedules — before you ask',
+      'Year-end packages delivered complete and on time — general ledger, bank statements, invoices, arrears schedules — before you ask, for tax returns, bookkeeping review, and audits',
+      'Audit corrections and recategorizations handled with your team, not against it: when a line item should be classified differently, our controllers make the change, document it, and keep the chart consistent going forward',
+      'Joint board presentations: bring your partner, we bring ours — accountant and manager presenting the year together lands better than either alone',
       'Budget-to-actual discipline boards can read, so your advisory conversations start from real numbers',
-      'A single accountable contact for every request, with response-time standards in writing',
     ],
     whatWeAsk: [
       'When a mutual client’s records arrive late or messy every year, tell them there’s a better way to run the building',
@@ -219,6 +222,29 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
       <p class="body" style="margin-top:24px"><strong>Where we work:</strong> ${MARKETS}.</p>
       <p class="body" style="margin-top:12px"><strong>Where we're going:</strong> disciplined growth — adding well-run buildings and association clients where our operating model raises the standard, backed by the Camelot OS platform that gives every client day-one visibility into their own building's public record.</p>${foot}`),
 
+    // 2B — A Taste of the Camelot Intelligence
+    slide(`<div class="eyebrow">The Platform</div><h2>A Taste of the Camelot Intelligence</h2>
+      <p class="body" style="margin-bottom:16px">Camelot OS is our in-house intelligence platform. Give us any New York address and, in minutes, we assemble the building's full public record — a level of visibility most management companies cannot show a prospect, let alone a partner.</p>
+      <div class="grid3">
+        <div class="card"><strong>Building intelligence on demand.</strong> HPD/DOB/ECB violations, LL97 carbon exposure, permits, energy scores, ACRIS sales history, tax and market data — source-checked and board-ready.</div>
+        <div class="card"><strong>Monthly reporting clients read.</strong> MDS and AppFolio owner packages — balance sheet, income statement, bank reconciliations, disbursements journal, charge &amp; collection analysis — delivered on a calendar.</div>
+        <div class="card"><strong>AI across operations.</strong> Collections, arrears follow-up, repairs, leases, renewals, move-ins/outs, and compliance deadlines tracked by automation so nothing waits on a human remembering.</div>
+      </div>
+      <p class="body" style="margin-top:18px;font-size:13px;color:#8a8174">Ask us to run a live report on any building you or your clients care about — it takes minutes and it's free.</p>${foot}`),
+
+    // 2C — Where We Manage (coverage map)
+    slide(`<div class="eyebrow">Coverage</div><h2>Where We Manage</h2>
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start">
+        <div style="height:430px;border:1px solid rgba(184,151,58,.4);border-radius:8px;overflow:hidden;background:#EDE9DF"><iframe src="https://www.google.com/maps/embed/v1/view?key=${GOOGLE_MAPS_KEY}&center=40.72,-73.95&zoom=10&maptype=roadmap" style="width:100%;height:100%;border:0" loading="lazy" title="Camelot coverage map — New York metro"></iframe></div>
+        <div>
+          <p class="body" style="font-size:14px;margin-bottom:12px">Co-op, condo, HOA, and rental portfolios across the New York metro — headquartered at 57 West 57th Street.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            ${['Manhattan', 'Brooklyn', 'Queens', 'The Bronx', 'Staten Island', 'Riverdale', 'Westchester', 'Long Island', 'New Jersey', 'Connecticut'].map(area => `<div style="border:1px solid rgba(184,151,58,.35);background:#fff;border-radius:7px;padding:9px 12px;font-size:12.5px;font-weight:800;color:#1a2744">${area}</div>`).join('')}
+          </div>
+          <p class="body" style="font-size:12px;color:#8a8174;margin-top:12px">A building-by-building portfolio map is shared in person — we don't publish client addresses in outreach materials.</p>
+        </div>
+      </div>${foot}`),
+
     // 3 — Track record / case studies (rental portfolio set for brokerage & receivership)
     slide(`<div class="eyebrow">Track Record</div><h2>Engagements That Look Like Your Clients</h2>
       ${caseStudiesFor(audience).map(cs => `<div class="card"><strong>${esc(cs.title)}.</strong> ${esc(cs.body)}</div>`).join('')}
@@ -233,6 +259,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
       <div class="grid2">
         <div>
           <p class="body" style="font-weight:700;margin-bottom:10px">We bring your practice:</p>
+          ${audience === 'law' || audience === 'accounting' ? `<div class="card" style="border-left-color:#1a2744"><strong>Loyalty runs both ways.</strong> When your firm recommends Camelot, your firm stays on with the client after the switch — the relationship you brought stays yours. That is a commitment, not a courtesy.</div>` : ''}
           <div class="card">Clients whose buildings run properly — fewer emergencies landing on your desk, better records behind every engagement</div>
           <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
           <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>
@@ -240,6 +267,7 @@ export function generatePartnerPitchDeck(audience: PartnerAudience): string {
         <div>
           <p class="body" style="font-weight:700;margin-bottom:10px">What we ask of you:</p>
           ${copy.whatWeAsk.map(item => `<div class="card">${esc(item)}</div>`).join('')}
+          <div class="card" style="background:#22303a;color:rgba(255,255,255,.9);border-left-color:#F4D26A"><strong style="color:#F4D26A">We're also buyers.</strong> Camelot is actively scaling and always in the market to acquire well-run property management companies. If you represent one — or know an owner thinking about an exit — we'd like that conversation.</div>
         </div>
       </div>${foot}`),
 

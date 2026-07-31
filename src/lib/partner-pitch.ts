@@ -17,7 +17,6 @@
  * Case studies are audience-matched. Engagement history supplied by David
  * Goldoff; confirm client-identifying details before external distribution.
  */
-import { DAVID_GOLDOFF_SIGNATURE_TEXT } from './camelot-signature';
 import { GOOGLE_MAPS_KEY } from './maps-key';
 import { CAMELOT_PORTFOLIO, portfolioLatLngs } from './camelot-portfolio';
 
@@ -577,10 +576,6 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
           <div class="card">Clients whose buildings run properly — fewer emergencies landing on your desk, better records behind every engagement</div>
           <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
           <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>
-          <figure style="margin:10px 0 0">
-            <div style="border:1px solid rgba(184,151,58,.4);overflow:hidden;background:#22303a;box-shadow:0 10px 22px rgba(26,33,48,.12)"><img src="${illus('camelot-legacy.jpg')}" alt="Don't let it be forgot, that for one brief, shining moment there was a Camelot — New Yorkers for New Yorkers" style="width:100%;display:block" onerror="this.parentElement.parentElement.style.display='none'"></div>
-            <figcaption style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#8a8174;font-weight:700;margin-top:5px">The name is a promise — from the Camelot Intel Report</figcaption>
-          </figure>
         </div>
         <div>
           <p class="body" style="font-weight:700;margin-bottom:8px">What we ask of you:</p>
@@ -589,37 +584,70 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
         </div>
       </div>${foot}`),
 
-    // 9 — THE CLOSER (dark, cheeky: coffee / golf / steak + scheduling buttons)
-    sl(`<div style="position:relative;z-index:2;height:100%;display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center;padding-bottom:20px">
+    // 8B — THE NAME IS A PROMISE (mission & vision, full editorial page)
+    sl(`${logo}<div class="kicker">Mission &amp; Vision</div><h2>The Name Is a Promise</h2><div class="rule"></div>
+      <div style="display:grid;grid-template-columns:1.02fr .98fr;gap:26px;align-items:center">
+        <div style="border:1px solid rgba(184,151,58,.45);overflow:hidden;background:#22303a;box-shadow:0 18px 38px rgba(26,33,48,.18)"><img src="${illus('camelot-legacy.jpg')}" alt="Don't let it be forgot, that for one brief, shining moment there was a Camelot — Jackie Kennedy" style="width:100%;display:block" onerror="this.parentElement.style.display='none'"></div>
+        <div>
+          <p class="body dropcap" style="font-size:15px">When Jackie Kennedy borrowed a lyric from the Broadway musical to describe her husband's administration &mdash; <em>"for one brief, shining moment there was a Camelot"</em> &mdash; she wasn't describing a place. She was describing a standard: a moment when things were run with grace, intention, and pride. We took the name because we took the standard.</p>
+          <p class="body" style="font-size:14px;margin-top:12px">Camelot's vision, core values, and mission were built around that spirit: service that feels thoughtful, distinctive, and worthy of the communities we are trusted to protect.</p>
+          <div style="margin-top:14px">
+            ${[
+              ['Senior attention', 'Principals who answer, not ticket queues'],
+              ['Practical technology', 'Camelot OS intelligence working quietly behind every building'],
+              ['In-house accounting', 'Clean numbers, delivered like clockwork'],
+              ['Hands-on management', 'Boots in the lobby, not just names on the agreement'],
+            ].map(([t, c]) => `<div style="display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:baseline;border-top:1px solid rgba(184,151,58,.25);padding:8px 0"><span style="color:#B8973A;font-weight:900">&mdash;</span><span style="font-size:13px;color:#3d4756"><strong style="color:#1a2130">${t}.</strong> ${c}</span></div>`).join('')}
+          </div>
+          <p style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:19px;color:#B8973A;margin-top:12px">New Yorkers for New Yorkers &mdash; a management partner for a New Yorker's state of mind.</p>
+        </div>
+      </div>${foot}`),
+
+    // 9 — THE CLOSER (dark editorial: the invitation)
+    sl(`<div style="position:absolute;inset:0"><img src="${camelotPhoto('skyline-sunset.jpg')}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:.16" onerror="this.style.display='none'"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(120deg,rgba(26,33,48,.97) 30%,rgba(34,48,58,.88) 100%)"></div>
+    <div style="position:relative;z-index:2;height:100%;display:grid;grid-template-columns:1.08fr .92fr;gap:44px;align-items:center;padding-bottom:24px">
       <div>
-        <h1 style="font-size:46px;line-height:1.08">Coffee Is for Closers.<br>Golf Is for Winners.</h1>
-        <p style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:21px;color:rgba(255,255,255,.85);margin-top:12px">And if you don't golf${contactName ? `, ${esc(contactName.split(' ')[0])}` : ''} &mdash; there's always a steak.</p>
-        <div class="rule"></div>
-        <p class="body" style="font-size:15px">Thirty minutes, near ${firmName ? `${esc(firmName)}'s office` : 'your office'} or ours at 57 West 57th Street. Or meet us at the driving range at <strong style="color:#F4D26A">Chelsea Piers Golf Club</strong> &mdash; our favorite conference room, with a 200-yard view of the Hudson. We'll compare notes on the boards and landlords we both serve and find the two or three ways we can make each other's work easier this year.</p>
-        <p class="body" style="margin-top:18px;font-size:13px;line-height:1.8">${esc(DAVID_GOLDOFF_SIGNATURE_TEXT).replace(/\n/g, '<br>')}</p>
+        <div class="kicker" style="color:#F4D26A">The Invitation</div>
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-weight:600;color:#F4D26A;font-size:40px;line-height:1.18">
+          <div>Coffee may be for closers.</div>
+          <div style="height:1px;background:rgba(244,210,106,.35);margin:10px 0;width:72%"></div>
+          <div>Golf is a whole lot more fun.</div>
+          <div style="height:1px;background:rgba(244,210,106,.35);margin:10px 0;width:72%"></div>
+          <div style="color:#fff;font-size:26px">And if you don't like golf${contactName ? `, ${esc(contactName.split(' ')[0])}` : ''} &mdash; there's always steak.</div>
+        </div>
+        <p class="body" style="font-size:14.5px;margin-top:22px;max-width:560px">Thirty minutes, near ${firmName ? `${esc(firmName)}'s office` : 'your office'} or ours at 57 West 57th Street &mdash; or at the driving range at <strong style="color:#F4D26A">Chelsea Piers Golf Club</strong>, our favorite conference room, with a 200-yard view of the Hudson. We'll compare notes on the boards and landlords we both serve and find the two or three ways we can make each other's work easier this year.</p>
+        <div style="margin-top:26px;border-top:1px solid rgba(244,210,106,.3);padding-top:14px;display:flex;align-items:baseline;gap:16px">
+          <span style="font-family:'Great Vibes','Cormorant Garamond',cursive;font-size:34px;color:#F4D26A">David A. Goldoff</span>
+          <span style="font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:rgba(255,255,255,.65)">President &middot; Camelot Property Management Services Corp.</span>
+        </div>
+        <div style="font-size:10.5px;letter-spacing:1.2px;color:rgba(255,255,255,.55);margin-top:6px">(212) 206-9939 x701 &nbsp;&middot;&nbsp; dgoldoff@camelot.nyc &nbsp;&middot;&nbsp; www.camelot.nyc &nbsp;&middot;&nbsp; 57 West 57th Street, Suite 410</div>
       </div>
       <div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="border:1px solid rgba(244,210,106,.4);background:rgba(255,255,255,.04);padding:26px 28px">
+          <div style="text-align:center;font-size:10px;letter-spacing:4px;color:#F4D26A;text-transform:uppercase;margin-bottom:4px">Camelot</div>
+          <div style="text-align:center;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:22px;color:#fff;margin-bottom:14px">The Standing Invitation</div>
+          <div style="height:1px;background:rgba(244,210,106,.35);margin-bottom:6px"></div>
           ${[
-            ['&#9749;', 'Coffee', '57 W 57th, or your corner spot'],
-            ['&#9971;', 'Golf', 'Chelsea Piers driving range'],
-            ['&#127830;', 'Steak', 'You pick the room'],
-            ['&#129309;', 'Boardroom', 'Yours or ours'],
-          ].map(([icon, t, c]) => `<div style="border:1px solid rgba(244,210,106,.4);background:rgba(255,255,255,.06);padding:14px 12px;text-align:center"><div style="font-size:26px;margin-bottom:6px">${icon}</div><div style="font-size:13px;font-weight:900;color:#F4D26A;letter-spacing:1px;text-transform:uppercase">${t}</div><div style="font-size:10.5px;color:rgba(255,255,255,.7);margin-top:3px">${c}</div></div>`).join('')}
+            ['Coffee', '57 W 57th, or your corner spot'],
+            ['Golf', 'Chelsea Piers driving range'],
+            ['Steak', 'You pick the room'],
+            ['Boardroom', 'Yours or ours'],
+          ].map(([t, c]) => `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px dotted rgba(244,210,106,.35);padding:9px 0"><span style="font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:19px;color:#F4D26A">${t}</span><span style="font-size:11px;color:rgba(255,255,255,.75);text-align:right">${c}</span></div>`).join('')}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px">
+            <a href="https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(`Camelot Partnership Discussion${firmName ? ' — ' + firmName : ''}`)}&details=${encodeURIComponent('Please generate a Google Meet link for this Camelot partnership discussion.')}&add=dgoldoff@camelot.nyc" target="_blank" style="border:1px solid #B8973A;background:#B8973A;color:#fff;text-decoration:none;padding:10px 8px;font-size:10.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-align:center">Google Meet</a>
+            <a href="https://zoom.us/start/videomeeting" target="_blank" rel="noopener" style="border:1px solid rgba(244,210,106,.55);color:#F4D26A;text-decoration:none;padding:10px 8px;font-size:10.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-align:center">Zoom</a>
+            <a href="tel:+12122069939;ext=701" style="border:1px solid rgba(244,210,106,.55);color:#F4D26A;text-decoration:none;padding:10px 8px;font-size:10.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-align:center">Call x701</a>
+            <a href="mailto:dgoldoff@camelot.nyc?subject=${encodeURIComponent(`Coffee, golf, or steak${firmName ? ' — ' + firmName : ''}`)}" style="border:1px solid rgba(244,210,106,.55);color:#F4D26A;text-decoration:none;padding:10px 8px;font-size:10.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;text-align:center">Email</a>
+          </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-          <a href="https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(`Camelot Partnership Discussion${firmName ? ' — ' + firmName : ''}`)}&details=${encodeURIComponent('Please generate a Google Meet link for this Camelot partnership discussion.')}&add=dgoldoff@camelot.nyc" target="_blank" style="background:#B8973A;color:#fff;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Schedule &middot; Google Meet</a>
-          <a href="https://zoom.us/start/videomeeting" target="_blank" rel="noopener" style="background:#2D8CFF;color:#fff;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Zoom</a>
-          <a href="tel:+12122069939;ext=701" style="background:#fff;color:#314655;text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Call 212-206-9939 x701</a>
-          <a href="mailto:dgoldoff@camelot.nyc?subject=${encodeURIComponent(`Coffee, golf, or steak${firmName ? ' — ' + firmName : ''}`)}" style="background:rgba(255,255,255,.12);color:#F4D26A;border:1px solid rgba(244,210,106,.5);text-decoration:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700">Email to Schedule</a>
-        </div>
-        <div class="src" style="color:rgba(255,255,255,.55);text-align:center;margin-top:10px">New Yorkers for New Yorkers &mdash; a management partner for a New Yorker's state of mind &middot; ${today}</div>
+        <div style="text-align:center;font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:12px">New Yorkers for New Yorkers &mdash; ${today}</div>
       </div>
     </div>${foot}`, 'dark'),
   ].join('\n');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${stem}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,600&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Great+Vibes&display=swap" rel="stylesheet">
 <style>${css}</style></head>
 <body><div style="position:sticky;top:0;z-index:50;background:#34444f;color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center">
 <div style="font-size:13px;font-weight:900;color:#F4D26A">Camelot Partner Pitch — ${esc(firmName || audienceLabel)}</div>

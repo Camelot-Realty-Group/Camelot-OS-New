@@ -1044,12 +1044,54 @@ app.post('/api/apollo/:proxyPath(org-search|people-search)', async (req, res) =>
 // ============================================================
 // Health check
 // ============================================================
+// ---------------------------------------------------------------------------
+// AI chat proxy — the Merlin bot agent's brain lives server-side so the key
+// never ships in the public bundle (the old static site leaked keys that way).
+// Configure with OPENAI_API_KEY (or AI_API_KEY) in Render → Environment.
+// ---------------------------------------------------------------------------
+const getAiKey = () => process.env.OPENAI_API_KEY || process.env.AI_API_KEY || '';
+const getAiUrl = () => process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
+const getAiModel = () => process.env.AI_MODEL || process.env.VITE_AI_MODEL || 'gpt-4o-mini';
+
+app.post('/api/ai/chat', async (req, res) => {
+  const key = getAiKey();
+  if (!key) {
+    return res.status(400).json({ error: 'AI is not configured. Add OPENAI_API_KEY in Render → Environment and redeploy.' });
+  }
+  const { messages, temperature, max_tokens } = req.body || {};
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages[] required' });
+  }
+  try {
+    const upstream = await fetch(getAiUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: getAiModel(),
+        messages: messages.slice(-40),
+        temperature: typeof temperature === 'number' ? temperature : 0.7,
+        max_tokens: typeof max_tokens === 'number' ? Math.min(max_tokens, 4096) : 2048,
+        stream: false,
+      }),
+    });
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      const msg = data?.error?.message || `AI upstream error ${upstream.status}`;
+      return res.status(upstream.status === 401 ? 401 : 502).json({ error: msg });
+    }
+    return res.json({ content: data.choices?.[0]?.message?.content || '' });
+  } catch (err) {
+    return res.status(502).json({ error: `AI upstream unreachable: ${err?.message || 'unknown error'}` });
+  }
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     version: '7.4.2',
     hubspot: !!getHubSpotApiKey(),
     apollo: !!(process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY),
+    ai: !!getAiKey(),
     timestamp: new Date().toISOString()
   });
 });

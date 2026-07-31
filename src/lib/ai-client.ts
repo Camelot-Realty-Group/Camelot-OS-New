@@ -330,6 +330,35 @@ export function getAIConfig(): AIConfig {
 }
 
 /**
+ * Server-side AI proxy fallback: when no client-side key is configured, the
+ * chat routes through /api/ai/chat where the key lives safely in Render env
+ * (OPENAI_API_KEY). This is what "turns on" the Merlin bot agent without
+ * shipping a secret in the public bundle.
+ */
+async function proxyChatCompletion(
+  messages: AIChatMessage[],
+  options?: { temperature?: number; maxTokens?: number }
+): Promise<string> {
+  const res = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      messages: [{ role: 'system', content: SCOUT_SYSTEM_PROMPT }, ...messages],
+      temperature: options?.temperature,
+      max_tokens: options?.maxTokens,
+    }),
+  });
+  const data = await res.json().catch(() => ({} as any));
+  if (!res.ok) {
+    if (res.status === 400 && /not configured/i.test(data?.error || '')) throw new Error('AI_NOT_CONFIGURED');
+    if (res.status === 401) throw new Error('AI_AUTH_FAILED');
+    if (res.status === 429) throw new Error('AI_RATE_LIMITED');
+    throw new Error(data?.error || `AI proxy error ${res.status}`);
+  }
+  return data.content || 'No response generated.';
+}
+
+/**
  * Send a chat completion request to any OpenAI-compatible endpoint
  */
 export async function chatCompletion(
@@ -343,7 +372,7 @@ export async function chatCompletion(
   const config = getAIConfig();
 
   if (!config.apiUrl || !config.apiKey) {
-    throw new Error('AI_NOT_CONFIGURED');
+    return proxyChatCompletion(messages, options);
   }
 
   const body = {
@@ -395,7 +424,11 @@ export async function chatCompletionStream(
   const config = getAIConfig();
 
   if (!config.apiUrl || !config.apiKey) {
-    throw new Error('AI_NOT_CONFIGURED');
+    // No client-side key: use the server proxy (non-streaming) and deliver
+    // the full reply in one chunk so the chat still works end-to-end.
+    const text = await proxyChatCompletion(messages, options);
+    onChunk(text);
+    return text;
   }
 
   const body = {

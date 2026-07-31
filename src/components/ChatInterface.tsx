@@ -102,7 +102,7 @@ export default function ChatInterface() {
           {
             id: assistantMsgId,
             role: 'assistant',
-            content: '🤖 AI backend not configured. Use the **quick actions** above for pipeline summaries, top leads, email drafts, and more — they work offline.\n\nFor free-text questions, set `VITE_AI_API_URL` in **Settings** (any OpenAI-compatible API works).',
+            content: '🤖 AI backend not configured. Use the **quick actions** above for pipeline summaries, top leads, email drafts, and more — they work offline.\n\nTo turn on free-text chat, add `OPENAI_API_KEY` in **Render → Environment** — the Merlin agent activates automatically on the next deploy.',
             timestamp: new Date(),
           },
         ]);
@@ -166,7 +166,7 @@ export default function ChatInterface() {
 
       let errorContent = 'Sorry, I encountered an error. Please try again.';
       if (err.message === 'AI_NOT_CONFIGURED') {
-        errorContent = '🤖 AI backend not configured. Use the **quick actions** above for pipeline summaries, top leads, email drafts, and more — they work offline.\n\nFor free-text questions, set `VITE_AI_API_URL` in **Settings**.';
+        errorContent = '🤖 AI backend not configured. Use the **quick actions** above for pipeline summaries, top leads, email drafts, and more — they work offline.\n\nTo turn on free-text chat, add `OPENAI_API_KEY` in **Render → Environment**.';
       } else if (err.message === 'AI_AUTH_FAILED') {
         errorContent = '⚠️ AI authentication failed. Please check your API key in **Settings**.';
       } else if (err.message === 'AI_RATE_LIMITED') {

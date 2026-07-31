@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { logContentRun } from '@/lib/marketing-engine';
 import {
   Activity,
   AlertTriangle,
@@ -127,6 +128,15 @@ export default function QAConsole() {
       .then((data: QAReport) => {
         setReport(data);
         setLoadedAt(Date.now());
+        // Every QA review is logged to the database (content_runs, module
+        // 'qa_console') so run history is auditable, not anecdotal.
+        logContentRun({
+          module: 'qa_console',
+          recordsProcessed: data.summary?.totalRoutes ?? data.pages?.length ?? 0,
+          failures: (data.summary?.brokenPages ?? 0) + (data.summary?.missingPackages ?? 0),
+          outputsGenerated: 1,
+          notes: `QA report reviewed in console — broken: ${data.summary?.brokenPages ?? 0}, missing pkgs: ${data.summary?.missingPackages ?? 0}, checks: ${data.checks?.map(c => `${c.name}:${c.status}`).join(', ') || 'n/a'}`,
+        });
       })
       .catch((e) => setError(String(e?.message || e)));
   };

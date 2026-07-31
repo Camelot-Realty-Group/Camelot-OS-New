@@ -1,22 +1,24 @@
 /**
  * PartnerPitches.tsx — dedicated Partner Pitch Decks page.
  *
- * David (July 31 2026): the decks were buried at the bottom of Report Center
- * and the firm-personalization was invisible. This page gives every audience
- * its own card with the firm/contact inputs IN PLAIN SIGHT — type the firm,
- * hit Generate, deck opens personalized and archives to the library.
+ * Every audience card carries the full action set (David, July 31 2026):
+ * open/print, download PDF, download HTML, email the deck as a PDF
+ * attachment to a recipient, and push the firm + activity to HubSpot.
  */
 import { useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
-import { Briefcase, Building2, Calculator, Coffee, FileSearch, Gavel, Landmark } from 'lucide-react';
+import { Briefcase, Building2, Calculator, Download, FileCode, FileSearch, Gavel, Landmark, Link2, Mail, Printer } from 'lucide-react';
 import {
   PARTNER_AUDIENCES,
   buildPartnerPitchFilename,
   generatePartnerPitchDeck,
   type PartnerAudience,
+  type PartnerFirmInfo,
 } from '@/lib/partner-pitch';
-import { openBrochureForPrint } from '@/lib/pdf-generator';
+import { downloadAsHTML, downloadAsPDF, openBrochureForPrint, sendCamelotEmail } from '@/lib/pdf-generator';
 import { saveJackieReportRecord, type SavedJackieReport } from '@/lib/jackie-report-library';
+import { trackReportWorkflowEvent, type ReportWorkflowAction } from '@/lib/report-crm-tracking';
+import type { Building } from '@/types';
 
 const AUDIENCE_ICONS: Record<PartnerAudience, ReactNode> = {
   law: <Gavel size={22} />,
@@ -26,36 +28,160 @@ const AUDIENCE_ICONS: Record<PartnerAudience, ReactNode> = {
   receivership: <Landmark size={22} />,
 };
 
-export default function PartnerPitches() {
-  const [forms, setForms] = useState<Record<string, { firmName: string; contactName: string }>>({});
+interface CardForm { firmName: string; contactName: string; recipientEmail: string; }
+const emptyForm: CardForm = { firmName: '', contactName: '', recipientEmail: '' };
 
-  const setField = (key: PartnerAudience, field: 'firmName' | 'contactName', value: string) =>
+export default function PartnerPitches() {
+  const [forms, setForms] = useState<Record<string, CardForm>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const formFor = (key: PartnerAudience): CardForm => forms[key] || emptyForm;
+  const setField = (key: PartnerAudience, field: keyof CardForm, value: string) =>
     setForms(prev => {
-      const current = prev[key] || { firmName: '', contactName: '' };
+      const current = prev[key] || emptyForm;
       return { ...prev, [key]: { ...current, [field]: value } };
     });
 
-  const generate = (key: PartnerAudience, label: string) => {
-    const firm = { firmName: (forms[key]?.firmName || '').trim(), contactName: (forms[key]?.contactName || '').trim() };
-    const html = generatePartnerPitchDeck(key, firm);
-    const filename = buildPartnerPitchFilename(key, 'pdf', firm);
-    openBrochureForPrint(html, filename);
+  const buildDeck = (key: PartnerAudience) => {
+    const f = formFor(key);
+    const firm: PartnerFirmInfo = { firmName: f.firmName.trim(), contactName: f.contactName.trim() };
+    return {
+      firm,
+      html: generatePartnerPitchDeck(key, firm),
+      pdfName: buildPartnerPitchFilename(key, 'pdf', firm),
+      htmlName: buildPartnerPitchFilename(key, 'html', firm),
+    };
+  };
+
+  const archive = (key: PartnerAudience, label: string, html: string, filename: string, firm: PartnerFirmInfo, note: string) => {
     const record: SavedJackieReport = {
       id: crypto.randomUUID(),
       reportNumber: `PP-${Date.now().toString(36).toUpperCase()}`,
       address: firm.firmName ? `Partner Pitch — ${firm.firmName}` : `Camelot Partner Pitch — ${label}`,
       buildingName: firm.firmName || `Partner Pitch: ${label}`,
       packageType: 'partner_pitch' as SavedJackieReport['packageType'],
-      packageLabel: `Partner Pitch — ${label}${firm.firmName ? ` (${firm.firmName})` : ''}`,
+      packageLabel: `Partner Pitch — ${label}${firm.firmName ? ` (${firm.firmName})` : ''} · ${note}`,
       filename,
       html,
       inquiryContact: firm.contactName || undefined,
+      inquiryEmail: formFor(key).recipientEmail.trim() || undefined,
       focus: [],
       generatedAt: new Date().toISOString(),
     };
     saveJackieReportRecord(record);
-    toast.success(`${firm.firmName || label} deck opened — archived to the report library`);
   };
+
+  /** Synthetic Building so partner firms flow through the same HubSpot pipeline as property leads. */
+  const firmAsBuilding = (key: PartnerAudience, label: string): Building => {
+    const f = formFor(key);
+    return {
+      id: `partner-${key}-${(f.firmName || label).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      address: `${f.firmName || label} (professional partner)`,
+      name: f.firmName || label,
+      type: 'other',
+      grade: 'A',
+      score: 80,
+      score_breakdown: { partner_channel: 80 },
+      signals: [`partner_pitch:${key}`],
+      contacts: f.contactName || f.recipientEmail ? [{
+        name: f.contactName || f.firmName || label,
+        role: 'partner_contact',
+        email: f.recipientEmail.trim() || undefined,
+        company: f.firmName || undefined,
+        source: 'partner_pitch_page',
+      }] : [],
+      enriched_data: { audience: key, channel: 'professional_partner' },
+      status: 'active',
+    } as Building;
+  };
+
+  const trackAction = (key: PartnerAudience, label: string, action: ReportWorkflowAction, filename: string, html: string) => {
+    const f = formFor(key);
+    void trackReportWorkflowEvent({
+      building: firmAsBuilding(key, label),
+      packageType: 'partner_pitch',
+      packageLabel: `Partner Pitch — ${label}${f.firmName ? ` (${f.firmName})` : ''}`,
+      action,
+      filename,
+      html,
+      recipients: f.recipientEmail.trim() ? [f.recipientEmail.trim()] : [],
+      metadata: { audience: key, firmName: f.firmName, contactName: f.contactName },
+    });
+  };
+
+  const run = async (key: PartnerAudience, label: string, kind: 'open' | 'pdf' | 'html' | 'email' | 'hubspot') => {
+    const busyKey = `${key}:${kind}`;
+    if (busy) return;
+    setBusy(busyKey);
+    try {
+      const { firm, html, pdfName, htmlName } = buildDeck(key);
+      const f = formFor(key);
+      if (kind === 'open') {
+        openBrochureForPrint(html, pdfName);
+        archive(key, label, html, pdfName, firm, 'opened');
+        trackAction(key, label, 'generated', pdfName, html);
+        toast.success(`${firm.firmName || label} deck opened — archived to the library`);
+      } else if (kind === 'pdf') {
+        await downloadAsPDF(html, pdfName);
+        archive(key, label, html, pdfName, firm, 'PDF downloaded');
+        trackAction(key, label, 'downloaded', pdfName, html);
+        toast.success(`PDF downloading — ${pdfName}`);
+      } else if (kind === 'html') {
+        await downloadAsHTML(html, htmlName);
+        archive(key, label, html, htmlName, firm, 'HTML downloaded');
+        trackAction(key, label, 'downloaded', htmlName, html);
+        toast.success(`HTML downloading — ${htmlName}`);
+      } else if (kind === 'email') {
+        const to = f.recipientEmail.trim();
+        if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+          toast.error('Enter the recipient’s email on this card first');
+          return;
+        }
+        toast.loading('Rendering PDF and sending…', { id: busyKey });
+        const firstName = (f.contactName || '').split(' ')[0];
+        const result = await sendCamelotEmail({
+          to,
+          replyTo: 'dgoldoff@camelot.nyc',
+          subject: `Camelot Property Management × ${f.firmName || label}`,
+          html: `<p>${firstName ? `Dear ${firstName},` : 'Hello,'}</p>
+<p>Thank you for the opportunity to introduce Camelot Property Management. Attached is a short deck on who we are, the portfolio we manage across New York, and the specific ways we work alongside ${f.firmName ? f.firmName : label.toLowerCase()} — including our commitment that when your firm recommends Camelot, your firm stays on with the client.</p>
+<p>Thirty minutes over coffee — or a bucket of balls at Chelsea Piers — and we’ll find the two or three ways we can make each other’s work easier this year.</p>
+<p>Warm regards,<br><strong>David A. Goldoff</strong><br>President, Camelot Property Management Services Corp.<br>(212) 206-9939 x701 &middot; dgoldoff@camelot.nyc &middot; www.camelot.nyc</p>`,
+          reportHtml: html,
+          attachmentFilename: pdfName,
+        });
+        toast.dismiss(busyKey);
+        if (!result.ok) {
+          toast.error(result.error || 'Send failed — check RESEND_API_KEY in Render');
+        } else {
+          archive(key, label, html, pdfName, firm, `emailed to ${to}`);
+          trackAction(key, label, 'email_sent', pdfName, html);
+          toast.success(`Sent to ${to} with ${pdfName} attached`);
+        }
+      } else if (kind === 'hubspot') {
+        toast.loading('Pushing to HubSpot…', { id: busyKey });
+        archive(key, label, html, pdfName, firm, 'pushed to HubSpot');
+        trackAction(key, label, 'hubspot_push', pdfName, html);
+        toast.dismiss(busyKey);
+        toast.success(`${f.firmName || label} queued to HubSpot with the deck activity`);
+      }
+    } catch (e: any) {
+      toast.dismiss(busyKey);
+      toast.error(e?.message || 'Action failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const actionBtn = (key: PartnerAudience, label: string, kind: 'open' | 'pdf' | 'html' | 'email' | 'hubspot', icon: ReactNode, text: string, cls: string) => (
+    <button
+      onClick={() => void run(key, label, kind)}
+      disabled={busy !== null}
+      className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-[11px] font-bold ${cls} disabled:opacity-50`}
+    >
+      {icon} {text}
+    </button>
+  );
 
   return (
     <div className="min-h-screen bg-[#F7F4ED]">
@@ -70,10 +196,9 @@ export default function PartnerPitches() {
           </div>
         </div>
         <p className="text-slate-600 mt-4 max-w-4xl leading-relaxed">
-          Firm-level decks for the professionals who put management companies in front of boards and landlords.
-          Type the firm and contact so the cover, working-together page, and coffee invite speak to them by name —
-          or leave blank for the generic version. Every deck includes who Camelot is, the Camelot OS intelligence
-          teaser, the coverage map, case studies, the loyalty promise, and the M&amp;A conversation starter.
+          Type the firm, the contact, and (for sending) their email. Then: open and print, download as PDF or HTML,
+          email the deck as a PDF attachment, or push the firm and activity straight into HubSpot. Every action
+          archives to the report library and logs to the database.
         </p>
       </div>
 
@@ -92,30 +217,38 @@ export default function PartnerPitches() {
               </div>
               <div className="space-y-2 mt-3 flex-1">
                 <input
-                  value={forms[aud.key]?.firmName || ''}
+                  value={formFor(aud.key).firmName}
                   onChange={e => setField(aud.key, 'firmName', e.target.value)}
                   placeholder="Firm / company name (personalizes the deck)"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 />
                 <input
-                  value={forms[aud.key]?.contactName || ''}
+                  value={formFor(aud.key).contactName}
                   onChange={e => setField(aud.key, 'contactName', e.target.value)}
                   placeholder="Contact name (optional)"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                 />
+                <input
+                  value={formFor(aud.key).recipientEmail}
+                  onChange={e => setField(aud.key, 'recipientEmail', e.target.value)}
+                  placeholder="Recipient email (for Email + HubSpot)"
+                  type="email"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                />
               </div>
-              <button
-                onClick={() => generate(aud.key, aud.label)}
-                className="mt-4 w-full px-4 py-2.5 bg-[#5B4A1F] text-white rounded-lg hover:bg-[#473916] text-sm font-semibold flex items-center justify-center gap-2"
-              >
-                <Coffee size={15} /> Generate {forms[aud.key]?.firmName ? `for ${forms[aud.key].firmName}` : 'Deck'}
-              </button>
+              <div className="grid grid-cols-3 gap-1.5 mt-4">
+                {actionBtn(aud.key, aud.label, 'open', <Printer size={13} />, 'Open', 'bg-[#5B4A1F] text-white hover:bg-[#473916] col-span-3')}
+                {actionBtn(aud.key, aud.label, 'pdf', <Download size={13} />, 'PDF', 'bg-[#1a2744] text-white hover:bg-[#26375c]')}
+                {actionBtn(aud.key, aud.label, 'html', <FileCode size={13} />, 'HTML', 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50')}
+                {actionBtn(aud.key, aud.label, 'hubspot', <Link2 size={13} />, 'HubSpot', 'bg-orange-500 text-white hover:bg-orange-600')}
+                {actionBtn(aud.key, aud.label, 'email', <Mail size={13} />, 'Email PDF to Recipient', 'bg-emerald-700 text-white hover:bg-emerald-800 col-span-3')}
+              </div>
             </div>
           ))}
         </div>
         <p className="text-xs text-slate-500 mt-6">
-          Generated decks archive to the Report Library (Engagement Reports page), log to the database under
-          New Business Leads and Pitches, and queue to HubSpot with the firm and contact attached.
+          Email sends from the Camelot server (Resend) with the PDF attached and your reply-to set to dgoldoff@camelot.nyc.
+          HubSpot pushes create/update the firm with the contact, deck name, sender, date, and a follow-up task.
         </p>
       </main>
     </div>

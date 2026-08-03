@@ -63,6 +63,7 @@ type DetailReportPreview = {
   label: string;
   html: string;
   filename: string;
+  consistencyClean: boolean;
 };
 
 function uniqueContactEmails(contacts: Contact[]) {
@@ -376,22 +377,27 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
 
   const buildDetailPackage = async (reportPackage: DetailReportPackage) => {
     const data = await buildJackieDataForDetail();
+    let html: string;
+    let filename: string;
     if (reportPackage === 'appendix_full') {
       const { generateBrochureHTML, buildJackieIntelReportFilename } = await import('@/lib/camelot-report');
-      return {
-        data,
-        html: generateBrochureHTML(data),
-        filename: buildJackieIntelReportFilename(data, 'pdf'),
-      };
+      html = generateBrochureHTML(data);
+      filename = buildJackieIntelReportFilename(data, 'pdf');
+    } else {
+      const { generateJackieReportPackage, buildJackiePackageFilename } = await import('@/lib/pitch-report');
+      html = generateJackieReportPackage(data, reportPackage);
+      filename = buildJackiePackageFilename(data, reportPackage, 'pdf');
     }
-    const { generateJackieReportPackage, buildJackiePackageFilename } = await import('@/lib/pitch-report');
-    const html = generateJackieReportPackage(data, reportPackage);
-    // Cross-page fact consistency gate: warn loudly when the rendered
-    // report contradicts the building's canonical data (unit counts,
-    // stories, year built) so nothing conflicting reaches a prospect.
+    // Cross-page fact consistency gate: the report contradicts the
+    // building's canonical data (unit counts, stories, year built) when
+    // this comes back false. Callers that actually send/download the
+    // report externally must block on it; preview is allowed through so
+    // the team can see and fix the issue.
+    let consistencyClean = true;
     try {
       const { checkReportConsistency, summarizeConsistencyFindings } = await import('@/lib/report-consistency');
       const consistency = checkReportConsistency(data, html);
+      consistencyClean = consistency.clean;
       if (!consistency.clean) {
         toast.error(
           `Fact check: this report contradicts building data — review before sending.\n${summarizeConsistencyFindings(consistency)}`,
@@ -401,23 +407,20 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
     } catch (err) {
       console.warn('Consistency check skipped:', err);
     }
-    return {
-      data,
-      html,
-      filename: buildJackiePackageFilename(data, reportPackage, 'pdf'),
-    };
+    return { data, html, filename, consistencyClean };
   };
 
   const handlePreviewPackage = async (reportPackage: DetailReportPackage) => {
     setPackageLoading(`preview:${reportPackage}`);
     try {
       toast.loading(`Preparing ${DETAIL_REPORT_LABELS[reportPackage]} preview...`, { id: 'detail-report-preview' });
-      const { data, html, filename } = await buildDetailPackage(reportPackage);
+      const { data, html, filename, consistencyClean } = await buildDetailPackage(reportPackage);
       setReportPreview({
         reportPackage,
         label: DETAIL_REPORT_LABELS[reportPackage],
         html,
         filename,
+        consistencyClean,
       });
       void trackReportWorkflowEvent({
         building: guardedBuilding,
@@ -439,6 +442,10 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
 
   const handleDownloadPreviewPDF = async () => {
     if (!reportPreview) return;
+    if (!reportPreview.consistencyClean) {
+      toast.error('Blocked: this report contradicts building data (cross-page fact check failed). Fix before downloading.', { duration: 8000 });
+      return;
+    }
     setPackageLoading(`download:${reportPreview.reportPackage}`);
     try {
       toast.loading(`Creating compressed ${reportPreview.label} PDF...`, { id: 'detail-report-pdf' });
@@ -462,6 +469,10 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
 
   const handlePrintPreview = () => {
     if (!reportPreview) return;
+    if (!reportPreview.consistencyClean) {
+      toast.error('Blocked: this report contradicts building data (cross-page fact check failed). Fix before printing.', { duration: 8000 });
+      return;
+    }
     openBrochureForPrint(reportPreview.html, reportPreview.filename);
     void trackReportWorkflowEvent({
       building: guardedBuilding,
@@ -476,6 +487,10 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
 
   const handleEmailPreviewDraft = async () => {
     if (!reportPreview) return;
+    if (!reportPreview.consistencyClean) {
+      toast.error('Blocked: this report contradicts building data (cross-page fact check failed). Fix before emailing.', { duration: 8000 });
+      return;
+    }
     const contacts = guardedBuilding.contacts || [];
     const recipients = uniqueContactEmails(contacts);
     const contactList = contactDirectory(contacts);
@@ -521,7 +536,11 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
     setPackageLoading(`email:${reportPackage}`);
     try {
       toast.loading(`Preparing ${DETAIL_REPORT_LABELS[reportPackage]} email draft...`, { id: 'detail-report-email' });
-      const { data, html, filename } = await buildDetailPackage(reportPackage);
+      const { data, html, filename, consistencyClean } = await buildDetailPackage(reportPackage);
+      if (!consistencyClean) {
+        toast.error('Blocked: this report contradicts building data (cross-page fact check failed). Fix before emailing.', { id: 'detail-report-email', duration: 8000 });
+        return;
+      }
       // Self-healing recipients: if no decision-makers are saved yet, run
       // discovery (Apollo via server key + HPD registration) before the
       // draft opens, so the email is addressed automatically.
@@ -567,7 +586,7 @@ export default function PropertyDetail({ building, onClose, onUpdate }: Property
         emailBody: body,
         recipients,
       });
-      setReportPreview({ reportPackage, label: DETAIL_REPORT_LABELS[reportPackage], html, filename });
+      setReportPreview({ reportPackage, label: DETAIL_REPORT_LABELS[reportPackage], html, filename, consistencyClean });
       toast.success(
         recipients.length
           ? 'PDF downloaded and addressed email draft opened — attach the PDF from Downloads'

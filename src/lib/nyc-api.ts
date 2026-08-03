@@ -5,6 +5,7 @@
 
 import type { HPDViolation, DOFProperty, DOBPermit, LL97Energy, ACRISRecord, ACRISParty, ACRISData } from '@/types';
 import { detectBuildingOperations } from '@/lib/building-ops';
+import { lookupSpireManagedBuilding } from '@/lib/spire';
 import {
   fetchECBViolations, fetchHousingLitigation, fetchRentStabilization,
   totalECBPenaltyBalance, hasActiveLitigation, isRentStabilized,
@@ -1134,12 +1135,16 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
     }
   }
 
-  let [violations, registration, dofData, permits, energy] = await Promise.all([
+  let [violations, registration, dofData, permits, energy, spireMatch] = await Promise.all([
     withTimeout(fetchHPDViolations(address, borough), [] as HPDViolation[]),
     withTimeout(fetchHPDRegistration(address, borough), [] as any[]),
     withTimeout(fetchDOFProperty(address, borough), [] as DOFProperty[]),
     withTimeout(fetchDOBPermits(address, borough), [] as DOBPermit[]),
     withTimeout(fetchLL97Energy(address), [] as LL97Energy[]),
+    // Camelot's own managed-portfolio unit counts (Spire MDS), when this
+    // address is a building Camelot already manages — takes priority over
+    // the DOF/PLUTO estimate below since it's the actual rent roll.
+    withTimeout(lookupSpireManagedBuilding(address), null, 5000),
   ]);
 
   // Extract key data from DOF
@@ -1302,9 +1307,11 @@ export async function fetchFullBuildingReport(address: string, borough?: string)
           assessedValue: parseFloat((dof as any).avtot || (dof as any).assesstot) || 0,
           landValue: parseFloat((dof as any).avland || (dof as any).assessland) || 0,
           yearBuilt: parseInt(dof.yearbuilt) || 0,
-          units: parseInt(dof.unitsres) || parseInt(dof.unitstotal) || 0,
-          unitsResidential: parseInt(dof.unitsres) || 0,
-          unitsTotalAll: parseInt(dof.unitstotal) || 0,
+          units: spireMatch?.unitsTotal || parseInt(dof.unitsres) || parseInt(dof.unitstotal) || 0,
+          // Spire (Camelot's own rent roll) beats the DOF/PLUTO estimate
+          // whenever this is a building Camelot actively manages.
+          unitsResidential: spireMatch?.unitsResidential || parseInt(dof.unitsres) || 0,
+          unitsTotalAll: spireMatch?.unitsTotal || parseInt(dof.unitstotal) || 0,
           lotArea: parseFloat(dof.lotarea) || 0,
           buildingArea: parseFloat((dof as any).bldgarea || (dof as any).resarea) || 0,
           stories: parseInt(dof.numfloors) || 0,

@@ -1,0 +1,20 @@
+# Camelot OS Cost-Cutting Analysis Engine Dependencies
+
+# Claude AI API
+anthropic>=0.25.0
+
+# Google Cloud & APIs
+google-auth-oauthlib>=1.2.0
+google-auth-transport-requests>=2.1.0
+google-api-python-client>=2.108.0
+gspread>=5.12.0
+
+# Document Generation
+python-docx>=0.8.11
+
+# Supabase (PostgreSQL + Auth)
+supabase>=2.3.5
+
+# Utilities
+python-dotenv>=1.0.0
+requests>=2.31.0

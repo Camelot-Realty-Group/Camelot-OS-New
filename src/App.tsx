@@ -40,6 +40,7 @@ const TemplateBilling = lazy(() => import('@/pages/TemplateBilling'));
 const Templates = lazy(() => import('@/pages/Templates'));
 const PartnerPitches = lazy(() => import('@/pages/PartnerPitches'));
 const TradedNY = lazy(() => import('@/pages/TradedNY'));
+const CostCuttingTool = lazy(() => import('@/pages/CostCuttingTool'));
 
 function page(Page: ComponentType) {
   return (
@@ -95,6 +96,7 @@ export default function App() {
           <Route path="/reports" element={page(Reports)} />
           <Route path="/report-center" element={page(ReportCenter)} />
           <Route path="/partner-pitches" element={page(PartnerPitches)} />
+          <Route path="/cost-cutting" element={page(CostCuttingTool)} />
           <Route path="/traded-ny" element={page(TradedNY)} />
           <Route path="/agreements" element={page(Agreements)} />
           <Route path="/sentinel" element={page(Sentinel)} />

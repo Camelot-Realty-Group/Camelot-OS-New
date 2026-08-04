@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1572,6 +1573,9 @@ app.post('/api/templates/generate', async (req, res) => {
     res.status(500).json({ error: err.message || 'Document generation failed' });
   }
 });
+
+// Cost-Cutting Analysis Routes
+app.use(costCuttingRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'dist'), { fallthrough: true }));

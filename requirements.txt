@@ -4,8 +4,9 @@
 anthropic>=0.25.0
 
 # Google Cloud & APIs
+google-auth>=2.25.0
 google-auth-oauthlib>=1.2.0
-google-auth-transport-requests>=2.1.0
+google-auth-httplib2>=0.2.0
 google-api-python-client>=2.108.0
 gspread>=5.12.0
 

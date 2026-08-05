@@ -16,10 +16,20 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const router = express.Router();
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// Lazy Supabase initialization (only when needed, not at module load)
+let supabaseInstance = null;
+function getSupabase() {
+  if (!supabaseInstance) {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+      throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
+    }
+    supabaseInstance = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
+  }
+  return supabaseInstance;
+}
 
 // ============================================================================
 // POST /api/cost-analysis/run

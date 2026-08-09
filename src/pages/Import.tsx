@@ -135,13 +135,25 @@ export default function Import() {
   };
 
   const parseWorkbook = async (file: File): Promise<{ headers: string[]; rows: Record<string, string>[] }> => {
-    const XLSX = await import('xlsx');
+    const ExcelJS = await import('exceljs');
     const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const firstSheet = workbook.SheetNames[0];
-    if (!firstSheet) return { headers: [], rows: [] };
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(workbook.Sheets[firstSheet], { defval: '' });
-    const headers = rows.length ? Object.keys(rows[0]) : [];
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) return { headers: [], rows: [] };
+
+    const headerRow = worksheet.getRow(1);
+    const headers = Array.from({ length: worksheet.columnCount }, (_, index) =>
+      headerRow.getCell(index + 1).text.trim()
+    );
+    const rows: Record<string, string>[] = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const record = Object.fromEntries(
+        headers.map((header, index) => [header, row.getCell(index + 1).text])
+      );
+      if (Object.values(record).some((value) => value.trim())) rows.push(record);
+    });
     return { headers, rows };
   };
 
@@ -161,14 +173,14 @@ export default function Import() {
   };
 
   const handleFile = useCallback(async (file: File) => {
-    if (!file.name.match(/\.(csv|tsv|txt|xlsx|xls)$/i)) {
-      toast.error('Please upload a CSV, TSV, TXT, XLSX, or XLS file');
+    if (!file.name.match(/\.(csv|tsv|txt|xlsx)$/i)) {
+      toast.error('Please upload a CSV, TSV, TXT, or XLSX file');
       return;
     }
 
     setFileName(file.name);
     try {
-      const { headers, rows } = file.name.match(/\.(xlsx|xls)$/i)
+      const { headers, rows } = file.name.match(/\.xlsx$/i)
         ? await parseWorkbook(file)
         : parseCSV(await file.text());
       setCsvHeaders(headers);
@@ -422,7 +434,7 @@ export default function Import() {
             <FileSpreadsheet size={48} className={cn('mx-auto mb-4', isDragging ? 'text-camelot-gold' : 'text-gray-400')} />
             <h3 className="text-lg font-bold mb-2">Drop your property list here</h3>
             <p className="text-sm text-gray-500 mb-4">or click to browse</p>
-            <p className="text-xs text-gray-400">Supports: XLSX, XLS, CSV, TSV, TXT. Required field: property address.</p>
+            <p className="text-xs text-gray-400">Supports: XLSX, CSV, TSV, TXT. Required field: property address.</p>
             <div className="flex justify-center gap-4 mt-6">
               {['PropertyShark List', 'Excel Workbook', 'Google Sheets CSV', 'Generic CSV'].map((fmt) => (
                 <span key={fmt} className="text-xs bg-gray-100 text-gray-500 px-3 py-1 rounded-full">{fmt}</span>

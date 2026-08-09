@@ -9,6 +9,11 @@ BEGIN
     'content_campaigns', 'content_items', 'content_approvals', 'content_sources',
     'content_assets', 'content_leads', 'content_conversions', 'content_runs'
   ] LOOP
+    -- Some production projects predate the Content Engine migration. Keep this
+    -- hardening migration safe and idempotent in those environments.
+    IF to_regclass('public.' || quote_ident(table_name)) IS NULL THEN
+      CONTINUE;
+    END IF;
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', table_name);
     EXECUTE format('REVOKE ALL ON TABLE %I FROM anon', table_name);
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE %I TO authenticated', table_name);

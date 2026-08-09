@@ -111,7 +111,7 @@ const shortCommit = git('git rev-parse --short HEAD');
 const branch = git('git rev-parse --abbrev-ref HEAD');
 let remoteUrl = git('git config --get remote.origin.url');
 // Normalize to a github.com slug if possible (proxy URLs won't link, fall back to env override).
-const GH_SLUG = process.env.QA_GITHUB_SLUG || 'Camelot-Realty-Group/camelot-scout-v6';
+const GH_SLUG = process.env.QA_GITHUB_SLUG || 'Camelot-Realty-Group/Camelot-OS-New';
 const blobBase = `https://github.com/${GH_SLUG}/blob/${commit || branch || 'main'}`;
 function blob(absFile, line) {
   const rel = relative(root, absFile).split('\\').join('/');

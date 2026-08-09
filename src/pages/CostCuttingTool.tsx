@@ -13,6 +13,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Clock, DollarSign, TrendingDown, Mail, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { authenticatedApiFetch } from '../lib/api-auth';
 
 interface CostAnalysis {
   id: string;
@@ -84,7 +85,7 @@ export default function CostCuttingTool() {
     setSuccessMessage('');
 
     try {
-      const response = await fetch('/api/cost-analysis/run', {
+      const response = await authenticatedApiFetch('/api/cost-analysis/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,11 +94,10 @@ export default function CostCuttingTool() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Analysis failed: ${response.statusText}`);
-      }
-
       const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || `Analysis failed: ${response.statusText}`);
+      }
 
       // Fetch the analysis from database
       if (result.analysis?.id) {
@@ -140,7 +140,7 @@ export default function CostCuttingTool() {
     setError('');
 
     try {
-      const response = await fetch(`/api/cost-analysis/${analysis.id}/send-proposal`, {
+      const response = await authenticatedApiFetch(`/api/cost-analysis/${analysis.id}/send-proposal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,9 +148,9 @@ export default function CostCuttingTool() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to send proposal');
-
       const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to send proposal');
+
       setSuccessMessage(`Proposal sent to ${proposalEmail}`);
       setShowProposalForm(false);
       setProposalEmail('');
@@ -178,7 +178,7 @@ export default function CostCuttingTool() {
     setError('');
 
     try {
-      const response = await fetch(`/api/cost-analysis/${analysis.id}/accept`, {
+      const response = await authenticatedApiFetch(`/api/cost-analysis/${analysis.id}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -186,9 +186,8 @@ export default function CostCuttingTool() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to accept proposal');
-
       const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to accept proposal');
       setSuccessMessage(`Proposal accepted! Invoice ${result.invoice.qb_invoice_id} created.`);
 
       // Refresh

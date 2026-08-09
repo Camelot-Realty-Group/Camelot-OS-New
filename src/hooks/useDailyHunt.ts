@@ -152,7 +152,7 @@ export function useDailyHunt() {
     } finally {
       setLoading(false);
     }
-  }, [applyFilters, filter]);
+  }, [filter]);
 
   useEffect(() => {
     reload();

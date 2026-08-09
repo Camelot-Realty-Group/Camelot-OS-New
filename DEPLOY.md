@@ -5,10 +5,12 @@ serves the built frontend from `dist/` **and** powers the `/api/*` backend
 (HubSpot sync, Apollo enrichment, Scout scan/report, Daily Hunt, building
 brand research).
 
-## One-time: switch Render from Static Site to Web Service
+## Production Render services
 
-The old static site (`camelot-scout-v6.onrender.com`) can't be converted in
-place — create the web service, then retire the static one.
+The canonical full-stack service is `https://camelot-os.onrender.com`. The
+legacy `https://camelotos-dashboard-v12.onrender.com` static-site hostname is
+retained only as a permanent redirect so existing bookmarks reach the Node
+service and never run without `/api/*` support.
 
 1. Render dashboard → **New +** → **Web Service**
 2. Connect repo: `Camelot-Realty-Group/Camelot-OS-New`, branch `main`
@@ -18,8 +20,8 @@ place — create the web service, then retire the static one.
    - Start Command: `npm start`
    - Health Check Path: `/api/health`
 4. Add Environment Variables (see below)
-5. Deploy, verify, then **suspend/delete the old static site** and share the
-   new URL with the team.
+5. Deploy and verify `/api/health`, protected-route authentication, and the
+   legacy-host redirect before sharing the URL with the team.
 
 Free tier sleeps after 15 min of inactivity (30–60 s wake). Starter ($7/mo)
 is always-on — recommended once the team uses it daily.

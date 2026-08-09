@@ -162,7 +162,7 @@ CMD ["serve", "-s", "dist", "-l", "3000"]
 ## File Structure
 
 ```
-camelot-scout-v6/
+Camelot-OS-New/
 ├── .env.example              # Environment variable template
 ├── package.json
 ├── vite.config.ts

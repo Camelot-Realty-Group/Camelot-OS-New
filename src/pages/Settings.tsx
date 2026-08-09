@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { getSupabaseStatusMessage, isSupabaseConfigured } from '@/lib/supabase';
-import { isAIConfigured, getAIConfig } from '@/lib/ai-client';
-import { isEnrichmentConfigured } from '@/lib/enrichment';
 import { cn } from '@/lib/utils';
 import {
   Settings as SettingsIcon, CheckCircle, XCircle, Shield, Users,
@@ -21,12 +19,24 @@ export default function Settings() {
   const { members } = useAuth();
   const [activeSection, setActiveSection] = useState<'status' | 'api' | 'team' | 'company'>('status');
   const [hubSpotConfigured, setHubSpotConfigured] = useState(false);
+  const [serverConfig, setServerConfig] = useState({ apollo: false, prospeo: false, ai: false, aiModel: '' });
 
   useEffect(() => {
     fetch('/api/integrations/status')
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setHubSpotConfigured(Boolean(data?.hubspot?.configured)))
-      .catch(() => setHubSpotConfigured(false));
+      .then((data) => {
+        setHubSpotConfigured(Boolean(data?.hubspot?.configured));
+        setServerConfig({
+          apollo: Boolean(data?.enrichment?.apolloConfigured),
+          prospeo: Boolean(data?.enrichment?.prospeoConfigured),
+          ai: Boolean(data?.ai?.configured),
+          aiModel: String(data?.ai?.model || ''),
+        });
+      })
+      .catch(() => {
+        setHubSpotConfigured(false);
+        setServerConfig({ apollo: false, prospeo: false, ai: false, aiModel: '' });
+      });
   }, []);
 
   // Check service statuses — each API listed individually
@@ -69,13 +79,13 @@ export default function Settings() {
     },
     {
       name: 'Apollo.io',
-      configured: isEnrichmentConfigured().apollo,
-      details: isEnrichmentConfigured().apollo ? 'API key set — contact enrichment active' : 'Set VITE_APOLLO_API_KEY for contact enrichment',
+      configured: serverConfig.apollo,
+      details: serverConfig.apollo ? 'Server-side enrichment configured' : 'Deploy the Node server and set APOLLO_API_KEY',
     },
     {
       name: 'Prospeo',
-      configured: isEnrichmentConfigured().prospeo,
-      details: isEnrichmentConfigured().prospeo ? 'API key set — email verification active' : 'Set VITE_PROSPEO_API_KEY for email verification fallback',
+      configured: serverConfig.prospeo,
+      details: serverConfig.prospeo ? 'Server-side verification configured' : 'Deploy the Node server and set PROSPEO_API_KEY',
     },
     {
       name: 'HubSpot CRM',
@@ -84,10 +94,10 @@ export default function Settings() {
     },
     {
       name: 'AI Chat',
-      configured: isAIConfigured(),
-      details: isAIConfigured()
-        ? `Connected — Model: ${getAIConfig().model}`
-        : 'Not configured — set VITE_AI_API_URL, VITE_AI_API_KEY, VITE_AI_MODEL. Supports any OpenAI-compatible API.',
+      configured: serverConfig.ai,
+      details: serverConfig.ai
+        ? `Connected — Model: ${serverConfig.aiModel}`
+        : 'Not configured — deploy the Node server and set AI_API_URL, AI_API_KEY, and AI_MODEL.',
     },
   ];
 
@@ -196,8 +206,8 @@ export default function Settings() {
                 {[
                   {
                     label: 'AI Chat (OpenAI-compatible)',
-                    envVars: ['VITE_AI_API_URL', 'VITE_AI_API_KEY', 'VITE_AI_MODEL'],
-                    configured: isAIConfigured(),
+                    envVars: ['AI_API_URL', 'AI_API_KEY', 'AI_MODEL'],
+                    configured: serverConfig.ai,
                     description: 'Works with OpenAI, OpenRouter, Anthropic proxy, local LLMs (Ollama/LM Studio), or any OpenAI-compatible endpoint.',
                   },
                   {
@@ -208,14 +218,14 @@ export default function Settings() {
                   },
                   {
                     label: 'Apollo.io',
-                    envVars: ['VITE_APOLLO_API_KEY'],
-                    configured: isEnrichmentConfigured().apollo,
+                    envVars: ['APOLLO_API_KEY'],
+                    configured: serverConfig.apollo,
                     description: 'Contact enrichment — find board members, owners, supers with email/phone.',
                   },
                   {
                     label: 'Prospeo',
-                    envVars: ['VITE_PROSPEO_API_KEY'],
-                    configured: isEnrichmentConfigured().prospeo,
+                    envVars: ['PROSPEO_API_KEY'],
+                    configured: serverConfig.prospeo,
                     description: 'Email verification and mobile number lookup fallback.',
                   },
                   {

@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,7 +13,32 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json({ limit: '15mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 function getHubSpotApiKey() {
-  return process.env.HUBSPOT_PRIVATE_APP_TOKEN || process.env.HUBSPOT_API_KEY || process.env.VITE_HUBSPOT_API_KEY || '';
+  return process.env.HUBSPOT_PRIVATE_APP_TOKEN || process.env.HUBSPOT_API_KEY || '';
+}
+
+let supabaseAuthClient;
+function getSupabaseAuthClient() {
+  if (supabaseAuthClient) return supabaseAuthClient;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !anonKey || /placeholder/i.test(`${url}${anonKey}`)) return null;
+  supabaseAuthClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  return supabaseAuthClient;
+}
+
+async function requireApiUser(req, res, next) {
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return res.status(401).json({ error: 'Authentication required.' });
+  const authClient = getSupabaseAuthClient();
+  if (!authClient) return res.status(503).json({ error: 'Server authentication is not configured.' });
+  try {
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data.user) return res.status(401).json({ error: 'Invalid or expired session.' });
+    req.camelotUser = data.user;
+    return next();
+  } catch {
+    return res.status(401).json({ error: 'Could not verify the current session.' });
+  }
 }
 
 function getScoutConfig() {
@@ -413,6 +439,10 @@ console.log('Scout integration config:', {
   hubspotApiKey: Boolean(getHubSpotApiKey()),
 });
 
+// Private integration credentials are server-only. Require a verified
+// Supabase user before any browser request can consume them.
+app.use(['/api/hubspot', '/api/apollo', '/api/prospeo', '/api/spire', '/api/ai', '/api/email/send'], requireApiUser);
+
 app.post('/api/hubspot/contacts', async (req, res) => {
   const apiKey = getHubSpotApiKey();
   if (!apiKey) {
@@ -434,7 +464,7 @@ app.post('/api/hubspot/contacts', async (req, res) => {
       return res.status(resp.status).json(data);
     }
     console.log('HubSpot: Contact created, id:', data.id);
-    res.json(data);
+    res.status(resp.ok ? 200 : resp.status).json(data);
   } catch (err) {
     console.error('HubSpot contacts proxy error:', err);
     res.status(500).json({ error: err.message || 'HubSpot proxy error — check server logs' });
@@ -720,11 +750,19 @@ app.get('/api/integrations/status', (_req, res) => {
       tasksEnabled: String(process.env.HUBSPOT_CREATE_TASKS || '').toLowerCase() === 'true',
       associationEndpoint: '/crm/v3/associations contacts-companies, companies-deals, contacts-deals batch/create',
     },
+    enrichment: {
+      apolloConfigured: Boolean(process.env.APOLLO_API_KEY),
+      prospeoConfigured: Boolean(process.env.PROSPEO_API_KEY),
+    },
+    ai: {
+      configured: Boolean(process.env.OPENAI_API_KEY || process.env.AI_API_KEY),
+      model: process.env.AI_MODEL || process.env.VITE_AI_MODEL || 'gpt-4o-mini',
+    },
     timestamp: new Date().toISOString(),
   });
 });
 
-app.get('/api/integrations/local-leads', (_req, res) => {
+app.get('/api/integrations/local-leads', requireApiUser, (_req, res) => {
   res.json({
     leads: LOCAL_SCOUT_LEADS,
     count: LOCAL_SCOUT_LEADS.length,
@@ -732,7 +770,7 @@ app.get('/api/integrations/local-leads', (_req, res) => {
   });
 });
 
-app.post('/api/daily-hunt/run', async (req, res) => {
+app.post('/api/daily-hunt/run', requireApiUser, async (req, res) => {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const functionUrl = supabaseUrl && !/placeholder/i.test(supabaseUrl)
@@ -804,7 +842,7 @@ app.post('/api/daily-hunt/run', async (req, res) => {
   }
 });
 
-app.post('/api/integrations/push-building', async (req, res) => {
+app.post('/api/integrations/push-building', requireApiUser, async (req, res) => {
   const body = req.body || {};
   const building = body.building || {};
   const contact = body.contact || {};
@@ -995,7 +1033,7 @@ app.post('/api/integrations/push-building', async (req, res) => {
 });
 
 app.post('/api/apollo/enrich', async (req, res) => {
-  const apiKey = process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY;
+  const apiKey = process.env.APOLLO_API_KEY;
   if (!apiKey) {
     return res.status(400).json({ error: 'Apollo API key not configured. Add APOLLO_API_KEY in Render environment.' });
   }
@@ -1003,12 +1041,18 @@ app.post('/api/apollo/enrich', async (req, res) => {
     const resp = await fetch('https://api.apollo.io/v1/people/match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...req.body, api_key: apiKey }),
+      body: JSON.stringify({
+        first_name: String(req.body?.first_name || '').slice(0, 100),
+        last_name: String(req.body?.last_name || '').slice(0, 100),
+        organization_name: String(req.body?.organization_name || '').slice(0, 200),
+        domain: String(req.body?.domain || '').slice(0, 255),
+        api_key: apiKey,
+      }),
     });
     const text = await resp.text();
     let data;
     try { data = JSON.parse(text); } catch { data = { error: text || 'Empty response' }; }
-    res.json(data);
+    res.status(resp.ok ? 200 : resp.status).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message || 'Apollo proxy error' });
   }
@@ -1023,7 +1067,7 @@ const APOLLO_PROXY_PATHS = {
   'people-search': 'https://api.apollo.io/v1/people/search',
 };
 app.post('/api/apollo/:proxyPath(org-search|people-search)', async (req, res) => {
-  const apiKey = process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY;
+  const apiKey = process.env.APOLLO_API_KEY;
   if (!apiKey) {
     return res.status(400).json({ error: 'Apollo API key not configured. Add APOLLO_API_KEY in Render environment.' });
   }
@@ -1039,6 +1083,29 @@ app.post('/api/apollo/:proxyPath(org-search|people-search)', async (req, res) =>
     res.status(resp.ok ? 200 : resp.status).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message || 'Apollo proxy error' });
+  }
+});
+
+app.post('/api/prospeo/find-email', async (req, res) => {
+  const apiKey = process.env.PROSPEO_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'Prospeo API key not configured.' });
+  try {
+    const upstream = await fetch('https://api.prospeo.io/api/v1/email-finder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-KEY': apiKey },
+      body: JSON.stringify({
+        first_name: String(req.body?.first_name || '').slice(0, 100),
+        last_name: String(req.body?.last_name || '').slice(0, 100),
+        company_name: String(req.body?.company_name || '').slice(0, 200),
+        domain: String(req.body?.domain || '').slice(0, 255),
+      }),
+    });
+    const text = await upstream.text();
+    let payload;
+    try { payload = JSON.parse(text); } catch { payload = { error: text || 'Empty response' }; }
+    return res.status(upstream.ok ? 200 : upstream.status).json(payload);
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Prospeo proxy error' });
   }
 });
 
@@ -1196,9 +1263,9 @@ app.post('/api/ai/chat', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '7.4.2',
+    version: '10.0.0',
     hubspot: !!getHubSpotApiKey(),
-    apollo: !!(process.env.APOLLO_API_KEY || process.env.VITE_APOLLO_API_KEY),
+    apollo: !!process.env.APOLLO_API_KEY,
     ai: !!getAiKey(),
     spire: !!(process.env.SPIRE_MDS_API_KEY && process.env.SPIRE_MDS_CLIENT_SECRET),
     timestamp: new Date().toISOString()

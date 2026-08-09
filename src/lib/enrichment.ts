@@ -3,49 +3,35 @@
  */
 
 import type { Contact } from '@/types';
-
-const APOLLO_BASE = 'https://api.apollo.io/v1';
-const PROSPEO_BASE = 'https://api.prospeo.io';
+import { authenticatedApiFetch } from '@/lib/api-auth';
 
 /**
  * Call an Apollo search endpoint. Prefers the same-origin server proxy
  * (/api/apollo/org-search | people-search), which uses the SERVER-side
  * APOLLO_API_KEY configured in Render — so enrichment works in production
- * with no key in the browser bundle. Falls back to calling Apollo directly
- * with VITE_APOLLO_API_KEY (local dev). Returns null when neither path is
- * available.
+ * with no key in the browser bundle. Returns null when the authenticated
+ * server proxy is unavailable.
  */
 async function apolloSearch(
   proxyPath: 'org-search' | 'people-search',
-  directPath: string,
+  _directPath: string,
   body: Record<string, unknown>,
 ): Promise<any | null> {
   // 1. Server proxy (production runtime)
   try {
-    const res = await fetch(`/api/apollo/${proxyPath}`, {
+    const res = await authenticatedApiFetch(`/api/apollo/${proxyPath}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (res.ok) return await res.json();
+    return null;
     // 400 = server has no key; 404 = old server build — fall through
   } catch {
     // static hosting / dev without server — fall through to direct
   }
   // 2. Direct with browser key (dev)
-  const apiKey = import.meta.env.VITE_APOLLO_API_KEY;
-  if (!apiKey) return null;
-  try {
-    const res = await fetch(`${APOLLO_BASE}${directPath}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**
@@ -64,7 +50,7 @@ export async function enrichWithApollo(params: {
       per_page: 5,
     });
     if (!orgData) {
-      console.warn('Apollo enrichment unavailable (no server proxy key and no VITE_APOLLO_API_KEY)');
+      console.warn('Apollo enrichment unavailable through the authenticated server proxy.');
       return [];
     }
     const org = orgData.organizations?.[0];
@@ -114,19 +100,10 @@ export async function enrichWithProspeo(params: {
   company?: string;
   domain?: string;
 }): Promise<{ email?: string; phone?: string }> {
-  const apiKey = import.meta.env.VITE_PROSPEO_API_KEY;
-  if (!apiKey) {
-    console.warn('Prospeo API key not configured');
-    return {};
-  }
-
   try {
-    const res = await fetch(`${PROSPEO_BASE}/api/v1/email-finder`, {
+    const res = await authenticatedApiFetch('/api/prospeo/find-email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-KEY': apiKey,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         first_name: params.firstName,
         last_name: params.lastName,
@@ -185,8 +162,9 @@ export async function enrichBuildingContacts(params: {
  * Check if enrichment APIs are configured
  */
 export function isEnrichmentConfigured(): { apollo: boolean; prospeo: boolean } {
+  const serverRuntime = String(import.meta.env.VITE_RUNTIME_MODE || '').toLowerCase() === 'server';
   return {
-    apollo: !!import.meta.env.VITE_APOLLO_API_KEY,
-    prospeo: !!import.meta.env.VITE_PROSPEO_API_KEY,
+    apollo: serverRuntime,
+    prospeo: serverRuntime,
   };
 }

@@ -11,7 +11,7 @@ The old static site (`camelot-scout-v6.onrender.com`) can't be converted in
 place — create the web service, then retire the static one.
 
 1. Render dashboard → **New +** → **Web Service**
-2. Connect repo: `Camelot-Realty-Group/camelot-scout-v6`, branch `main`
+2. Connect repo: `Camelot-Realty-Group/Camelot-OS-New`, branch `main`
 3. Settings (should auto-fill from `render.yaml`):
    - Runtime: **Node**
    - Build Command: `npm ci && npm run build`
@@ -35,6 +35,9 @@ is always-on — recommended once the team uses it daily.
 | `VITE_SUPABASE_URL` | your project URL | Team logins + persistent data |
 | `VITE_SUPABASE_ANON_KEY` | your anon key | Team logins + persistent data |
 
+Set matching `SUPABASE_URL` and `SUPABASE_ANON_KEY` server-side so protected
+API routes can verify the signed-in Supabase user.
+
 Without the Supabase pair the app runs in **demo mode** (works, but no logins
 and nothing persists).
 
@@ -44,6 +47,7 @@ and nothing persists).
 | --- | --- | --- |
 | `HUBSPOT_PRIVATE_APP_TOKEN` | HubSpot → Settings → Integrations → Private Apps → Create app → grant `crm.objects.*` read/write scopes → copy token | CRM contact/company/deal sync |
 | `APOLLO_API_KEY` | apollo.io → Settings → API | Contact enrichment |
+| `PROSPEO_API_KEY` | Prospeo account API settings | Email verification fallback |
 | `HUBSPOT_DEAL_STAGE_ID` (optional) | HubSpot → Settings → Objects → Deals → Pipelines (stage internal ID) | Deal creation in pipeline |
 | `HUBSPOT_PIPELINE_ID` (optional) | Same page (pipeline internal ID) | Deal pipeline targeting |
 | `HUBSPOT_CREATE_TASKS` (optional) | set to `true` | Follow-up task creation |
@@ -55,8 +59,8 @@ are baked in at build time). Server-side keys take effect on restart.
 ## Supabase setup (team logins)
 
 1. Create a project at supabase.com (Project Settings → API has the URL + anon key)
-2. SQL Editor → run ALL `supabase/migrations/` files in order (001 → 010;
-   note there are two files prefixed `009_` — run both)
+2. SQL Editor → run ALL `supabase/migrations/` files in filename order through
+   `014_harden_content_rls.sql` (there are two files prefixed `009_`; run both)
 3. Auth → Users → create accounts for:
    - dgoldoff@camelot.nyc (David Goldoff — Owner)
    - sam@camelot.nyc (Sam Lodge — Tech Lead)

@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
 export default function Sentinel() {
-  const realtyMxConfigured = Boolean(import.meta.env.VITE_REALTYMX_API_KEY);
+  const realtyMxConfigured = false;
   const [input, setInput] = useState<SentinelInput>({ ...DEFAULT_SENTINEL_INPUT, realtyMxEnabled: realtyMxConfigured });
   const [generated, setGenerated] = useState(false);
   const [subjectGenerated, setSubjectGenerated] = useState(false);
@@ -114,7 +114,7 @@ export default function Sentinel() {
             </div>
             <div className="hidden md:flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border rounded-lg px-3 py-2">
               <ShieldAlert size={14} className="text-camelot-gold" />
-              {realtyMxConfigured ? 'RealtyMX key detected.' : 'RealtyMX-ready; public-source fallback stays active.'}
+              {realtyMxConfigured ? 'RealtyMX server integration active.' : 'RealtyMX is not connected; public-source fallback stays active.'}
             </div>
           </div>
 

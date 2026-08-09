@@ -1,4 +1,4 @@
-# 🏰 Camelot Scout v6
+# Camelot OS V10
 
 **Property Intelligence & Lead Generation Platform**  
 Built for Camelot Property Management Services Corp.
@@ -32,16 +32,18 @@ npm run build
 |----------|---------|-----------|
 | `VITE_SUPABASE_URL` | Supabase project URL | For persistent data (demo mode works without) |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key | For persistent data |
+| `SUPABASE_URL` | Supabase project URL | Server authentication |
+| `SUPABASE_ANON_KEY` | Supabase anon key | Server authentication |
 
 ### Optional Services
 | Variable | Purpose |
 |----------|---------|
-| `VITE_AI_API_URL` | OpenAI-compatible API endpoint for Scout AI chat |
-| `VITE_AI_API_KEY` | API key for the AI endpoint |
-| `VITE_AI_MODEL` | Model name (default: `gpt-4o`) |
-| `VITE_APOLLO_API_KEY` | Apollo.io for contact enrichment |
-| `VITE_PROSPEO_API_KEY` | Prospeo for email verification |
-| `VITE_HUBSPOT_API_KEY` | HubSpot CRM sync |
+| `AI_API_URL` | OpenAI-compatible API endpoint (server only) |
+| `AI_API_KEY` or `OPENAI_API_KEY` | AI provider credential (server only) |
+| `AI_MODEL` | Server model name (default: `gpt-4o-mini`) |
+| `APOLLO_API_KEY` | Apollo.io contact enrichment (server only) |
+| `PROSPEO_API_KEY` | Prospeo email verification (server only) |
+| `HUBSPOT_PRIVATE_APP_TOKEN` | HubSpot CRM sync (server only) |
 | `VITE_GOOGLE_MAPS_API_KEY` | Google Maps embeds |
 
 ### What Works Without Any Configuration

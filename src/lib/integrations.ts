@@ -1,4 +1,5 @@
 import type { Building, Contact } from '@/types';
+import { authenticatedApiFetch } from '@/lib/api-auth';
 
 export type LeadTier = 'hot' | 'warm' | 'cold' | 'review';
 
@@ -29,6 +30,14 @@ export interface IntegrationStatus {
     dealsEnabled: boolean;
     tasksEnabled?: boolean;
     associationEndpoint: string;
+  };
+  enrichment?: {
+    apolloConfigured: boolean;
+    prospeoConfigured: boolean;
+  };
+  ai?: {
+    configured: boolean;
+    model: string;
   };
   timestamp: string;
 }
@@ -319,7 +328,7 @@ export async function pushBuildingToIntegrations(building: Building): Promise<In
   }
 
   try {
-    const response = await fetch('/api/integrations/push-building', {
+    const response = await authenticatedApiFetch('/api/integrations/push-building', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

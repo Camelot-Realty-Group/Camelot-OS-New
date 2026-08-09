@@ -22,17 +22,42 @@ services:
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
+      # Server-side copies are required to validate Supabase access tokens.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       # --- server-side integration keys (set values in Render dashboard) ---
       - key: HUBSPOT_PRIVATE_APP_TOKEN
         sync: false
       - key: APOLLO_API_KEY
         sync: false
+      - key: PROSPEO_API_KEY
+        sync: false
+      - key: AI_API_URL
+        value: https://api.openai.com/v1/chat/completions
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gpt-4o-mini
       - key: SPIRE_MDS_API_KEY
         sync: false
       - key: SPIRE_MDS_CLIENT_SECRET
         sync: false
-      # optional: enable HubSpot deal sync
-      # - key: HUBSPOT_DEAL_STAGE_ID
-      #   sync: false
-      # - key: HUBSPOT_PIPELINE_ID
-      #   sync: false
+      # Configure these to create Traded NY opportunities in the sales pipeline.
+      - key: HUBSPOT_DEAL_STAGE_ID
+        sync: false
+      - key: HUBSPOT_PIPELINE_ID
+        sync: false
+      - key: HUBSPOT_PORTAL_ID
+        sync: false
+      - key: HUBSPOT_CREATE_TASKS
+        value: "false"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_ADDRESS
+        sync: false
+      - key: RESEND_WEBHOOK_SECRET
+        sync: false

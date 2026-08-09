@@ -17,16 +17,18 @@ const html = `<!doctype html>
     <title>Opening Camelot OS</title>
     <script>
       (() => {
+        const query = new URLSearchParams(window.location.search);
+        query.set('legacyRedirect', '1');
         const destination = 'https://camelot-os.onrender.com'
           + window.location.pathname
-          + window.location.search
+          + '?' + query.toString()
           + window.location.hash;
         window.location.replace(destination);
       })();
     </script>
   </head>
   <body>
-    <p>Opening <a href="https://camelot-os.onrender.com/">Camelot OS</a>…</p>
+    <p>Opening <a href="https://camelot-os.onrender.com/?legacyRedirect=1">Camelot OS</a>&hellip;</p>
   </body>
 </html>
 `;

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { FileText, Download, Loader2, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import { authenticatedApiFetch } from '@/lib/api-auth';
 import {
   DOCUMENT_TEMPLATES,
   getTemplatesByCategory,
@@ -72,7 +73,7 @@ function TemplateFillPanel({ template, onClose }: { template: DocumentTemplate; 
     }
     setBusy(true);
     try {
-      const res = await fetch('/api/templates/generate', {
+      const res = await authenticatedApiFetch('/api/templates/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ templateId: template.id, answers }),

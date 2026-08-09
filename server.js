@@ -450,7 +450,20 @@ console.log('Scout integration config:', {
 
 // Private integration credentials are server-only. Require a verified
 // Supabase user before any browser request can consume them.
-app.use(['/api/hubspot', '/api/apollo', '/api/prospeo', '/api/spire', '/api/ai', '/api/email/send', '/api/cost-analysis'], requireApiUser);
+app.use([
+  '/api/hubspot',
+  '/api/apollo',
+  '/api/prospeo',
+  '/api/spire',
+  '/api/ai',
+  '/api/email/send',
+  '/api/email/events',
+  '/api/building/brand',
+  '/api/scout',
+  '/api/core',
+  '/api/templates',
+  '/api/cost-analysis',
+], requireApiUser);
 
 app.post('/api/hubspot/contacts', async (req, res) => {
   const apiKey = getHubSpotApiKey();

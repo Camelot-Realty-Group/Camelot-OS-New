@@ -1,4 +1,5 @@
 import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
+import { authenticatedApiFetch } from '@/lib/api-auth';
 /**
  * Camelot Master Report System
  * Combines building intelligence + pitch deck + market data into one unified report.
@@ -1544,7 +1545,7 @@ async function fetchOfficialBuildingBranding(address: string, buildingName: stri
     if (typeof window === 'undefined') return null;
     if (String(import.meta.env.VITE_DISABLE_SERVER_INTEGRATIONS || '').toLowerCase() === 'true') return null;
     const params = new URLSearchParams({ address, name: buildingName || address });
-    const res = await fetch(`/api/building/brand?${params.toString()}`);
+    const res = await authenticatedApiFetch(`/api/building/brand?${params.toString()}`);
     if (!res.ok) return null;
     return await res.json();
   } catch {

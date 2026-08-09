@@ -280,7 +280,7 @@ export const CONTENT_LIBRARY: ContentItem[] = [
     seoKeyword: 'private equity property management NYC',
     excerpt: 'A board-facing article explaining how consolidation changes service quality, response time, and accountability.',
     body: 'Private equity consolidation is changing the way many NYC buildings experience property management. Camelot can use this piece to explain why direct senior attention, clean reporting, and local accountability matter to boards evaluating their options.',
-    cta: 'Contact Camelot at info@camelot.nyc or (212) 206-9939 to discuss your building.',
+    cta: 'Email info@camelot.nyc or request a quote at https://www.camelot.nyc/get-a-quote/.',
     safetyFlags: ['No competitor names', 'No personal cell', 'CTA verified'],
     score: 91,
   },
@@ -295,7 +295,7 @@ export const CONTENT_LIBRARY: ContentItem[] = [
     seoKeyword: 'NYC property management newsletter',
     excerpt: 'Monthly email template for boards: market updates, compliance reminders, and Camelot operating notes.',
     body: 'This newsletter gives board members a concise read on local market conditions, compliance deadlines, recent Camelot insights, and one practical management tip they can use immediately.',
-    cta: 'Reply to schedule a Zoom, Google Meet, or phone call with Camelot.',
+    cta: 'Email info@camelot.nyc or request a quote at https://www.camelot.nyc/get-a-quote/.',
     safetyFlags: ['Unsubscribe required before sending', 'No resident data', 'Office phone only'],
     score: 86,
   },
@@ -310,7 +310,7 @@ export const CONTENT_LIBRARY: ContentItem[] = [
     seoKeyword: 'condo reserve planning NYC',
     excerpt: 'A 200-word LinkedIn post about reserve discipline, capital planning, and avoiding emergency assessments.',
     body: 'Reserve planning is not just accounting. It is governance, asset preservation, and resident trust. Camelot can position this post around proactive capital planning and transparent reporting.',
-    cta: 'Learn more at camelot.nyc.',
+    cta: 'Request a quote at https://www.camelot.nyc/get-a-quote/ or email info@camelot.nyc.',
     safetyFlags: ['Under 3 hashtags', 'No guarantees', 'No legal advice'],
     score: 89,
   },
@@ -324,7 +324,7 @@ export const CONTENT_LIBRARY: ContentItem[] = [
     scheduledAt: nextDate(3, 11),
     excerpt: 'A photo-led post showing Camelot as a local operator with neighborhood familiarity.',
     body: 'Use neighborhood imagery, a concise caption, and a warm Camelot voice to reinforce that Camelot is a local team serving local buildings.',
-    cta: 'Visit www.camelot.nyc.',
+    cta: 'Request a quote at https://www.camelot.nyc/get-a-quote/ or email info@camelot.nyc.',
     safetyFlags: ['Image rights review required', 'Hashtags limited', 'No personal cell'],
     score: 82,
   },
@@ -345,7 +345,7 @@ Content style: NYT investigative/editorial for long-form articles. No dedicated 
 
 Image rule: use real source images first with attribution. AI fallback must be labeled "Illustration: Camelot Property Management".
 
-Required CTA: info@camelot.nyc, dgoldoff@camelot.nyc, www.camelot.nyc, or (212) 206-9939. Never include David's personal cell phone number.
+Required CTA: info@camelot.nyc or https://www.camelot.nyc/get-a-quote/. Never include David's personal cell phone number.
 
 Workflow: Generated -> Pending Review -> Approved -> Scheduled -> Published -> Analytics. No auto-publish.
 `.trim();

@@ -55,6 +55,16 @@ export default function TradedNY() {
         <div className="mt-3 text-xs text-slate-500 max-w-4xl">
           Contact discovery does not imply permission to send. Review source, business relevance, suppression status, and applicable outreach requirements before approval.
         </div>
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-camelot-gold/30 bg-camelot-gold/5 px-4 py-3 text-sm">
+          <span className="font-semibold text-slate-800">Approved prospect response:</span>
+          <a href="mailto:info@camelot.nyc" className="font-semibold text-camelot-gold underline underline-offset-2">
+            info@camelot.nyc
+          </a>
+          <span className="text-slate-400">or</span>
+          <a href="https://www.camelot.nyc/get-a-quote/" target="_blank" rel="noopener" className="inline-flex items-center gap-1 font-semibold text-camelot-gold underline underline-offset-2">
+            Get a Quote <ArrowUpRight size={13} />
+          </a>
+        </div>
         {error && <div className="mt-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2">{error}</div>}
       </div>
 

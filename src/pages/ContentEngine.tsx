@@ -105,7 +105,7 @@ export default function ContentEngine() {
       seoKeyword: 'NYC property management for co-ops',
       excerpt: `Draft content package focused on ${topic}.`,
       body: `Camelot can turn this topic into a blog article, social variants, email excerpt, and video outline. This draft is intentionally held in pending review so no content can go live until approved by the Camelot team.`,
-      cta: 'Contact Camelot at info@camelot.nyc or (212) 206-9939.',
+      cta: 'Email info@camelot.nyc or request a quote at https://www.camelot.nyc/get-a-quote/.',
       safetyFlags: ['No personal cell', 'Human approval required', 'CTA verified'],
       score: 84,
     };

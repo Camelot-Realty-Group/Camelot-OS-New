@@ -104,6 +104,7 @@ export const APPROVED_CONTACTS = {
   generalEmail: 'info@camelot.nyc',
   davidEmail: 'dgoldoff@camelot.nyc',
   website: 'www.camelot.nyc',
+  quoteUrl: 'https://www.camelot.nyc/get-a-quote/',
   office: '(212) 206-9939',
 } as const;
 
@@ -138,9 +139,9 @@ export function runBrandSafetyCheck(body: string, opts?: { isImageAi?: boolean; 
   }
 
   // 2. Required CTA: at least one approved contact route.
-  const hasApprovedCta = [APPROVED_CONTACTS.generalEmail, APPROVED_CONTACTS.davidEmail, 'camelot.nyc', '212) 206-9939', '212-206-9939'].some(c => text.toLowerCase().includes(c.toLowerCase()));
+  const hasApprovedCta = [APPROVED_CONTACTS.generalEmail, APPROVED_CONTACTS.quoteUrl].some(c => text.toLowerCase().includes(c.toLowerCase()));
   if (!hasApprovedCta) {
-    findings.push({ rule: 'required_cta', severity: 'block', detail: 'No approved CTA found. Every piece must route to info@camelot.nyc, dgoldoff@camelot.nyc, www.camelot.nyc, or (212) 206-9939.' });
+    findings.push({ rule: 'required_cta', severity: 'block', detail: `No approved CTA found. Every piece must route to ${APPROVED_CONTACTS.generalEmail} or ${APPROVED_CONTACTS.quoteUrl}.` });
   }
 
   // 3. Banned framing: government representation, inside knowledge, guaranteed cures.
@@ -182,25 +183,26 @@ export type FunnelStage = 'awareness' | 'consideration' | 'high_intent' | 'inves
 
 export const CTA_HIERARCHY: Record<FunnelStage, string[]> = {
   awareness: [
+    `Learn more and request a quote: ${APPROVED_CONTACTS.quoteUrl}`,
     'Read the full Camelot analysis',
     'Follow Camelot for NYC building insights',
-    `Visit ${APPROVED_CONTACTS.website}`,
   ],
   consideration: [
-    'Request a management review',
+    `Request a management review: ${APPROVED_CONTACTS.quoteUrl}`,
     'Schedule a building operations discussion',
     `Email ${APPROVED_CONTACTS.generalEmail}`,
   ],
   high_intent: [
+    `Request a property-management quote: ${APPROVED_CONTACTS.quoteUrl}`,
+    `Email ${APPROVED_CONTACTS.generalEmail}`,
     'Schedule a compliance audit',
     'Discuss a property-management proposal',
-    'Speak with Camelot Brokerage Services Corp.',
-    `Call ${APPROVED_CONTACTS.office}`,
   ],
   investment_partnership: [
+    `Start a confidential inquiry: ${APPROVED_CONTACTS.quoteUrl}`,
+    `Email ${APPROVED_CONTACTS.generalEmail}`,
     'Discuss a local operating partnership',
     'Explore co-investment or management opportunities',
-    `Email ${APPROVED_CONTACTS.davidEmail}`,
   ],
 };
 

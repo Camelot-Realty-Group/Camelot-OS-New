@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-16T20:19:30.537Z",
+  "generatedAt": "2026-08-09T19:39:01.324Z",
   "git": {
     "branch": "main",
-    "commit": "01068f90cd767b69e17cac235533ff5af12b4b90",
-    "shortCommit": "01068f90",
-    "remoteUrl": "https://github.com/Camelot-Realty-Group/camelot-scout-v6.git",
-    "githubSlug": "Camelot-Realty-Group/camelot-scout-v6",
-    "blobBase": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90"
+    "commit": "728dc9a3f330c43c7e322544f5bd555b1c9ea9c2",
+    "shortCommit": "728dc9a3",
+    "remoteUrl": "https://github.com/Camelot-Realty-Group/Camelot-OS-New.git",
+    "githubSlug": "Camelot-Realty-Group/Camelot-OS-New",
+    "blobBase": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2"
   },
   "baseline": {
     "ref": "124e56c",
@@ -18,178 +18,368 @@
       {
         "status": "M",
         "file": "src/App.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/App.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/App.tsx"
+      },
+      {
+        "status": "A",
+        "file": "src/api/cost-cutting-routes.mjs",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/api/cost-cutting-routes.mjs"
+      },
+      {
+        "status": "A",
+        "file": "src/components/BuildingIntelPanel.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/BuildingIntelPanel.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/components/ChatInterface.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/ChatInterface.tsx"
       },
       {
         "status": "M",
         "file": "src/components/Layout.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/components/Layout.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/Layout.tsx"
       },
       {
         "status": "A",
         "file": "src/components/OfflineBanner.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/components/OfflineBanner.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/OfflineBanner.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/components/PropertyCard.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/PropertyCard.tsx"
       },
       {
         "status": "M",
         "file": "src/components/PropertyDetail.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/components/PropertyDetail.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/PropertyDetail.tsx"
       },
       {
         "status": "A",
         "file": "src/components/VersionStamp.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/components/VersionStamp.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/components/VersionStamp.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/hooks/useBuildings.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/hooks/useBuildings.ts"
       },
       {
         "status": "M",
         "file": "src/hooks/useDailyHunt.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/hooks/useDailyHunt.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/hooks/useDailyHunt.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/hooks/useTradedDeals.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/hooks/useTradedDeals.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/ai-client.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/ai-client.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/api-auth.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/api-auth.ts"
       },
       {
         "status": "A",
         "file": "src/lib/app-version.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/app-version.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/app-version.ts"
       },
       {
         "status": "A",
         "file": "src/lib/bot-hubspot-reporting.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/bot-hubspot-reporting.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/bot-hubspot-reporting.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/building-photos.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/building-photos.ts"
       },
       {
         "status": "A",
         "file": "src/lib/camelot-bot-operating-model.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/camelot-bot-operating-model.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/camelot-bot-operating-model.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/camelot-portfolio.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/camelot-portfolio.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/camelot-report.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/camelot-report.ts"
       },
       {
         "status": "A",
         "file": "src/lib/cta-scenarios.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/cta-scenarios.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/cta-scenarios.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/document-templates.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/document-templates.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/enrichment.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/enrichment.ts"
       },
       {
         "status": "M",
         "file": "src/lib/excalibur.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/excalibur.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/excalibur.ts"
       },
       {
         "status": "A",
         "file": "src/lib/fact-packet.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/fact-packet.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/fact-packet.ts"
       },
       {
         "status": "M",
         "file": "src/lib/integrations.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/integrations.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/integrations.ts"
       },
       {
         "status": "A",
         "file": "src/lib/jackie-engine.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/jackie-engine.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/jackie-engine.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/jackie-report-library.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/jackie-report-library.ts"
       },
       {
         "status": "M",
         "file": "src/lib/jackie-v2-orchestrator.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/jackie-v2-orchestrator.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/jackie-v2-orchestrator.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/ll97-calculator.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/ll97-calculator.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/maps-key.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/maps-key.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/marketing-engine.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/marketing-engine.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/nyc-api.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/nyc-api.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/partner-pitch.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/partner-pitch.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/pdf-generator.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/pdf-generator.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/pitch-report.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/pitch-report.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/report-consistency.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/report-consistency.ts"
       },
       {
         "status": "M",
         "file": "src/lib/report-crm-tracking.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/report-crm-tracking.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/report-crm-tracking.ts"
       },
       {
         "status": "A",
         "file": "src/lib/runtime-mode.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/runtime-mode.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/runtime-mode.ts"
       },
       {
         "status": "M",
         "file": "src/lib/scout-ai-doctrines.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/scout-ai-doctrines.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/scout-ai-doctrines.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/lib/sentinel-report.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/sentinel-report.ts"
+      },
+      {
+        "status": "A",
+        "file": "src/lib/spire.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/spire.ts"
       },
       {
         "status": "M",
         "file": "src/lib/supabase.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/supabase.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/supabase.ts"
       },
       {
         "status": "A",
         "file": "src/lib/template-billing.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/template-billing.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/template-billing.ts"
       },
       {
         "status": "M",
         "file": "src/lib/twin-knowledge.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/lib/twin-knowledge.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/lib/twin-knowledge.ts"
+      },
+      {
+        "status": "D",
+        "file": "src/navigation",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/navigation"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/Agreements.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Agreements.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/Arthur.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Arthur.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/Bots.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Bots.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Bots.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/ContentEngine.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/ContentEngine.tsx"
+      },
+      {
+        "status": "A",
+        "file": "src/pages/CostCuttingTool.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/CostCuttingTool.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/DailyHunt.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/DailyHunt.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/DailyHunt.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/Import.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Import.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Import.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/InstantProposal.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/InstantProposal.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/Integrations.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Integrations.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Integrations.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/Outreach.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Outreach.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Outreach.tsx"
+      },
+      {
+        "status": "A",
+        "file": "src/pages/PartnerPitches.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/PartnerPitches.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/Pipeline.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Pipeline.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Pipeline.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/Proposals.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Proposals.tsx"
       },
       {
         "status": "A",
         "file": "src/pages/QAConsole.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/QAConsole.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/QAConsole.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/ReportCenter.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/ReportCenter.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/ReportCenter.tsx"
       },
       {
         "status": "M",
         "file": "src/pages/Results.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Results.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Results.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/Search.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Search.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/Sentinel.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Sentinel.tsx"
+      },
+      {
+        "status": "M",
+        "file": "src/pages/Settings.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Settings.tsx"
       },
       {
         "status": "A",
         "file": "src/pages/TemplateBilling.tsx",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/TemplateBilling.tsx"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/TemplateBilling.tsx"
+      },
+      {
+        "status": "A",
+        "file": "src/pages/Templates.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Templates.tsx"
+      },
+      {
+        "status": "A",
+        "file": "src/pages/TradedNY.tsx",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/TradedNY.tsx"
       },
       {
         "status": "M",
         "file": "src/types/index.ts",
-        "link": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/types/index.ts"
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/types/index.ts"
+      },
+      {
+        "status": "M",
+        "file": "src/vite-env.d.ts",
+        "link": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/vite-env.d.ts"
       }
     ],
-    "changedFileCount": 32,
-    "diffStatTail": " 32 files changed, 3430 insertions(+), 97 deletions(-)"
+    "changedFileCount": 70,
+    "diffStatTail": " 70 files changed, 9392 insertions(+), 685 deletions(-)"
   },
   "summary": {
-    "totalRoutes": 31,
-    "workingPages": 30,
+    "totalRoutes": 35,
+    "workingPages": 34,
     "brokenPages": 0,
     "redirectRoutes": 1,
     "missingPackages": 0,
-    "sourceFiles": 113,
+    "sourceFiles": 127,
     "checks": {
-      "typecheck": "pass",
-      "lint": "pass",
-      "build": "pass"
+      "typecheck": "not-run",
+      "lint": "not-run",
+      "build": "not-run"
     }
   },
   "pages": [
@@ -200,9 +390,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Search.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Search.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Search.tsx",
       "brokenImports": [],
-      "importedModuleCount": 24
+      "importedModuleCount": 27
     },
     {
       "path": "/results",
@@ -211,9 +401,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Results.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Results.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Results.tsx",
       "brokenImports": [],
-      "importedModuleCount": 75
+      "importedModuleCount": 92
     },
     {
       "path": "/daily-hunt",
@@ -222,9 +412,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\DailyHunt.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/DailyHunt.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/DailyHunt.tsx",
       "brokenImports": [],
-      "importedModuleCount": 20
+      "importedModuleCount": 22
     },
     {
       "path": "/saved",
@@ -233,9 +423,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Saved.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Saved.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Saved.tsx",
       "brokenImports": [],
-      "importedModuleCount": 71
+      "importedModuleCount": 88
     },
     {
       "path": "/import",
@@ -244,9 +434,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Import.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Import.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Import.tsx",
       "brokenImports": [],
-      "importedModuleCount": 13
+      "importedModuleCount": 16
     },
     {
       "path": "/pipeline",
@@ -255,9 +445,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Pipeline.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Pipeline.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Pipeline.tsx",
       "brokenImports": [],
-      "importedModuleCount": 75
+      "importedModuleCount": 91
     },
     {
       "path": "/outreach",
@@ -266,9 +456,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Outreach.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Outreach.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Outreach.tsx",
       "brokenImports": [],
-      "importedModuleCount": 20
+      "importedModuleCount": 22
     },
     {
       "path": "/chat",
@@ -277,9 +467,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Chat.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Chat.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Chat.tsx",
       "brokenImports": [],
-      "importedModuleCount": 12
+      "importedModuleCount": 14
     },
     {
       "path": "/archive",
@@ -288,9 +478,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Archive.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Archive.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Archive.tsx",
       "brokenImports": [],
-      "importedModuleCount": 67
+      "importedModuleCount": 83
     },
     {
       "path": "/export",
@@ -299,7 +489,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Export.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Export.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Export.tsx",
       "brokenImports": [],
       "importedModuleCount": 9
     },
@@ -310,9 +500,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Integrations.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Integrations.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Integrations.tsx",
       "brokenImports": [],
-      "importedModuleCount": 21
+      "importedModuleCount": 23
     },
     {
       "path": "/bots",
@@ -321,7 +511,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Bots.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Bots.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Bots.tsx",
       "brokenImports": [],
       "importedModuleCount": 10
     },
@@ -332,9 +522,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Settings.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Settings.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Settings.tsx",
       "brokenImports": [],
-      "importedModuleCount": 12
+      "importedModuleCount": 4
     },
     {
       "path": "/tutorials",
@@ -343,7 +533,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Tutorials.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Tutorials.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Tutorials.tsx",
       "brokenImports": [],
       "importedModuleCount": 2
     },
@@ -354,9 +544,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Compliance.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Compliance.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Compliance.tsx",
       "brokenImports": [],
-      "importedModuleCount": 13
+      "importedModuleCount": 16
     },
     {
       "path": "/alerts",
@@ -365,7 +555,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Alerts.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Alerts.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Alerts.tsx",
       "brokenImports": [],
       "importedModuleCount": 12
     },
@@ -376,9 +566,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\InstantProposal.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/InstantProposal.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/InstantProposal.tsx",
       "brokenImports": [],
-      "importedModuleCount": 32
+      "importedModuleCount": 40
     },
     {
       "path": "/proposals",
@@ -387,9 +577,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Proposals.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Proposals.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Proposals.tsx",
       "brokenImports": [],
-      "importedModuleCount": 53
+      "importedModuleCount": 62
     },
     {
       "path": "/intelligence",
@@ -398,7 +588,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Intelligence.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Intelligence.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Intelligence.tsx",
       "brokenImports": [],
       "importedModuleCount": 8
     },
@@ -409,9 +599,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Reports.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Reports.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Reports.tsx",
       "brokenImports": [],
-      "importedModuleCount": 9
+      "importedModuleCount": 12
     },
     {
       "path": "/report-center",
@@ -420,9 +610,42 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\ReportCenter.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/ReportCenter.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/ReportCenter.tsx",
       "brokenImports": [],
-      "importedModuleCount": 54
+      "importedModuleCount": 71
+    },
+    {
+      "path": "/partner-pitches",
+      "component": "PartnerPitches",
+      "importSpec": "@/pages/PartnerPitches",
+      "status": "ok",
+      "issues": [],
+      "file": "src\\pages\\PartnerPitches.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/PartnerPitches.tsx",
+      "brokenImports": [],
+      "importedModuleCount": 59
+    },
+    {
+      "path": "/cost-cutting",
+      "component": "CostCuttingTool",
+      "importSpec": "@/pages/CostCuttingTool",
+      "status": "ok",
+      "issues": [],
+      "file": "src\\pages\\CostCuttingTool.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/CostCuttingTool.tsx",
+      "brokenImports": [],
+      "importedModuleCount": 3
+    },
+    {
+      "path": "/traded-ny",
+      "component": "TradedNY",
+      "importSpec": "@/pages/TradedNY",
+      "status": "ok",
+      "issues": [],
+      "file": "src\\pages\\TradedNY.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/TradedNY.tsx",
+      "brokenImports": [],
+      "importedModuleCount": 6
     },
     {
       "path": "/agreements",
@@ -431,9 +654,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Agreements.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Agreements.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Agreements.tsx",
       "brokenImports": [],
-      "importedModuleCount": 38
+      "importedModuleCount": 48
     },
     {
       "path": "/sentinel",
@@ -442,9 +665,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Sentinel.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Sentinel.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Sentinel.tsx",
       "brokenImports": [],
-      "importedModuleCount": 6
+      "importedModuleCount": 9
     },
     {
       "path": "/arthur",
@@ -453,9 +676,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Arthur.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Arthur.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Arthur.tsx",
       "brokenImports": [],
-      "importedModuleCount": 7
+      "importedModuleCount": 10
     },
     {
       "path": "/content-engine",
@@ -464,9 +687,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\ContentEngine.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/ContentEngine.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/ContentEngine.tsx",
       "brokenImports": [],
-      "importedModuleCount": 1
+      "importedModuleCount": 3
     },
     {
       "path": "/template-billing",
@@ -475,9 +698,20 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\TemplateBilling.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/TemplateBilling.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/TemplateBilling.tsx",
       "brokenImports": [],
-      "importedModuleCount": 11
+      "importedModuleCount": 14
+    },
+    {
+      "path": "/templates",
+      "component": "Templates",
+      "importSpec": "@/pages/Templates",
+      "status": "ok",
+      "issues": [],
+      "file": "src\\pages\\Templates.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Templates.tsx",
+      "brokenImports": [],
+      "importedModuleCount": 2
     },
     {
       "path": "/violations",
@@ -486,7 +720,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\Violations.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/Violations.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/Violations.tsx",
       "brokenImports": [],
       "importedModuleCount": 3
     },
@@ -497,7 +731,7 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\LegalReportTerms.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/LegalReportTerms.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/LegalReportTerms.tsx",
       "brokenImports": [],
       "importedModuleCount": 1
     },
@@ -508,9 +742,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\QAConsole.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/QAConsole.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/QAConsole.tsx",
       "brokenImports": [],
-      "importedModuleCount": 0
+      "importedModuleCount": 2
     },
     {
       "path": "/diagnostics",
@@ -519,9 +753,9 @@
       "status": "ok",
       "issues": [],
       "file": "src\\pages\\QAConsole.tsx",
-      "fileLink": "https://github.com/Camelot-Realty-Group/camelot-scout-v6/blob/01068f90cd767b69e17cac235533ff5af12b4b90/src/pages/QAConsole.tsx",
+      "fileLink": "https://github.com/Camelot-Realty-Group/Camelot-OS-New/blob/728dc9a3f330c43c7e322544f5bd555b1c9ea9c2/src/pages/QAConsole.tsx",
       "brokenImports": [],
-      "importedModuleCount": 0
+      "importedModuleCount": 2
     },
     {
       "path": "*",
@@ -539,27 +773,18 @@
   "checks": [
     {
       "name": "typecheck",
-      "status": "pass",
-      "command": "npx tsc -p tsconfig.json --noEmit --incremental false --pretty false",
-      "durationMs": 7983,
-      "ranAt": "2026-06-16T20:19:03.747Z",
-      "detail": ""
+      "status": "not-run",
+      "detail": "No result recorded. Run `npm run qa` (or the individual script) to populate."
     },
     {
       "name": "lint",
-      "status": "pass",
-      "command": "npx eslint . --max-warnings=9999",
-      "durationMs": 5600,
-      "ranAt": "2026-06-16T20:19:09.350Z",
-      "detail": "\nC:\\Users\\dgold\\AppData\\Local\\Temp\\camelot-full-gutcheck-003e64f7-05d1-4ab8-9f89-14587494bcbe\\src\\hooks\\useDailyHunt.ts\n  155:6  warning  React Hook useCallback has an unnecessary dependency: 'applyFilters'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps\n\n✖ 1 problem (0 errors, 1 warning)\n\n"
+      "status": "not-run",
+      "detail": "No result recorded. Run `npm run qa` (or the individual script) to populate."
     },
     {
       "name": "build",
-      "status": "pass",
-      "command": "npm run build",
-      "durationMs": 20527,
-      "ranAt": "2026-06-16T20:19:29.878Z",
-      "detail": "\u001b[2mdist/\u001b[22m\u001b[36massets/building-2-CIT2Eg3-.js                 \u001b[39m\u001b[1m\u001b[2m    0.61 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.35 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/play-CJFLUVAS.js                       \u001b[39m\u001b[1m\u001b[2m    0.63 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.32 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/square-bp2W_vnT.js                     \u001b[39m\u001b[1m\u001b[2m    0.66 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.35 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/nyc-311-DPcbr4K3.js                    \u001b[39m\u001b[1m\u001b[2m    1.13 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.72 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/acquisition-pipeline-DW2OVGcA.js       \u001b[39m\u001b[1m\u001b[2m    1.50 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.82 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/camelot-signature-Cy0oCCv2.js          \u001b[39m\u001b[1m\u001b[2m    1.95 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.90 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/jackie-report-library-BT6EUm7W.js      \u001b[39m\u001b[1m\u001b[2m    2.67 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.23 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/ll97-calculator-Ct0bdoUq.js            \u001b[39m\u001b[1m\u001b[2m    3.20 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.14 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/jackie-fact-authority-Bz1Zhn-P.js      \u001b[39m\u001b[1m\u001b[2m    3.61 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.46 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/scoring-jswnaFzY.js                    \u001b[39m\u001b[1m\u001b[2m    3.70 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.64 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/email-templates-BYEI0qXQ.js            \u001b[39m\u001b[1m\u001b[2m    3.99 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.77 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/pdf-generator-elh0YPTn.js              \u001b[39m\u001b[1m\u001b[2m    4.28 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.92 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/report-crm-tracking-BjAkX2l8.js        \u001b[39m\u001b[1m\u001b[2m    5.17 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.00 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Archive-CsEXFkfz.js                    \u001b[39m\u001b[1m\u001b[2m    5.25 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.81 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/ny-research-sources-CdFJR2V3.js        \u001b[39m\u001b[1m\u001b[2m    5.33 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.06 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/LegalReportTerms-gy0HvX4M.js           \u001b[39m\u001b[1m\u001b[2m    5.39 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.14 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/PropertyCard-FL8aimIH.js               \u001b[39m\u001b[1m\u001b[2m    5.55 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   1.58 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/bot-hubspot-reporting-BVCTxz2t.js      \u001b[39m\u001b[1m\u001b[2m    5.75 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.03 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/nyc-violations-BUAmCVeq.js             \u001b[39m\u001b[1m\u001b[2m    6.02 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.45 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Saved-DSNTVWxn.js                      \u001b[39m\u001b[1m\u001b[2m    6.74 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.59 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Pipeline-mNT58Ugg.js                   \u001b[39m\u001b[1m\u001b[2m    7.19 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   2.64 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Chat-CbwX9XiH.js                       \u001b[39m\u001b[1m\u001b[2m    9.64 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   3.88 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Export-Q7u5r_cG.js                     \u001b[39m\u001b[1m\u001b[2m   12.05 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   4.28 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Results-19tv1NdW.js                    \u001b[39m\u001b[1m\u001b[2m   12.18 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   4.18 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/QAConsole-JfkasMC_.js                  \u001b[39m\u001b[1m\u001b[2m   12.94 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   3.69 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/ai-client-7Az5gMfk.js                  \u001b[39m\u001b[1m\u001b[2m   13.51 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   5.70 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Alerts-7ZMuZnU-.js                     \u001b[39m\u001b[1m\u001b[2m   14.00 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   4.56 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Integrations-BxwqaZ_L.js               \u001b[39m\u001b[1m\u001b[2m   15.86 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   4.99 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Settings-DV2wssxH.js                   \u001b[39m\u001b[1m\u001b[2m   16.36 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   4.54 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/DailyHunt-Dn-iwtib.js                  \u001b[39m\u001b[1m\u001b[2m   16.88 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   5.83 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/cta-scenarios-BaOSODkl.js              \u001b[39m\u001b[1m\u001b[2m   17.49 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   5.90 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/scout-ai-doctrines-CVF_U4lg.js         \u001b[39m\u001b[1m\u001b[2m   20.42 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   7.87 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Violations-Bv-grS6Q.js                 \u001b[39m\u001b[1m\u001b[2m   20.87 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   6.99 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Compliance-DqYwV0xw.js                 \u001b[39m\u001b[1m\u001b[2m   22.57 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   5.76 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Outreach-KRmgK7Uy.js                   \u001b[39m\u001b[1m\u001b[2m   22.82 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   6.65 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/InstantProposal-BYbU3DXN.js            \u001b[39m\u001b[1m\u001b[2m   23.61 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   6.65 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/nyc-api-DSwS095r.js                    \u001b[39m\u001b[1m\u001b[2m   28.01 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   9.37 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/TemplateBilling-BlSVV91W.js            \u001b[39m\u001b[1m\u001b[2m   29.62 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   8.00 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Intelligence-hJokcslH.js               \u001b[39m\u001b[1m\u001b[2m   35.77 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   9.52 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/sentinel-report-CT8-TzL1.js            \u001b[39m\u001b[1m\u001b[2m   38.00 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  12.07 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Import-fjG_EWll.js                     \u001b[39m\u001b[1m\u001b[2m   39.55 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  13.85 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/ContentEngine-CLnJLXrk.js              \u001b[39m\u001b[1m\u001b[2m   43.72 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  12.38 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Tutorials-B47IYZmV.js                  \u001b[39m\u001b[1m\u001b[2m   47.92 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  15.50 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Reports-D9Wh1tLY.js                    \u001b[39m\u001b[1m\u001b[2m   52.58 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  12.41 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Arthur-DOXYb44c.js                     \u001b[39m\u001b[1m\u001b[2m   63.03 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  17.90 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Proposals-CplPqNeC.js                  \u001b[39m\u001b[1m\u001b[2m   64.70 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  16.99 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/PropertyDetail-BLPf8MkK.js             \u001b[39m\u001b[1m\u001b[2m   64.74 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  16.35 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Sentinel-DMPYAyIJ.js                   \u001b[39m\u001b[1m\u001b[2m   72.49 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  17.71 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Bots-Cf-h3VKG.js                       \u001b[39m\u001b[1m\u001b[2m   80.19 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  22.84 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Agreements-D-pYWMM2.js                 \u001b[39m\u001b[1m\u001b[2m   86.51 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  22.55 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/Search-DUoldk_I.js                     \u001b[39m\u001b[1m\u001b[2m   87.14 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  19.49 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/pitch-report-Bwa2pQTf.js               \u001b[39m\u001b[1m\u001b[2m  156.67 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  41.58 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/xlsx-D_0l8YDs.js                       \u001b[39m\u001b[1m\u001b[2m  429.03 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 143.08 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/ReportCenter-BGRId9it.js               \u001b[39m\u001b[1m\u001b[2m  439.39 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 144.37 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/index-C0rmAb4Z.js                      \u001b[39m\u001b[1m\u001b[2m  444.18 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 132.22 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/camelot-report-Ceo1_EqC.js             \u001b[39m\u001b[1m\u001b[2m  555.00 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 153.44 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/html2pdf-Du4p5Jwj.js                   \u001b[39m\u001b[1m\u001b[2m  982.47 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 285.52 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/react-pdf.browser-CpBPPrp5.js          \u001b[39m\u001b[1m\u001b[2m1,310.35 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 434.20 kB\u001b[22m\n\u001b[32m✓ built in 11.80s\u001b[39m\n"
+      "status": "not-run",
+      "detail": "No result recorded. Run `npm run qa` (or the individual script) to populate."
     }
   ]
 }

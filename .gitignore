@@ -1,5 +1,6 @@
 node_modules/
 dist/
+legacy-redirect/
 .env
 .env.local
 *.log

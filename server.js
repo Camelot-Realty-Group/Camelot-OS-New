@@ -9,6 +9,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+app.disable('x-powered-by');
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
 // JSON body parser for API proxy routes
 app.use(express.json({ limit: '15mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
@@ -441,7 +450,7 @@ console.log('Scout integration config:', {
 
 // Private integration credentials are server-only. Require a verified
 // Supabase user before any browser request can consume them.
-app.use(['/api/hubspot', '/api/apollo', '/api/prospeo', '/api/spire', '/api/ai', '/api/email/send'], requireApiUser);
+app.use(['/api/hubspot', '/api/apollo', '/api/prospeo', '/api/spire', '/api/ai', '/api/email/send', '/api/cost-analysis'], requireApiUser);
 
 app.post('/api/hubspot/contacts', async (req, res) => {
   const apiKey = getHubSpotApiKey();
@@ -1644,11 +1653,23 @@ app.post('/api/templates/generate', async (req, res) => {
 // Cost-Cutting Analysis Routes
 app.use(costCuttingRoutes);
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'dist'), { fallthrough: true }));
+// Serve fingerprinted assets with long-lived caching, but never cache the SPA
+// document itself. This prevents an obsolete dashboard shell from surviving a
+// production deploy while keeping hashed JS/CSS assets efficient.
+app.use(express.static(path.join(__dirname, 'dist'), {
+  fallthrough: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store');
+    } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 
 // SPA fallback — serve index.html for all non-file routes
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 

@@ -9,9 +9,12 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+/* global console, process */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,13 +23,16 @@ const router = express.Router();
 let supabaseInstance = null;
 function getSupabase() {
   if (!supabaseInstance) {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-      throw new Error('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables');
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      || process.env.SUPABASE_ANON_KEY
+      || process.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Cost analysis database is not configured');
     }
-    supabaseInstance = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
-    );
+    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
   }
   return supabaseInstance;
 }
@@ -43,14 +49,25 @@ router.post('/cost-analysis/run', async (req, res) => {
     if (!buildingCode) {
       return res.status(400).json({ error: 'buildingCode is required' });
     }
+    if (typeof buildingCode !== 'string' || !/^[a-z0-9._ -]{1,80}$/i.test(buildingCode)) {
+      return res.status(400).json({ error: 'buildingCode contains unsupported characters' });
+    }
 
     console.log(`[Cost Analysis] Starting analysis for building: ${buildingCode}`);
 
+    const pythonScript = path.join(__dirname, '../../cost-cutting-engine.py');
+    if (!fs.existsSync(pythonScript)) {
+      return res.status(503).json({
+        error: 'Cost analysis engine is not installed',
+        code: 'COST_ENGINE_UNAVAILABLE',
+      });
+    }
+
+    const pythonExecutable = process.env.PYTHON_EXECUTABLE || 'python3';
+
     // Option 1: Run async (background job)
     if (runAsync) {
-      // Spawn Python process in background
-      const pythonScript = path.join(__dirname, '../../cost-cutting-engine.py');
-      exec(`python3 ${pythonScript} ${buildingCode}`, { detached: true }, (err) => {
+      execFile(pythonExecutable, [pythonScript, buildingCode], { detached: true }, (err) => {
         if (err) console.error(`[Cost Analysis] Background error: ${err}`);
       });
 
@@ -62,10 +79,8 @@ router.post('/cost-analysis/run', async (req, res) => {
     }
 
     // Option 2: Run synchronously (wait for completion)
-    const pythonScript = path.join(__dirname, '../../cost-cutting-engine.py');
-
     const analysis = await new Promise((resolve, reject) => {
-      exec(`python3 ${pythonScript} ${buildingCode}`, (err, stdout, stderr) => {
+      execFile(pythonExecutable, [pythonScript, buildingCode], (err, stdout, stderr) => {
         if (err) {
           console.error(`[Cost Analysis] Error: ${stderr}`);
           reject(new Error(stderr || err.message));
@@ -74,7 +89,7 @@ router.post('/cost-analysis/run', async (req, res) => {
           try {
             const result = JSON.parse(stdout);
             resolve(result);
-          } catch (parseErr) {
+          } catch {
             reject(new Error('Invalid Python output: ' + stdout));
           }
         }
@@ -103,6 +118,7 @@ router.post('/cost-analysis/run', async (req, res) => {
 router.get('/cost-analysis/:analysisId', async (req, res) => {
   try {
     const { analysisId } = req.params;
+    const supabase = getSupabase();
 
     // Fetch from Supabase
     const { data: analysis, error: analysisError } = await supabase
@@ -154,80 +170,10 @@ router.get('/cost-analysis/:analysisId', async (req, res) => {
 // ============================================================================
 
 router.post('/cost-analysis/:analysisId/send-proposal', async (req, res) => {
-  try {
-    const { analysisId } = req.params;
-    const { recipientEmail, recipientName = 'Property Manager' } = req.body;
-
-    if (!recipientEmail) {
-      return res.status(400).json({ error: 'recipientEmail is required' });
-    }
-
-    // Fetch analysis
-    const { data: analysis, error } = await supabase
-      .from('cost_savings_analysis')
-      .select(`
-        *,
-        buildings (*)
-      `)
-      .eq('id', analysisId)
-      .single();
-
-    if (error || !analysis) {
-      return res.status(404).json({ error: 'Analysis not found' });
-    }
-
-    // Send email (placeholder - integrate with Resend or SendGrid)
-    const proposalUrl = analysis.proposal_url;
-    const emailBody = `
-Hi ${recipientName},
-
-Camelot Property Management has completed a comprehensive cost analysis for ${analysis.buildings.building_name}.
-
-We've identified potential annual savings of $${analysis.identified_savings.toLocaleString()} (${analysis.savings_percentage.toFixed(1)}% reduction).
-
-Attached is our detailed proposal outlining:
-- Specific cost-cutting opportunities
-- Implementation timeline
-- Fee structure (35% of first-year savings)
-
-View the full proposal: ${proposalUrl}
-
-Please review and let us know if you'd like to discuss next steps.
-
-Best regards,
-Camelot Property Management
-    `.trim();
-
-    // TODO: Send via Resend API
-    console.log(`[Cost Analysis] Would send email to ${recipientEmail}`);
-
-    // Log to Supabase
-    const { error: updateError } = await supabase
-      .from('proposals')
-      .insert([{
-        analysis_id: analysisId,
-        sent_to: recipientEmail,
-        sent_at: new Date().toISOString(),
-      }]);
-
-    if (updateError) console.error('[Cost Analysis] Proposal log error:', updateError);
-
-    // Update analysis status
-    await supabase
-      .from('cost_savings_analysis')
-      .update({ proposal_status: 'sent' })
-      .eq('id', analysisId);
-
-    res.json({
-      status: 'sent',
-      message: `Proposal sent to ${recipientEmail}`,
-      analysisId,
-    });
-
-  } catch (error) {
-    console.error('[Cost Analysis] Route error:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(501).json({
+    error: 'Cost proposal delivery is not configured',
+    code: 'PROPOSAL_DELIVERY_UNAVAILABLE',
+  });
 });
 
 // ============================================================================
@@ -236,66 +182,10 @@ Camelot Property Management
 // ============================================================================
 
 router.post('/cost-analysis/:analysisId/accept', async (req, res) => {
-  try {
-    const { analysisId } = req.params;
-    const { acceptedFeeType = 'one_time' } = req.body; // "one_time" or "annual_3yr"
-
-    // Fetch analysis
-    const { data: analysis, error } = await supabase
-      .from('cost_savings_analysis')
-      .select('*')
-      .eq('id', analysisId)
-      .single();
-
-    if (error || !analysis) {
-      return res.status(404).json({ error: 'Analysis not found' });
-    }
-
-    const invoiceAmount = acceptedFeeType === 'one_time'
-      ? analysis.fee_one_time
-      : analysis.fee_annual_3yr;
-
-    // Create QB invoice (placeholder)
-    // TODO: Integrate with QuickBooks API
-    const qbInvoiceId = `QBI-${analysisId}-${Date.now()}`;
-
-    // Log to Supabase
-    const { data: invoice, error: invoiceError } = await supabase
-      .from('cost_cutting_invoices')
-      .insert([{
-        analysis_id: analysisId,
-        qb_invoice_id: qbInvoiceId,
-        invoice_amount: invoiceAmount,
-        invoice_date: new Date().toISOString().split('T')[0],
-        payment_status: 'sent',
-      }])
-      .select()
-      .single();
-
-    if (invoiceError) console.error('[Cost Analysis] Invoice creation error:', invoiceError);
-
-    // Update analysis status
-    await supabase
-      .from('cost_savings_analysis')
-      .update({
-        proposal_status: 'accepted',
-      })
-      .eq('id', analysisId);
-
-    res.json({
-      status: 'accepted',
-      message: 'Proposal accepted',
-      invoice: {
-        qb_invoice_id: qbInvoiceId,
-        amount: invoiceAmount,
-        type: acceptedFeeType,
-      },
-    });
-
-  } catch (error) {
-    console.error('[Cost Analysis] Route error:', error);
-    res.status(500).json({ error: error.message });
-  }
+  res.status(501).json({
+    error: 'QuickBooks acceptance and invoicing are not configured',
+    code: 'QUICKBOOKS_UNAVAILABLE',
+  });
 });
 
 // ============================================================================
@@ -306,6 +196,7 @@ router.post('/cost-analysis/:analysisId/accept', async (req, res) => {
 router.get('/cost-analysis/building/:buildingCode', async (req, res) => {
   try {
     const { buildingCode } = req.params;
+    const supabase = getSupabase();
 
     const { data: analyses, error } = await supabase
       .from('cost_savings_analysis')
@@ -340,14 +231,15 @@ router.get('/cost-analysis/building/:buildingCode', async (req, res) => {
 
 router.get('/cost-analysis/stats', async (req, res) => {
   try {
+    const supabase = getSupabase();
     // Total opportunities identified
-    const { data: totalSavings, error: savingsError } = await supabase
+    const { data: totalSavings } = await supabase
       .from('cost_savings_analysis')
       .select('identified_savings')
       .not('identified_savings', 'is', null);
 
     // Proposals sent and accepted
-    const { data: proposals, error: proposalError } = await supabase
+    const { data: proposals } = await supabase
       .from('proposals')
       .select('response_status')
       .not('response_status', 'is', null);

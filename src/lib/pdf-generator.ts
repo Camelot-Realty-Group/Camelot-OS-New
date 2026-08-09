@@ -2,6 +2,8 @@
  * Client-side PDF/HTML/CSV helpers for Camelot OS reports
  */
 
+import { authenticatedApiFetch } from '@/lib/api-auth';
+
 function ensureHtmlBase(html: string): string {
   if (typeof window === 'undefined' || !window.location?.origin) return html;
   if (/<base\s/i.test(html)) return html;
@@ -226,7 +228,7 @@ export async function sendCamelotEmail(params: SendCamelotEmailParams): Promise<
       ? await generatePdfBase64(params.reportHtml, params.attachmentFilename || 'Camelot-Report.pdf')
       : undefined;
 
-    const resp = await fetch('/api/email/send', {
+    const resp = await authenticatedApiFetch('/api/email/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -4,6 +4,8 @@
  * All configuration via environment variables. No hard dependency on any provider.
  */
 
+import { authenticatedApiFetch } from '@/lib/api-auth';
+
 export interface AIChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -83,7 +85,7 @@ function formatBuildingLine(building: LocalBuilding, index: number): string {
  * Check if AI is configured (external API)
  */
 export function isAIConfigured(): boolean {
-  return !!(getAIConfig().apiUrl && getAIConfig().apiKey);
+  return String(import.meta.env.VITE_RUNTIME_MODE || '').toLowerCase() === 'server';
 }
 
 /**
@@ -323,8 +325,8 @@ export function localQueryEngine(
  */
 export function getAIConfig(): AIConfig {
   return {
-    apiUrl: import.meta.env.VITE_AI_API_URL || '',
-    apiKey: import.meta.env.VITE_AI_API_KEY || '',
+    apiUrl: '',
+    apiKey: '',
     model: import.meta.env.VITE_AI_MODEL || 'gpt-4o',
   };
 }
@@ -339,7 +341,7 @@ async function proxyChatCompletion(
   messages: AIChatMessage[],
   options?: { temperature?: number; maxTokens?: number }
 ): Promise<string> {
-  const res = await fetch('/api/ai/chat', {
+  const res = await authenticatedApiFetch('/api/ai/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

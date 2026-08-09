@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { authenticatedApiFetch } from '@/lib/api-auth';
 import { cn, formatCurrency, formatNumber } from '@/lib/utils';
 import { downloadAsHTML, openBrochureForPrint, openEmailDraft } from '@/lib/pdf-generator';
 import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
@@ -129,7 +130,7 @@ export default function Arthur() {
     const quality = { score: Math.round((selected.neighborhoodScore + selected.commuteScore) / 2), tier: 'hot', missingFields: [], strengths: selected.pros, warnings: selected.cons };
     const routing = { team: 'Arthur / acquisitions desk', region: selected.location, priority: 'same-day', tags: ['arthur-underwriting', selected.type, 'investment-candidate'] };
     try {
-      const response = await fetch('/api/integrations/push-building', {
+      const response = await authenticatedApiFetch('/api/integrations/push-building', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

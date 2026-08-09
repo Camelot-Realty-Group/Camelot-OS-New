@@ -6,6 +6,8 @@
  * this file only ever talks to Camelot OS's own /api/spire/* proxy.
  */
 
+import { authenticatedApiFetch } from '@/lib/api-auth';
+
 export interface SpireBuildingMatch {
   matched: true;
   buildingName: string;
@@ -24,7 +26,7 @@ export async function lookupSpireManagedBuilding(address: string): Promise<Spire
   if (!address) return null;
   if (String(import.meta.env.VITE_DISABLE_SERVER_INTEGRATIONS || '').toLowerCase() === 'true') return null;
   try {
-    const res = await fetch(`/api/spire/building-lookup?address=${encodeURIComponent(address)}`);
+    const res = await authenticatedApiFetch(`/api/spire/building-lookup?address=${encodeURIComponent(address)}`);
     if (!res.ok) return null;
     const data = await res.json();
     return data?.matched ? (data as SpireBuildingMatch) : null;

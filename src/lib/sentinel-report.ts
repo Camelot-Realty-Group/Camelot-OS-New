@@ -285,7 +285,7 @@ export function generateSubjectMarketReport(input: SentinelInput): string {
   const generated = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const realtyMxStatus = input.realtyMxEnabled
     ? 'RealtyMX API-ready: Sentinel should enrich the next run with live listing velocity and unit-mix data.'
-    : 'RealtyMX API-ready: add the API key as VITE_REALTYMX_API_KEY or provide a CSV export to replace guide ranges with live inventory.';
+    : 'RealtyMX is not connected. Provide a CSV export to replace guide ranges with live inventory.';
 
   return `<!doctype html>
 <html lang="en">

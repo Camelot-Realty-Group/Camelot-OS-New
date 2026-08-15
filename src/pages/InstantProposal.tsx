@@ -58,6 +58,100 @@ type InstantProposalSavedInputs = {
 };
 
 // ---------------------------------------------------------------------------
+// Rate sheets — Camelot's standard schedules, insertable into the proposal
+// ---------------------------------------------------------------------------
+
+type FeeLine = { label: string; fee: string };
+
+const DEFAULT_ANCILLARY_FEES: FeeLine[] = [
+  { label: 'Alteration Fee', fee: '$500.00' },
+  { label: 'CCTA (Cooperative Condo Tax Abatement)', fee: '$200 per bldg. filing' },
+  { label: 'Coop or Condo Closing (inside management offices)', fee: '$1,000 Flat Fee' },
+  { label: 'Audit Review and Assistance', fee: '$150.00 per hour' },
+  { label: 'Tax Forms 1098, 1099', fee: '$25 per form filed' },
+  { label: 'Monthly Administrative Fee (avg. copies, messenger, mailings, data filings, cloud storage, web hosting, physical storage)', fee: '$200.00 per month' },
+  { label: 'Alteration Agreement Review and Submittal', fee: '$500, or 10% of the Alteration cost over $5,000' },
+  { label: 'Sales or Rental Package Review', fee: '$500 per package' },
+  { label: 'HPD Filing Fee', fee: '$50.00 (once per year)' },
+  { label: 'Emergency Site Plan Creation & Submittal', fee: '$175.00' },
+  { label: 'Bank & Insurance Questionnaire Fee', fee: '$200.00' },
+];
+
+const DEFAULT_RATE_SCHEDULE: FeeLine[] = [
+  { label: 'Property or Project Manager (Emergency or Supervision Services)', fee: '$150.00 per hour' },
+  { label: 'Travel', fee: 'Billed by receipt' },
+  { label: 'Sales & Leasing', fee: 'Per Separate Brokerage Agreement' },
+  { label: 'Agent Insurance Policies', fee: '$450.00 Annually' },
+  { label: 'Cleaning, Ordinary Repairs & Maintenance', fee: '$50.00 per hour' },
+  { label: 'Extraordinary Repairs (over $5,000 per repair)', fee: 'Subject to $150/hour project manager fee & 20% markup, per management agreement' },
+  { label: 'Locksmith', fee: '$150.00 per hour + Materials + 20% Markup' },
+  { label: 'Supplies & Material Markups', fee: '10% Overhead and 10% Profit, billed monthly or quarterly (not individually per invoice)' },
+  { label: 'Pre-Occupation Services', fee: '$150.00 per hour' },
+  { label: 'Court Appearance or Deposition', fee: '$150.00 per hour' },
+  { label: 'Application Review', fee: '$200.00 per application, or the maximum amount permissible under applicable law' },
+  { label: 'RPIE Filing (Real Property Income & Expense)', fee: '$400 per filing' },
+  { label: 'DHCR Filing — NYC Rent Registration (per building)', fee: '$500.00 per building per year' },
+];
+
+/** Small, self-contained editor for a rate schedule: a checkbox to include it
+ *  in the proposal, plus a collapsible list of editable per-line fees. */
+function RateSheetEditor({
+  title,
+  included,
+  onToggleIncluded,
+  lines,
+  onChangeFee,
+}: {
+  title: string;
+  included: boolean;
+  onToggleIncluded: () => void;
+  lines: FeeLine[];
+  onChangeFee: (index: number, value: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="border border-gray-100 rounded-lg p-3">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={included}
+          onChange={onToggleIncluded}
+          className="w-4 h-4 accent-camelot-gold"
+        />
+        <span className="text-sm font-semibold text-camelot-navy">{title}</span>
+        <span className="text-xs text-gray-400 ml-auto whitespace-nowrap">{lines.length} line items</span>
+      </label>
+      {included && (
+        <>
+          <button
+            type="button"
+            onClick={() => setExpanded(v => !v)}
+            className="text-xs text-camelot-gold hover:underline mt-2"
+          >
+            {expanded ? 'Hide rates' : 'Edit rates'}
+          </button>
+          {expanded && (
+            <div className="mt-2 max-h-64 overflow-y-auto space-y-1.5 pr-1">
+              {lines.map((line, i) => (
+                <div key={line.label} className="flex items-start gap-2">
+                  <span className="text-[11px] text-gray-600 flex-1 leading-snug pt-1.5">{line.label}</span>
+                  <input
+                    type="text"
+                    value={line.fee}
+                    onChange={e => onChangeFee(i, e.target.value)}
+                    className="w-44 flex-shrink-0 px-2 py-1 border border-gray-300 rounded text-[11px] text-right focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // PDF / Email export helpers (module scope — no component state needed)
 // ---------------------------------------------------------------------------
 
@@ -248,6 +342,12 @@ export default function InstantProposal() {
   // Who this proposal is being sent to — used to build the "PDF + Email" draft
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
+  // Rate sheets — toggled + editable on the Verify step, inserted as new pages
+  // near the end of the generated proposal when checked
+  const [includeAncillaryFees, setIncludeAncillaryFees] = useState(true);
+  const [includeRateSchedule, setIncludeRateSchedule] = useState(true);
+  const [ancillaryFees, setAncillaryFees] = useState<FeeLine[]>(DEFAULT_ANCILLARY_FEES);
+  const [rateSchedule, setRateSchedule] = useState<FeeLine[]>(DEFAULT_RATE_SCHEDULE);
   const draftRef = useRef<HTMLDivElement>(null);
 
   const stepIndex = STEPS.findIndex(s => s.key === step);
@@ -443,6 +543,12 @@ export default function InstantProposal() {
         .contact-block img{width:340px;display:block;}
         .footer-bar{margin-top:36px;padding-top:10px;border-top:1px solid #ccc;text-align:center;font-size:10px;color:#888;}
         .footer-bar .conf{font-style:italic;margin-top:2px;}
+        table.fee-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px;}
+        table.fee-table th{background:#162B5E;color:#fff;text-align:left;padding:7px 10px;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;}
+        table.fee-table th.amt{text-align:right;}
+        table.fee-table td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:top;}
+        table.fee-table tr:nth-child(even) td{background:#F9F8F5;}
+        table.fee-table td.fee-amt{white-space:nowrap;font-weight:700;color:#162B5E;text-align:right;}
       </style></head><body>
 
         <div class="page cover">
@@ -575,15 +681,45 @@ export default function InstantProposal() {
             <tr><td class="k">Renewal</td><td>[Auto-renews annually unless terminated with XX days' written notice]</td></tr>
             <tr><td class="k">Monthly Management Fee</td><td><strong style="color:#C5A55A;">$${monthly.toLocaleString()}</strong>/mo ($${perUnit}/unit)</td></tr>
             <tr><td class="k">Annual Fee</td><td>$${annual.toLocaleString()}/yr</td></tr>
-            <tr><td class="k">Ancillary Fees</td><td>Per the attached Ancillary Fee Schedule (see below)</td></tr>
+            <tr><td class="k">Ancillary Fees</td><td>${includeAncillaryFees || includeRateSchedule ? 'Per the attached Schedule(s) below' : 'Available upon request'}</td></tr>
           </table>
-          <p class="fee-note">The fee above reflects comparable properties we currently manage, factoring in scope, labor, insurance, overhead, and profit. Services outside the base scope of this proposal — such as lease renewals, sublet/transfer processing, capital project oversight, or tax certiorari coordination — are billed according to our standard Ancillary Fee Schedule, provided as an attachment to this proposal.</p>
+          <p class="fee-note">The fee above reflects comparable properties we currently manage, factoring in scope, labor, insurance, overhead, and profit. Services outside the base scope of this proposal — such as lease renewals, sublet/transfer processing, capital project oversight, or tax certiorari coordination — are billed according to our standard Ancillary Fee Sheet and Fee Schedule${includeAncillaryFees || includeRateSchedule ? ', attached to this proposal' : ' (available upon request)'}.</p>
           <p class="fee-note">The full terms, responsibilities, and conditions of our engagement are set forth in Camelot's standard Property Management Agreement, which we will issue once the term and fee above are confirmed.</p>
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
           </div>
         </div>
+
+        ${includeAncillaryFees ? `<div class="page">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <h2 class="section">Schedule — Ancillary Fee Sheet</h2>
+          <p class="fee-note">The following ancillary fees apply to services outside the base scope of the monthly management fee.</p>
+          <table class="fee-table">
+            <tr><th>Service</th><th class="amt">Fee</th></tr>
+            ${ancillaryFees.map(f => `<tr><td>${f.label}</td><td class="fee-amt">${f.fee}</td></tr>`).join('')}
+          </table>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
+        </div>` : ''}
+
+        ${includeRateSchedule ? `<div class="page">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <h2 class="section">Schedule — Fee Schedule</h2>
+          <p class="fee-note">The following hourly and per-service rates apply to work outside the base scope of the monthly management fee.</p>
+          <table class="fee-table">
+            <tr><th>Service</th><th class="amt">Fee</th></tr>
+            ${rateSchedule.map(f => `<tr><td>${f.label}</td><td class="fee-amt">${f.fee}</td></tr>`).join('')}
+          </table>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
+        </div>` : ''}
 
         <div class="page">
           <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
@@ -1005,6 +1141,27 @@ export default function InstantProposal() {
                   RealtyMX and PropertyShark don't offer a public data API — cross-check unit mix there manually, or key it in above once confirmed.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Rate sheets — checked schedules are inserted as new pages near the end of the proposal */}
+          <div className="mb-4">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Rate Sheets to Include</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <RateSheetEditor
+                title="Ancillary Fee Sheet"
+                included={includeAncillaryFees}
+                onToggleIncluded={() => setIncludeAncillaryFees(v => !v)}
+                lines={ancillaryFees}
+                onChangeFee={(i, val) => setAncillaryFees(prev => prev.map((l, idx) => idx === i ? { ...l, fee: val } : l))}
+              />
+              <RateSheetEditor
+                title="Fee Schedule"
+                included={includeRateSchedule}
+                onToggleIncluded={() => setIncludeRateSchedule(v => !v)}
+                lines={rateSchedule}
+                onChangeFee={(i, val) => setRateSchedule(prev => prev.map((l, idx) => idx === i ? { ...l, fee: val } : l))}
+              />
             </div>
           </div>
 

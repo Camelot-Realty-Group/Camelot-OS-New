@@ -7,6 +7,7 @@ import { generatePitchReport } from '@/lib/pitch-report';
 import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import toast from 'react-hot-toast';
+import { CAMELOT_LOGO_B64, CAMELOT_HEADER_B64, CAMELOT_SIGNATURE_B64, CAMELOT_CONTACT_B64 } from '@/lib/camelot-brand-assets';
 
 type Step = 'search' | 'verify' | 'jackie' | 'draft' | 'export';
 
@@ -205,6 +206,7 @@ export default function InstantProposal() {
       const d = reportData;
       const monthly = customFee ?? d.monthlyFee ?? 0;
       const perUnit = d.units ? Math.round(monthly / d.units) : (d.pricePerUnit ?? 0);
+      const annual = monthly * 12;
       const sqFt = d.buildingArea ? d.buildingArea.toLocaleString() + ' sq ft' : 'N/A';
       const lotSqFt = d.lotArea ? d.lotArea.toLocaleString() + ' sq ft' : 'N/A';
       const resUnits = d.unitsResidential ?? d.units;
@@ -212,69 +214,228 @@ export default function InstantProposal() {
       const hpdReg = d.registrationDate ? `On file since ${d.registrationDate}` : 'Not registered / N/A';
       const lastSale = d.lastSalePrice ? `$${d.lastSalePrice.toLocaleString()}${d.lastSaleDate ? ' on ' + d.lastSaleDate : ''}${d.lastSaleBuyer ? ' to ' + d.lastSaleBuyer : ''}` : 'No sale on record (ACRIS)';
       const dobPermits = `${d.permitsCount ?? 0} filed${d.hasRecentPermits ? ' (recent activity)' : ''}`;
+      const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const owner = d.registrationOwner || d.dofOwner || null;
+
+      // Auto-written property description from the data already pulled on Verify —
+      // this is what the user asked to be researched/filled in before the letter.
+      const propertyDescription =
+        `${d.buildingName || d.address} is a ${d.stories ? d.stories + '-story ' : ''}${(d.propertyType || 'residential').toLowerCase()} building` +
+        `${d.neighborhoodName ? ` in ${d.neighborhoodName}` : ''}${d.borough ? `, ${d.borough}` : ''}. ` +
+        `Built in ${d.yearBuilt || 'an unreported year'}, the property comprises ${resUnits ?? 'N/A'} residential unit${resUnits === 1 ? '' : 's'}` +
+        `${totalUnits && totalUnits !== resUnits ? ` (${totalUnits} total, including non-residential space)` : ''} across approximately ${sqFt}. ` +
+        `${owner ? `Ownership is on file as ${owner}. ` : ''}` +
+        `${d.violationsOpen ? `The building currently has ${d.violationsOpen} open violation${d.violationsOpen === 1 ? '' : 's'} on record.` : 'The building currently has no open violations on record.'}`;
+
       const proposalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
-        body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#222;margin:0;padding:32px;}
-        .wrap{max-width:900px;margin:0 auto;}
-        h1{color:#0f2a2a;border-bottom:3px solid #c5a55a;padding-bottom:10px;}
-        h2{color:#c5a55a;margin-top:28px;}
-        .info{background:#f7f5f0;padding:18px;border-radius:8px;margin:16px 0;}
-        .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e6e2d8;}
-        .row:last-child{border-bottom:none;}
-        .label{font-weight:700;color:#555;}
-        .pricing{background:#fffaf0;border-left:4px solid #c5a55a;padding:18px;margin:16px 0;}
-        ul.services{list-style:none;padding:0;margin:0;}
-        ul.services li{padding:8px 0;border-bottom:1px solid #eee;}
-        ul.services li:before{content:"\\2713  ";color:#c5a55a;font-weight:700;}
-        .footer{margin-top:48px;padding-top:16px;border-top:1px solid #ddd;text-align:center;font-size:12px;color:#888;}
-      </style></head><body><div class="wrap">
-        <h1>Proposal of Property Management Services</h1>
-        <p>Prepared for: <strong>${d.buildingName || d.address}</strong></p>
+        @page { margin: 0.6in; }
+        body{font-family:Georgia,'Times New Roman',serif;line-height:1.6;color:#222;margin:0;padding:0;background:#fff;}
+        .page{max-width:800px;margin:0 auto;padding:40px 44px;}
+        .page + .page{page-break-before:always;}
+        .brand-header{display:flex;align-items:center;margin-bottom:10px;}
+        .brand-header img{height:44px;width:auto;}
+        .brand-rule{border:none;border-top:2px solid #C5A55A;margin:0 0 28px;}
+        h1,h2,h3{font-family:Georgia,'Times New Roman',serif;color:#162B5E;margin:0;}
+        .cover{text-align:center;padding:30px 20px 10px;}
+        .cover img.logo{width:150px;height:150px;margin:10px auto 26px;display:block;}
+        .cover h1{font-size:22px;letter-spacing:1.5px;text-transform:uppercase;}
+        .cover .prepared-by{color:#6B7280;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;margin:10px 0 22px;padding-bottom:18px;border-bottom:2px solid #C5A55A;display:inline-block;}
+        .cover .prop-name{font-style:italic;color:#444;font-size:15px;margin:0 0 2px;}
+        .cover .prop-addr{font-style:italic;color:#888;font-size:12px;margin:0 0 30px;}
+        .cover .info-label{color:#162B5E;font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+        table.info-table{width:100%;max-width:520px;margin:0 auto;border-collapse:collapse;font-size:12.5px;text-align:left;}
+        table.info-table td{padding:8px 12px;border-bottom:1px solid #eee;}
+        table.info-table td.k{background:#F7F5F0;font-weight:700;color:#162B5E;width:38%;}
+        .letter p{font-size:13.5px;margin:0 0 14px;}
+        .letter .addr-block p{margin:0 0 2px;font-style:italic;color:#777;}
+        .letter .re-line{font-weight:700;color:#162B5E;margin:18px 0 14px;}
+        .letter .re-line em{font-weight:400;font-style:italic;color:#777;}
+        .sig-block{margin-top:26px;}
+        .sig-block img{width:190px;display:block;margin-bottom:4px;}
+        .sig-block .name{font-weight:700;font-size:13px;}
+        .sig-block .role{font-size:13px;}
+        .notes-box{background:#F4F3EF;border:1px solid #D8D4C8;border-radius:4px;padding:16px 18px;margin-top:26px;}
+        .notes-box .title{font-weight:700;color:#162B5E;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+        .notes-box .hint{font-style:italic;color:#888;font-size:11px;margin-bottom:8px;}
+        .notes-box ul{margin:0;padding-left:18px;font-size:12px;color:#666;}
+        .notes-box li{margin-bottom:4px;font-style:italic;}
+        h2.section{color:#162B5E;font-size:16px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #C5A55A;padding-bottom:8px;margin-bottom:16px;}
+        .desc-box{background:#F7F5F0;border-left:4px solid #C5A55A;padding:14px 18px;font-size:13px;margin-bottom:22px;}
+        h3.sub{color:#162B5E;font-size:13.5px;margin:20px 0 6px;}
+        ul.services{list-style:none;padding:0;margin:0 0 6px;}
+        ul.services li{padding:5px 0;font-size:12.5px;padding-left:18px;position:relative;}
+        ul.services li:before{content:"•";color:#C5A55A;font-weight:700;position:absolute;left:0;}
+        .fee-note{font-size:12.5px;margin:16px 0;}
+        ol.next-steps{padding-left:20px;font-size:13px;margin:0 0 20px;}
+        ol.next-steps li{margin-bottom:8px;}
+        ol.next-steps b{color:#162B5E;}
+        .thankyou{font-style:italic;color:#162B5E;text-align:center;margin:26px 0 14px;font-size:13px;}
+        .contact-block img{width:340px;display:block;}
+        .footer-bar{margin-top:36px;padding-top:10px;border-top:1px solid #ccc;text-align:center;font-size:10px;color:#888;}
+        .footer-bar .conf{font-style:italic;margin-top:2px;}
+      </style></head><body>
 
-        <h2>Property Information</h2>
-        <div class="info">
-          <div class="row"><span class="label">Address</span><span>${d.address || 'N/A'}</span></div>
-          <div class="row"><span class="label">Units (Residential / Total)</span><span>${resUnits} / ${totalUnits}</span></div>
-          <div class="row"><span class="label">Stories</span><span>${d.stories ?? 'N/A'}</span></div>
-          <div class="row"><span class="label">Building Type</span><span>${d.propertyType || 'N/A'}</span></div>
-          <div class="row"><span class="label">Year Built</span><span>${d.yearBuilt ?? 'N/A'}</span></div>
-          <div class="row"><span class="label">Building Square Footage</span><span>${sqFt}</span></div>
-          <div class="row"><span class="label">Lot Area</span><span>${lotSqFt}</span></div>
-          ${unitMix ? `<div class="row"><span class="label">Unit Mix</span><span>${unitMix}</span></div>` : ''}
-          <div class="row"><span class="label">HPD Registration</span><span>${hpdReg}</span></div>
-          <div class="row"><span class="label">Last Sale (ACRIS)</span><span>${lastSale}</span></div>
-          <div class="row"><span class="label">DOB Permits</span><span>${dobPermits}</span></div>
-          <div class="row"><span class="label">Open Violations</span><span>${d.violationsOpen ?? 0}</span></div>
-          <div class="row"><span class="label">Grade</span><span>${d.scoutGrade || 'N/A'}</span></div>
-          <div class="row"><span class="label">Current Management</span><span>${d.managementCompany || 'Management to verify'}</span></div>
+        <div class="page cover">
+          <img class="logo" src="${CAMELOT_LOGO_B64}" alt="Camelot Realty Group" />
+          <h1>Proposal of Property Management Services</h1>
+          <div class="prepared-by">Prepared by Camelot Property Management Services Corp.</div>
+          <p class="prop-name">${d.buildingName || d.address}</p>
+          <p class="prop-addr">${d.address || ''}</p>
+          <div class="info-label">Proposal Information</div>
+          <table class="info-table">
+            <tr><td class="k">Date</td><td>${todayStr}</td></tr>
+            <tr><td class="k">Version</td><td>v1.0</td></tr>
+            <tr><td class="k">Prepared For</td><td>[Recipient Name, Title — e.g. Board President]</td></tr>
+            <tr><td class="k">Addressed To</td><td>[Building / Association Name]</td></tr>
+            <tr><td class="k">Recipient Contact</td><td>[Email / Phone]</td></tr>
+            <tr><td class="k">Recipient Address</td><td>[Street, City, State ZIP]</td></tr>
+          </table>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
         </div>
 
-        <h2>Pricing Estimate</h2>
-        <div class="pricing">
-          <div class="row"><span class="label">Monthly Fee</span><span style="font-size:18px;color:#c5a55a;font-weight:700;">$${monthly.toLocaleString()}/mo</span></div>
-          <div class="row"><span class="label">Per Unit</span><span>$${perUnit}/unit</span></div>
-          <div class="row"><span class="label">Annual Fee</span><span>$${(monthly * 12).toLocaleString()}/yr</span></div>
+        <div class="page letter">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <p>${todayStr}</p>
+          <div class="addr-block">
+            <p>[Recipient Name]</p>
+            <p>[Recipient Title — e.g. Board President]</p>
+            <p>[Building / Association Name]</p>
+            <p>[Address Line 1]</p>
+            <p>[City, State ZIP]</p>
+          </div>
+          <p class="re-line">Re:&nbsp; Property Management Proposal — <em>${d.buildingName || d.address}, ${d.address || ''}</em></p>
+          <p>Dear [Recipient Name],</p>
+          <p>It was a pleasure connecting with you about the opportunity to manage ${d.buildingName || d.address}. We are grateful for your consideration and the trust you're placing in Camelot — we're confident that our hands-on approach, vetted network of contractors and vendors, and responsive team can bring real, measurable value to your Board and residents.</p>
+          <p>Outlined in this proposal is the scope of services, fee structure, and next steps we recommend for ${d.buildingName || d.address}. We would welcome the opportunity to discuss this further at your convenience, and we look forward to the possibility of working together.</p>
+          <div class="sig-block">
+            <img src="${CAMELOT_SIGNATURE_B64}" alt="David Goldoff signature" />
+            <div class="name">David Goldoff</div>
+            <div class="role">President</div>
+            <div class="role">Camelot Property Management Services Corp.</div>
+          </div>
+          <div class="notes-box">
+            <div class="title">Notes</div>
+            <div class="hint">Context gathered from conversations with the client — reference before finalizing this proposal.</div>
+            <ul>
+              <li>[Note — e.g. a specific concern, current management pain point, or special request the client raised]</li>
+              <li>[Note — e.g. staffing, vendor, or building-condition context]</li>
+              <li>[Note — e.g. timeline, decision process, or board dynamics]</li>
+            </ul>
+          </div>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
         </div>
 
-        <h2>Included Services</h2>
-        <ul class="services">
-          <li>Property Management — day-to-day building operations, staff oversight, vendor management</li>
-          <li>Financial Management — budgeting, accounts payable/receivable, monthly board reporting</li>
-          <li>Violation Resolution — HPD, DOB, and ECB violation tracking, resolution, and dismissal</li>
-          <li>Maintenance Coordination — work order management, preventive maintenance scheduling</li>
-          <li>Resident Communication — ConciergePlus portal, package tracking, announcements</li>
-          <li>Insurance Administration — policy review, claims management, certificate tracking</li>
-          <li>Capital Planning — reserve fund analysis, project management, contractor procurement</li>
-          <li>Compliance &amp; Reporting — annual filings, Local Law compliance, DHCR submissions</li>
-        </ul>
-
-        <h2>Why Camelot</h2>
-        <p>Camelot Realty Group personally oversees every property in its portfolio with weekly on-site inspections, real-time financial transparency, zero hidden bank fees, and 20+ years of vendor relationships that deliver better pricing and faster response times.</p>
-
-        <div class="footer">
-          <p>Camelot Realty Group | 57 West 57th Street, Suite 410 | New York, NY 10019</p>
-          <p>(212) 206-9939 | www.camelot.nyc</p>
+        <div class="page">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <h2 class="section">Property Description</h2>
+          <div class="desc-box">${propertyDescription}</div>
+          <h3 class="sub">Property Snapshot</h3>
+          <table class="info-table">
+            <tr><td class="k">The Property</td><td>${d.address || 'N/A'}</td></tr>
+            <tr><td class="k">The Client</td><td>[Board / Ownership Entity Name]</td></tr>
+            <tr><td class="k">Unit Mix</td><td>${unitMix || `${d.propertyType || 'Residential'} — ${resUnits ?? 'N/A'} units`}</td></tr>
+            <tr><td class="k">Square Footage</td><td>${sqFt} (lot: ${lotSqFt})</td></tr>
+            <tr><td class="k">HPD Registration (MDR)</td><td>${hpdReg}</td></tr>
+            <tr><td class="k">Last Sale (ACRIS)</td><td>${lastSale}</td></tr>
+            <tr><td class="k">DOB Permits</td><td>${dobPermits}</td></tr>
+            <tr><td class="k">Current Management</td><td>${d.managementCompany || 'Management to verify'}</td></tr>
+          </table>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
         </div>
-      </div></body></html>`;
+
+        <div class="page">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <h2 class="section">Scope of Services</h2>
+          <p style="font-size:13px;">If retained, Camelot will assign a dedicated team to ${d.buildingName || d.address}, including a Property Manager who leads day-to-day operations and Board meetings, an account manager and administrative support, and an in-house controller and CPA for budget development and financial oversight.</p>
+          <h3 class="sub">Property Management Services</h3>
+          <ul class="services">
+            <li>24/7 on-call response to building and resident inquiries</li>
+            <li>Administrative tracking, filings, and recordkeeping</li>
+            <li>Regular on-site visits and inspections</li>
+            <li>Coordination with service trades, contractors, and vendors</li>
+            <li>Regular reporting and updates to ownership/the Board</li>
+            <li>Enforcement of House Rules, bylaws, alteration agreements, and sublet submittals</li>
+            <li>Management of Board and Annual meetings</li>
+          </ul>
+          <h3 class="sub">Accounting Services</h3>
+          <ul class="services">
+            <li>Full bookkeeping services</li>
+            <li>Annual budget preparation and oversight</li>
+            <li>Monthly and year-end reconciliation of cash, A/R, and A/P</li>
+            <li>Annual tax return coordination (available under separate proposal)</li>
+          </ul>
+          <h3 class="sub">Compliance &amp; Local Law Supervision</h3>
+          <ul class="services">
+            <li>Review of open violations, with a resolution plan brought to the Board</li>
+            <li>Review of current Local Law and code compliance status</li>
+            <li>Management of annual registrations and life-safety mechanical filings</li>
+            <li>Oversight of open alteration permit reviews on behalf of the Board</li>
+            <li>Monitoring of energy benchmarking and related regulatory requirements</li>
+          </ul>
+          <h3 class="sub">Brokerage &amp; Transfer Services</h3>
+          <ul class="services">
+            <li>Management of sublet and rental submittals</li>
+            <li>Insurance requirement review to protect the association</li>
+            <li>Scheduled move-ins, coordinated only after proof of insurance (COI) is received</li>
+          </ul>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
+        </div>
+
+        <div class="page">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <h2 class="section">Term, Rate &amp; Fees</h2>
+          <table class="info-table">
+            <tr><td class="k">Initial Term</td><td>[XX months], commencing [Date]</td></tr>
+            <tr><td class="k">Renewal</td><td>[Auto-renews annually unless terminated with XX days' written notice]</td></tr>
+            <tr><td class="k">Monthly Management Fee</td><td><strong style="color:#C5A55A;">$${monthly.toLocaleString()}</strong>/mo ($${perUnit}/unit)</td></tr>
+            <tr><td class="k">Annual Fee</td><td>$${annual.toLocaleString()}/yr</td></tr>
+            <tr><td class="k">Ancillary Fees</td><td>Per the attached Ancillary Fee Schedule (see below)</td></tr>
+          </table>
+          <p class="fee-note">The fee above reflects comparable properties we currently manage, factoring in scope, labor, insurance, overhead, and profit. Services outside the base scope of this proposal — such as lease renewals, sublet/transfer processing, capital project oversight, or tax certiorari coordination — are billed according to our standard Ancillary Fee Schedule, provided as an attachment to this proposal.</p>
+          <p class="fee-note">The full terms, responsibilities, and conditions of our engagement are set forth in Camelot's standard Property Management Agreement, which we will issue once the term and fee above are confirmed.</p>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+          </div>
+        </div>
+
+        <div class="page">
+          <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
+          <hr class="brand-rule" />
+          <h2 class="section">Next Steps</h2>
+          <ol class="next-steps">
+            <li><b>Discuss This Proposal Further</b> — schedule a call or meeting to walk through scope, fee, and answer any questions.</li>
+            <li><b>Finalize Term &amp; Fee</b> — confirm the management term and fee structure that works best for the Board/ownership.</li>
+            <li><b>Execute Property Management Agreement</b> — once terms are identified, Camelot will issue the formal Agreement for signature.</li>
+            <li><b>Begin Transition</b> — our transition team takes over from there, outlined below.</li>
+          </ol>
+          <h3 class="sub">Summary of Transitional Procedures</h3>
+          <p style="font-size:12.5px;">Camelot understands that a change in management can feel disruptive if it isn't handled carefully. Our transition team works closely with the outgoing management company, ownership, and building staff to make the handoff as seamless as possible — most transitions take 45–60 days. Upon being retained, we contact the outgoing manager directly, request all building files and financial records, and set target dates for payroll, billing, and any time-sensitive operational items so nothing falls through the cracks.</p>
+          <h3 class="sub">Budget, Facility &amp; Staff Review</h3>
+          <p style="font-size:12.5px;">In parallel with the transition, we conduct a full review of the building's finances, staff, and current vendor relationships against comparable properties in our portfolio. We meet with building staff to understand what's working and what isn't, and we deliver a written report to the Board within the first 30 days, along with recommendations for cost savings or operational improvements.</p>
+          <h3 class="sub">Meet &amp; Greet with Owners/Board</h3>
+          <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to residents and the Board, in person or over Zoom. This gives owners a chance to put a face to the team managing their building, raise any concerns directly, and update their contact information on file.</p>
+          <p class="thankyou">Thank you again for your consideration.</p>
+          <div class="contact-block"><img src="${CAMELOT_CONTACT_B64}" alt="Camelot contact information" /></div>
+        </div>
+
+      </body></html>`;
 
       setProposalHTML(proposalHtml);
       setStep('draft');
@@ -850,4 +1011,3 @@ export default function InstantProposal() {
     </div>
   );
 }
-

@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
+import { createSpireClient } from './src/api/spire-client.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1140,55 +1141,23 @@ app.post('/api/prospeo/find-email', async (req, res) => {
 // truth than NYC DOF/PLUTO estimates, so this is used to cross-check
 // and override unit counts when a managed building matches by address.
 // ============================================================
-const SPIRE_BASE = 'https://camelot.spiremds.com/api';
-let spireTokenCache = { token: '', expiresAt: 0 };
+const spireClient = createSpireClient();
 let spireBuildingsCache = { data: null, fetchedAt: 0 };
 const SPIRE_BUILDINGS_CACHE_MS = 10 * 60 * 1000; // 10 minutes
-
-function getSpireConfig() {
-  return {
-    apiKey: process.env.SPIRE_MDS_API_KEY || '',
-    clientSecret: process.env.SPIRE_MDS_CLIENT_SECRET || '',
-  };
-}
-
-async function getSpireToken() {
-  const now = Date.now();
-  if (spireTokenCache.token && spireTokenCache.expiresAt > now + 30000) {
-    return spireTokenCache.token;
-  }
-  const { apiKey, clientSecret } = getSpireConfig();
-  if (!apiKey || !clientSecret) throw new Error('Spire MDS credentials not configured');
-  const resp = await fetch(`${SPIRE_BASE}/Authorize`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ APIKey: apiKey, ClientSecret: clientSecret }),
-  });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '');
-    throw new Error(`Spire auth failed (${resp.status}): ${text.slice(0, 200)}`);
-  }
-  const raw = await resp.text();
-  const token = raw.trim().replace(/^"|"$/g, ''); // endpoint returns the raw JWT as a JSON string
-  // Token is valid for 15 minutes per Spire's docs; cache for 14 to stay safe.
-  spireTokenCache = { token, expiresAt: now + 14 * 60 * 1000 };
-  return token;
-}
 
 async function fetchSpireBuildings() {
   const now = Date.now();
   if (spireBuildingsCache.data && now - spireBuildingsCache.fetchedAt < SPIRE_BUILDINGS_CACHE_MS) {
     return spireBuildingsCache.data;
   }
-  const token = await getSpireToken();
-  const resp = await fetch(`${SPIRE_BASE}/RM/BuildingsList`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '');
-    throw new Error(`Spire buildings fetch failed (${resp.status}): ${text.slice(0, 200)}`);
+  const result = await spireClient.listBuildings();
+  if (!result.ok) {
+    const error = new Error(result.error.message);
+    error.code = result.error.code;
+    error.status = result.error.status;
+    throw error;
   }
-  const data = await resp.json();
+  const data = result.data.items.map((building) => building.raw);
   spireBuildingsCache = { data, fetchedAt: now };
   return data;
 }
@@ -1207,9 +1176,8 @@ function normalizeAddressForSpireMatch(addr) {
 }
 
 app.get('/api/spire/building-lookup', async (req, res) => {
-  const { apiKey, clientSecret } = getSpireConfig();
-  if (!apiKey || !clientSecret) {
-    return res.status(400).json({ error: 'Spire MDS not configured. Add SPIRE_MDS_API_KEY and SPIRE_MDS_CLIENT_SECRET in Render environment.' });
+  if (!spireClient.isConfigured) {
+    return res.status(400).json({ error: 'Spire MDS not configured. Add SPIRE_API_KEY and SPIRE_CLIENT_SECRET in Render environment.' });
   }
   const address = String(req.query.address || '').trim();
   if (!address) return res.status(400).json({ error: 'address query param required' });
@@ -1234,7 +1202,7 @@ app.get('/api/spire/building-lookup', async (req, res) => {
       propertyManagerEmail: match.PropertyManagerEmail || '',
     });
   } catch (err) {
-    res.status(502).json({ error: err.message || 'Spire lookup error' });
+    res.status(err.status || 502).json({ error: err.message || 'Spire lookup error', code: err.code });
   }
 });
 
@@ -1289,7 +1257,7 @@ app.get('/api/health', (req, res) => {
     hubspot: !!getHubSpotApiKey(),
     apollo: !!process.env.APOLLO_API_KEY,
     ai: !!getAiKey(),
-    spire: !!(process.env.SPIRE_MDS_API_KEY && process.env.SPIRE_MDS_CLIENT_SECRET),
+    spire: spireClient.isConfigured,
     timestamp: new Date().toISOString()
   });
 });

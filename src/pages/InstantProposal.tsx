@@ -6,6 +6,10 @@ import { fetchAddressByBBL } from '@/lib/nyc-api';
 import { generatePitchReport } from '@/lib/pitch-report';
 import { loadReportInputs, saveReportInputs } from '@/lib/report-input-memory';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
+// Existing CRM plumbing (same functions the legacy Proposals page and Report
+// Center already use): creates/updates a HubSpot contact for the recipient
+// and upserts a Building record into the Pipeline board's local store.
+import { buildingFromReportData, trackReportWorkflowEvent } from '@/lib/report-crm-tracking';
 import toast from 'react-hot-toast';
 import { CAMELOT_LOGO_B64, CAMELOT_HEADER_B64, CAMELOT_SIGNATURE_B64, CAMELOT_CONTACT_B64 } from '@/lib/camelot-brand-assets';
 
@@ -365,6 +369,12 @@ export default function InstantProposal() {
   // Who this proposal is being sent to — used to build the "PDF + Email" draft
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
+  // Which email service to open the draft in. Plain mailto: only opens
+  // something if the browser/OS has a mail app or web handler registered for
+  // it — for Gmail users (the common case, and one who has no protocol
+  // handler registered) that silently does nothing, so Gmail/Outlook Web are
+  // opened via their own compose-URL, which works with zero setup.
+  const [emailProvider, setEmailProvider] = useState<'gmail' | 'outlook' | 'default'>('gmail');
   // Building/client type — swaps "Board," "shareholders," "unit owners," etc.
   // for the correct vocabulary throughout the proposal. Defaults to Rental
   // since most Camelot properties are rental buildings, not co-ops/condos —
@@ -965,6 +975,27 @@ export default function InstantProposal() {
       setProposalHTML(proposalHtml);
       setStep('draft');
       toast.success('Proposal draft ready for review');
+
+      // File this proposal in HubSpot (contact create/update) and on the
+      // Pipeline board — fire-and-forget so a CRM hiccup never blocks the
+      // proposal draft itself.
+      const trackingBuilding = buildProposalTrackingBuilding();
+      if (trackingBuilding) {
+        void trackReportWorkflowEvent({
+          building: trackingBuilding,
+          reportData: reportData || undefined,
+          packageType: 'proposal_of_services',
+          packageLabel: 'Proposal of Property Management Services',
+          action: 'generated',
+          filename: `${getFilenameBase()}.pdf`,
+          extraContacts: buildProposalTrackingContacts(),
+          metadata: {
+            clientType,
+            isReceiver,
+            recipientOrgName: recipientOrgName.trim() || undefined,
+          },
+        });
+      }
     } catch (e: any) {
       toast.error('Proposal generation failed: ' + (e?.message || 'Unknown error'));
     }
@@ -979,6 +1010,32 @@ export default function InstantProposal() {
   const getFilenameBase = useCallback(() => {
     return reportData ? buildJackieIntelReportFilename(reportData) : 'Camelot-Intel-Report-For_Property';
   }, [reportData]);
+
+  // CRM tracking — HubSpot contact + Pipeline board. Always built from the
+  // manually-entered recipient fields on the Verify step (never inferred),
+  // matching the same "one-off, editable" rule the rest of the recipient
+  // panel follows. Used by both the draft-generation and PDF+Email steps so
+  // the Pipeline board and HubSpot see the full lifecycle of a proposal.
+  const buildProposalTrackingContacts = () => {
+    if (!recipientName.trim() && !recipientEmail.trim() && !recipientPhone.trim()) return [];
+    return [{
+      name: recipientName.trim() || recipientEmail.trim() || 'Proposal recipient',
+      role: recipientTitle.trim() || (isReceiver ? 'Court-Appointed Receiver' : 'Decision maker'),
+      email: recipientEmail.trim() || undefined,
+      phone: recipientPhone.trim() || undefined,
+      company: recipientOrgName.trim() || reportData?.buildingName || reportData?.address,
+      source: 'Instant Proposal recipient fields',
+    }];
+  };
+
+  const buildProposalTrackingBuilding = () => {
+    if (!reportData) return null;
+    // Jackie report-sourced buildings default to status 'proposal', which the
+    // Pipeline Kanban board filters out (it only shows status 'active'), so
+    // it's forced to 'active' here — otherwise this proposal would never
+    // actually surface on the Pipeline page.
+    return { ...buildingFromReportData(reportData, buildProposalTrackingContacts()), status: 'active' };
+  };
 
   // Export: Download PDF directly (no popup)
   const handleDownloadPDF = async () => {
@@ -1045,14 +1102,21 @@ export default function InstantProposal() {
     toast.success('Print dialog opening...');
   };
 
-  // Export: PDF + Email — opens the recipient's default email application
-  // immediately (mailto:) with To/Subject/Body pre-filled, and downloads the
-  // PDF at the same moment so it's ready to drag into that now-open draft.
-  // Browsers have no API to attach a file to a mailto: draft (a deliberate
-  // security restriction — no website can silently populate a native mail
-  // client with a file), so opening instantly and auto-attaching are mutually
-  // exclusive; this prioritizes the mail app opening right away. Nothing is
-  // ever sent automatically — it's a draft the user reviews and sends.
+  // Export: PDF + Email — opens a compose draft for the chosen email provider
+  // immediately, with To/Subject/Body pre-filled, and downloads the PDF at the
+  // same moment so it's ready to drag into that now-open draft.
+  //
+  // Plain mailto: only does anything if the OS/browser has a mail app or web
+  // handler *registered* for it. Most Gmail users have never registered one,
+  // so mailto: silently does nothing — that's what was happening. Gmail and
+  // Outlook Web both have their own compose-URL formats that open the actual
+  // webmail compose window directly, with zero setup required, so those are
+  // used instead when selected below ("Default Mail App" still uses mailto:
+  // for people on Outlook/Apple Mail desktop with a real registered handler).
+  //
+  // Browsers have no API to attach a file to any of these drafts (a
+  // deliberate security restriction), so the PDF downloads alongside for a
+  // one-step manual attach. Nothing is ever sent automatically.
   const handlePdfEmail = async () => {
     if (!recipientEmail.trim()) {
       toast.error("Enter the recipient's email above before creating the draft");
@@ -1063,6 +1127,12 @@ export default function InstantProposal() {
     }
     const content = getDraftContent();
     if (!content) { toast.error('No proposal content'); return; }
+
+    // Open a blank tab synchronously, still inside the click handler, so the
+    // browser treats it as a direct result of the user's click and doesn't
+    // pop-up-block it — we only navigate it to the real URL once it's built,
+    // after the (async, several-second) PDF render below.
+    const composeTab = emailProvider !== 'default' ? window.open('about:blank', '_blank') : null;
 
     setEmailLoading(true);
     setPdfLoading(true);
@@ -1102,13 +1172,46 @@ export default function InstantProposal() {
       a.click();
       URL.revokeObjectURL(a.href);
 
-      // Open the default mail app with To/Subject/Body pre-filled.
-      const mailto = `mailto:${encodeURIComponent(recipientEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailto;
+      const to = recipientEmail.trim();
+      let providerLabel = 'your email app';
+      if (emailProvider === 'gmail') {
+        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        if (composeTab) composeTab.location.href = url; else window.open(url, '_blank');
+        providerLabel = 'Gmail';
+      } else if (emailProvider === 'outlook') {
+        const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        if (composeTab) composeTab.location.href = url; else window.open(url, '_blank');
+        providerLabel = 'Outlook Web';
+      } else {
+        const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = mailto;
+        providerLabel = 'your default mail app';
+      }
 
-      toast.success('Opening your email app with the draft — attach the PDF that just downloaded, then review and send', { duration: 9000 });
+      toast.success(`Opening ${providerLabel} with the draft — attach the PDF that just downloaded, then review and send`, { duration: 9000 });
+
+      // File this send in HubSpot + Pipeline (moves the board card to
+      // "Contacted") — mirrors the 'generated' tracking call above so the
+      // CRM sees the full lifecycle of this proposal.
+      const trackingBuilding = buildProposalTrackingBuilding();
+      if (trackingBuilding) {
+        void trackReportWorkflowEvent({
+          building: trackingBuilding,
+          reportData: reportData || undefined,
+          packageType: 'proposal_of_services',
+          packageLabel: 'Proposal of Property Management Services',
+          action: 'email_draft_opened',
+          filename,
+          emailSubject: subject,
+          emailBody: body,
+          recipients: [to],
+          extraContacts: buildProposalTrackingContacts(),
+          metadata: { clientType, isReceiver, emailProvider },
+        });
+      }
     } catch (e: any) {
       console.error('PDF + Email failed:', e);
+      composeTab?.close();
       toast.error('Could not prepare the email draft — try Save as PDF instead');
     } finally {
       setEmailLoading(false);
@@ -1709,8 +1812,34 @@ export default function InstantProposal() {
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
               />
             </div>
+            <div className="mt-3">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1.5">Open draft in</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailProvider('gmail')}
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${emailProvider === 'gmail' ? 'bg-camelot-navy text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100'}`}
+                >
+                  Gmail
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEmailProvider('outlook')}
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${emailProvider === 'outlook' ? 'bg-camelot-navy text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100'}`}
+                >
+                  Outlook Web
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEmailProvider('default')}
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${emailProvider === 'default' ? 'bg-camelot-navy text-white' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100'}`}
+                >
+                  Default Mail App
+                </button>
+              </div>
+            </div>
             <p className="text-[10px] text-gray-400 mt-2">
-              Required for "PDF + Email." Downloads a ready-to-send draft with the recipient, subject, cover note, and PDF already attached — nothing is sent automatically.
+              Required for "PDF + Email." Opens a compose draft in the selected service with the recipient, subject, and cover note filled in, and downloads the PDF at the same time to attach — nothing is sent automatically.
             </p>
           </div>
 

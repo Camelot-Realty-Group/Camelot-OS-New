@@ -17,6 +17,7 @@
     "hubspot:daily": "node scripts/hubspot-rollout.mjs daily",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test": "node --test test/*.test.mjs",
     "qa": "node scripts/qa-run.mjs",
     "qa:scan": "node scripts/qa-scan.mjs",
     "start": "node server.js"

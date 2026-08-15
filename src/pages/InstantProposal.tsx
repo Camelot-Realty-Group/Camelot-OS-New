@@ -57,6 +57,172 @@ type InstantProposalSavedInputs = {
   borough: string;
 };
 
+// ---------------------------------------------------------------------------
+// PDF / Email export helpers (module scope — no component state needed)
+// ---------------------------------------------------------------------------
+
+/** Pulls the <style> CSS text and inner <body> HTML out of a full HTML document
+ *  string. Falls back to treating the whole string as body content if no
+ *  <body> tag is present (e.g. a contentEditable fragment). Extracting the
+ *  stylesheet and re-attaching it to the real document <head> (instead of
+ *  relying on fragment-parsing a <style> tag into a plain <div>) guarantees
+ *  the CSS is actually applied when html2canvas renders the clone. */
+function extractStyleAndBody(fullHtml: string): { css: string; bodyHtml: string } {
+  const styleMatches = Array.from(fullHtml.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)).map(m => m[1]);
+  const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  return {
+    css: styleMatches.join('\n'),
+    bodyHtml: bodyMatch ? bodyMatch[1] : fullHtml,
+  };
+}
+
+/** Waits for every <img> under root to finish loading (or fail/timeout) so
+ *  html2canvas never snapshots a page before its images have decoded. */
+function waitForImages(root: HTMLElement, timeoutMs = 4000): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll('img'));
+  if (!imgs.length) return Promise.resolve();
+  return Promise.all(
+    imgs.map(img => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>(resolve => {
+        const done = () => resolve();
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', done, { once: true });
+        setTimeout(done, timeoutMs);
+      });
+    })
+  ).then(() => undefined);
+}
+
+/**
+ * Renders proposal HTML to a PDF Blob.
+ *
+ * html2pdf.js has a documented limitation: rasterizing a very tall, multi-page
+ * container into ONE giant canvas can silently produce a completely blank PDF
+ * (see html2pdf.js README "Known issues #6 — Maximum size"). Our proposal is a
+ * 6-page document, so instead of rendering it as a single tall container, each
+ * `.page` block is captured as its own bounded canvas and stitched into one
+ * multi-page PDF via the jsPDF instance that html2pdf.js hands back — this
+ * keeps every individual canvas well within safe browser limits.
+ */
+async function renderProposalPdfBlob(content: string, filename: string): Promise<Blob> {
+  const html2pdf = (await import('html2pdf.js')).default;
+  const { css, bodyHtml } = extractStyleAndBody(content);
+
+  // Attach the extracted stylesheet to the real document head so it behaves
+  // exactly like a normal page's CSS (no fragment-parsing ambiguity).
+  const styleEl = document.createElement('style');
+  styleEl.setAttribute('data-camelot-pdf-export', 'true');
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+
+  // Render off-screen but still fully painted (opacity:0, not display:none or
+  // an extreme negative offset) so html2canvas has a real, decoded layout to copy.
+  const container = document.createElement('div');
+  container.innerHTML = bodyHtml;
+  container.style.cssText = 'position:fixed;left:0;top:0;width:800px;opacity:0;pointer-events:none;z-index:-1;';
+  document.body.appendChild(container);
+
+  try {
+    await waitForImages(container);
+
+    const pageEls = Array.from(container.querySelectorAll<HTMLElement>('.page'));
+    const targets = pageEls.length ? pageEls : [container];
+
+    const margin: [number, number, number, number] = [0.5, 0.5, 0.5, 0.5];
+    const baseOpt = {
+      margin,
+      filename,
+      image: { type: 'jpeg' as const, quality: 0.95 },
+      html2canvas: { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff', logging: false },
+      jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const },
+      pagebreak: { mode: 'avoid-all' as const },
+    };
+
+    // Page 1: let html2pdf.js build the initial jsPDF document (handles unit
+    // conversion / page sizing for us).
+    const pdf = await html2pdf().set(baseOpt).from(targets[0]).toPdf().get('pdf');
+
+    const pageWidthPt = pdf.internal.pageSize.getWidth();
+    const pageHeightPt = pdf.internal.pageSize.getHeight();
+    const [mTop, mRight, mBottom, mLeft] = margin;
+    const usableWidth = pageWidthPt - mLeft - mRight;
+    const usableHeight = pageHeightPt - mTop - mBottom;
+
+    for (let i = 1; i < targets.length; i++) {
+      const canvas: HTMLCanvasElement = await html2pdf().set(baseOpt).from(targets[i]).toContainer().toCanvas().get('canvas');
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgHeight = (canvas.height / canvas.width) * usableWidth;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', mLeft, mTop, usableWidth, Math.min(imgHeight, usableHeight));
+    }
+
+    return pdf.output('blob') as Blob;
+  } finally {
+    document.body.removeChild(container);
+    document.head.removeChild(styleEl);
+  }
+}
+
+/** Reads a Blob and resolves to its base64 payload (no `data:...;base64,` prefix). */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = String(reader.result || '');
+      resolve(result.split(',')[1] || '');
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** RFC 2045 requires base64 body lines to be wrapped — most mail clients are
+ *  lenient, but a few (older Outlook builds) reject/garble unwrapped lines. */
+function wrapBase64(base64: string): string {
+  return base64.match(/.{1,76}/g)?.join('\r\n') || base64;
+}
+
+/**
+ * Builds a standalone .eml (RFC 822) file with the PDF attached and the
+ * `X-Unsent: 1` header, which Outlook (desktop) recognizes and opens the
+ * file as an editable, unsent DRAFT — populated with To/Subject/Body and the
+ * attachment already in place — rather than sending anything automatically.
+ */
+function buildEmlDraft(opts: {
+  to: string;
+  subject: string;
+  body: string;
+  attachmentName: string;
+  attachmentBase64: string;
+}): string {
+  const boundary = `----=_NextPart_Camelot_${Date.now()}`;
+  return [
+    `To: ${opts.to}`,
+    `Subject: ${opts.subject}`,
+    `X-Unsent: 1`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    ``,
+    `This is a multi-part message in MIME format.`,
+    `--${boundary}`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: 8bit`,
+    ``,
+    opts.body,
+    ``,
+    `--${boundary}`,
+    `Content-Type: application/pdf; name="${opts.attachmentName}"`,
+    `Content-Transfer-Encoding: base64`,
+    `Content-Disposition: attachment; filename="${opts.attachmentName}"`,
+    ``,
+    wrapBase64(opts.attachmentBase64),
+    ``,
+    `--${boundary}--`,
+    ``,
+  ].join('\r\n');
+}
+
 export default function InstantProposal() {
   const location = useLocation();
   const [step, setStep] = useState<Step>('search');
@@ -74,10 +240,14 @@ export default function InstantProposal() {
   const [showJackieModal, setShowJackieModal] = useState(false);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
   // Editable fee (Verify step) — defaults to the auto-calculated suggestion until the user overrides it
   const [customFee, setCustomFee] = useState<number | null>(null);
   // Manual unit-mix entry (studios/1BR/2BR/3BR) — not published by any NYC Open Data source
   const [unitMix, setUnitMix] = useState('');
+  // Who this proposal is being sent to — used to build the "PDF + Email" draft
+  const [recipientName, setRecipientName] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const draftRef = useRef<HTMLDivElement>(null);
 
   const stepIndex = STEPS.findIndex(s => s.key === step);
@@ -464,25 +634,13 @@ export default function InstantProposal() {
     if (!content) { toast.error('No proposal content'); return; }
     setPdfLoading(true);
     try {
-      const html2pdf = (await import('html2pdf.js')).default;
-      // Create a temporary container for rendering
-      const container = document.createElement('div');
-      container.innerHTML = content;
-      container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;';
-      document.body.appendChild(container);
-
-      await html2pdf()
-        .set({
-          margin: [0.5, 0.5, 0.5, 0.5],
-          filename: `${getFilenameBase()}.pdf`,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        })
-        .from(container)
-        .save();
-
-      document.body.removeChild(container);
+      const filename = `${getFilenameBase()}.pdf`;
+      const blob = await renderProposalPdfBlob(content, filename);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
       toast.success('PDF downloaded');
     } catch (e: any) {
       console.error('PDF generation error:', e);
@@ -532,37 +690,64 @@ export default function InstantProposal() {
     toast.success('Print dialog opening...');
   };
 
-  // Export: Email — build email body, copy to clipboard + open mailto link
-  const handleEmail = async () => {
+  // Export: PDF + Email — renders the PDF, then downloads a ready-to-send .eml
+  // draft with the recipient, subject, cover note, and PDF already attached.
+  // Nothing is sent automatically — the file opens as an editable draft in the
+  // user's mail app (Outlook recognizes the X-Unsent header and opens it as
+  // a compose window rather than a read-only message).
+  const handlePdfEmail = async () => {
+    if (!recipientEmail.trim()) {
+      toast.error("Enter the recipient's email above before creating the draft");
+      return;
+    }
     if (releaseQA?.failures) {
-      toast.error('Jackie found report warnings/review issues; opening email draft anyway for internal review.', { duration: 5000 });
+      toast.error('Jackie found report warnings/review issues; creating the draft anyway for internal review.', { duration: 5000 });
     }
-    const buildingName = reportData?.buildingName || 'Property';
-    const emailBody =
-      `Dear Board,\n\n` +
-      `Please find attached our Proposal of Property Management Services for ${buildingName}.\n\n` +
-      `We have taken the time to research your building and are confident that Camelot can deliver measurable improvements in operations, transparency, and service quality.\n\n` +
-      `We look forward to meeting with you — either in person or via Zoom — to discuss this proposal further.\n\n` +
-      `Warm regards,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
+    const content = getDraftContent();
+    if (!content) { toast.error('No proposal content'); return; }
 
-    const subject = `Proposal of Services — ${buildingName} | Camelot Realty Group`;
-
-    // First download the PDF so they have the attachment ready
-    await handleDownloadPDF();
-
-    // Copy email body to clipboard as fallback
+    setEmailLoading(true);
+    setPdfLoading(true);
     try {
-      await navigator.clipboard.writeText(emailBody);
-      toast.success('Email text copied to clipboard');
-    } catch {
-      // Clipboard may not be available
+      const buildingName = reportData?.buildingName || reportData?.address || 'the property';
+      const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const filenameBase = getFilenameBase();
+      const filename = `${filenameBase}.pdf`;
+
+      const pdfBlob = await renderProposalPdfBlob(content, filename);
+      const pdfBase64 = await blobToBase64(pdfBlob);
+
+      const greetName = recipientName.trim() || 'Board';
+      const subject = `Proposal of Services — ${buildingName} — v1.0 — ${todayStr}`;
+      const body =
+        `Dear ${greetName},\r\n\r\n` +
+        `Please find attached our Proposal of Property Management Services for ${buildingName}, dated ${todayStr}.\r\n\r\n` +
+        `We appreciate the opportunity to be considered and look forward to discussing this proposal further at your convenience.\r\n\r\n` +
+        `Warm regards,\r\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
+
+      const eml = buildEmlDraft({
+        to: recipientEmail.trim(),
+        subject,
+        body,
+        attachmentName: filename,
+        attachmentBase64: pdfBase64,
+      });
+
+      const emlBlob = new Blob([eml], { type: 'message/rfc822' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(emlBlob);
+      a.download = `${filenameBase}.eml`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+
+      toast.success('Draft email downloaded with the PDF attached — open it to review and send', { duration: 7000 });
+    } catch (e: any) {
+      console.error('PDF + Email failed:', e);
+      toast.error('Could not create the draft email — try Save as PDF instead');
+    } finally {
+      setEmailLoading(false);
+      setPdfLoading(false);
     }
-
-    // Use mailto: link (works on mobile — opens default mail app)
-    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-    window.location.href = mailto;
-
-    toast.success('Attach the downloaded PDF to your email');
   };
 
   const d = reportData;
@@ -944,7 +1129,13 @@ export default function InstantProposal() {
                 <ExternalLink size={12} /> Preview
               </button>
               <button
-                onClick={() => setStep('export')}
+                onClick={() => {
+                  // Persist any live edits made in the contentEditable draft into
+                  // state before leaving this step — otherwise edits are lost
+                  // once the div unmounts on the Export step.
+                  if (draftRef.current) setProposalHTML(draftRef.current.innerHTML);
+                  setStep('export');
+                }}
                 className="px-4 py-2 bg-camelot-gold text-white rounded-lg text-sm font-semibold hover:bg-camelot-gold/90 transition-colors flex items-center gap-1"
               >
                 Finalize <ChevronRight size={14} />
@@ -972,6 +1163,30 @@ export default function InstantProposal() {
           <h2 className="text-lg font-bold text-camelot-navy mb-2">Proposal Ready</h2>
           <p className="text-sm text-gray-500 mb-6">{d?.buildingName} — {d?.units} units — ${displayFee.toLocaleString()}/month</p>
 
+          {/* Send To — captured up front so the PDF + Email draft has a real recipient */}
+          <div className="max-w-md mx-auto mb-6 bg-gray-50 rounded-xl p-4 text-left">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Send To</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text"
+                placeholder="Recipient name (e.g. Jane Smith)"
+                value={recipientName}
+                onChange={e => setRecipientName(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+              />
+              <input
+                type="email"
+                placeholder="Recipient email *"
+                value={recipientEmail}
+                onChange={e => setRecipientEmail(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-2">
+              Required for "PDF + Email." Downloads a ready-to-send draft with the recipient, subject, cover note, and PDF already attached — nothing is sent automatically.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
             <button onClick={handlePrint} className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
               <Printer size={24} className="text-camelot-navy" />
@@ -995,9 +1210,19 @@ export default function InstantProposal() {
               <FileText size={24} className="text-camelot-navy" />
               <span className="text-xs font-semibold text-camelot-navy">Download HTML</span>
             </button>
-            <button onClick={handleEmail} className="flex flex-col items-center gap-2 p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors border border-red-200">
-              <Mail size={24} className="text-red-500" />
-              <span className="text-xs font-semibold text-camelot-navy">PDF + Email</span>
+            <button
+              onClick={handlePdfEmail}
+              disabled={emailLoading}
+              className="flex flex-col items-center gap-2 p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"
+            >
+              {emailLoading ? (
+                <Loader2 size={24} className="text-red-500 animate-spin" />
+              ) : (
+                <Mail size={24} className="text-red-500" />
+              )}
+              <span className="text-xs font-semibold text-camelot-navy">
+                {emailLoading ? 'Preparing...' : 'PDF + Email'}
+              </span>
             </button>
           </div>
 

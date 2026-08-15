@@ -380,6 +380,11 @@ export default function InstantProposal() {
   const [recipientOrgName, setRecipientOrgName] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
+  // Term, commencement, and renewal — editable on the Verify step, feeding the
+  // "Term, Rate & Fees" page of the generated proposal
+  const [initialTerm, setInitialTerm] = useState('');
+  const [commencing, setCommencing] = useState('');
+  const [renewalTerms, setRenewalTerms] = useState('');
   // Rate sheets — toggled + editable on the Verify step, inserted as new pages
   // near the end of the generated proposal when checked
   const [includeAncillaryFees, setIncludeAncillaryFees] = useState(true);
@@ -424,6 +429,9 @@ export default function InstantProposal() {
       setRecipientAddress('');
       setRecipientEmail('');
       setRecipientPhone('');
+      setInitialTerm('');
+      setCommencing('');
+      setRenewalTerms('');
       setStep('verify');
       toast.success('Property data loaded');
     } catch (e: unknown) {
@@ -472,6 +480,9 @@ export default function InstantProposal() {
       setRecipientAddress('');
       setRecipientEmail('');
       setRecipientPhone('');
+      setInitialTerm('');
+      setCommencing('');
+      setRenewalTerms('');
       setStep('verify');
       toast.success('Property data loaded');
     } catch (e: unknown) {
@@ -506,6 +517,9 @@ export default function InstantProposal() {
       setRecipientAddress('');
       setRecipientEmail('');
       setRecipientPhone('');
+      setInitialTerm('');
+      setCommencing('');
+      setRenewalTerms('');
       setStep('verify');
       toast.success('Demo property loaded: 201 East 79th Street');
     } catch (e: unknown) {
@@ -678,13 +692,22 @@ export default function InstantProposal() {
         'Warranty claim coordination during the building\'s initial post-construction period',
       ] : [];
 
+      // Page numbering — Cover/Letter/Property Description/Scope/Term & Fees are
+      // always pages 1-5; the two optional rate-sheet pages and Next Steps shift
+      // depending on which schedules are included.
+      let pageCounter = 5;
+      const pAncillary = includeAncillaryFees ? ++pageCounter : 0;
+      const pSchedule = includeRateSchedule ? ++pageCounter : 0;
+      const pNextSteps = ++pageCounter;
+      const totalPages = pNextSteps;
+
       const proposalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
         @page { margin: 0.6in; }
         body{font-family:Georgia,'Times New Roman',serif;line-height:1.6;color:#222;margin:0;padding:0;background:#fff;}
         .page{max-width:800px;margin:0 auto;padding:40px 44px;}
         .page + .page{page-break-before:always;}
-        .brand-header{display:flex;align-items:center;margin-bottom:10px;}
-        .brand-header img{height:44px;width:auto;}
+        .brand-header{display:flex;align-items:center;margin-bottom:14px;}
+        .brand-header img{height:66px;width:auto;}
         .brand-rule{border:none;border-top:2px solid #C5A55A;margin:0 0 28px;}
         h1,h2,h3{font-family:Georgia,'Times New Roman',serif;color:#162B5E;margin:0;}
         .cover{text-align:center;padding:30px 20px 10px;}
@@ -702,7 +725,7 @@ export default function InstantProposal() {
         .letter .re-line{font-weight:700;color:#162B5E;margin:18px 0 14px;}
         .letter .re-line em{font-weight:400;font-style:italic;color:#777;}
         .sig-block{margin-top:26px;}
-        .sig-block img{width:190px;display:block;margin-bottom:4px;}
+        .sig-block img{width:285px;display:block;margin-bottom:4px;}
         .sig-block .name{font-weight:700;font-size:13px;}
         .sig-block .role{font-size:13px;}
         .notes-box{background:#F4F3EF;border:1px solid #D8D4C8;border-radius:4px;padding:16px 18px;margin-top:26px;}
@@ -724,6 +747,7 @@ export default function InstantProposal() {
         .contact-block img{width:340px;display:block;}
         .footer-bar{margin-top:36px;padding-top:10px;border-top:1px solid #ccc;text-align:center;font-size:10px;color:#888;}
         .footer-bar .conf{font-style:italic;margin-top:2px;}
+        .footer-bar .page-num{margin-top:4px;font-weight:700;color:#999;letter-spacing:0.5px;}
         table.fee-table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:6px;}
         table.fee-table th{background:#162B5E;color:#fff;text-align:left;padding:7px 10px;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;}
         table.fee-table th.amt{text-align:right;}
@@ -750,6 +774,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page 1 of ${totalPages}</div>
           </div>
         </div>
 
@@ -786,6 +811,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page 2 of ${totalPages}</div>
           </div>
         </div>
 
@@ -808,6 +834,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page 3 of ${totalPages}</div>
           </div>
         </div>
 
@@ -852,6 +879,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page 4 of ${totalPages}</div>
           </div>
         </div>
 
@@ -860,8 +888,8 @@ export default function InstantProposal() {
           <hr class="brand-rule" />
           <h2 class="section">Term, Rate &amp; Fees</h2>
           <table class="info-table">
-            <tr><td class="k">Initial Term</td><td>[XX months], commencing [Date]</td></tr>
-            <tr><td class="k">Renewal</td><td>[Auto-renews annually unless terminated with XX days' written notice]</td></tr>
+            <tr><td class="k">Initial Term</td><td>${initialTerm.trim() || '[XX months]'}${commencing.trim() ? `, commencing ${commencing.trim()}` : ', commencing [Date]'}</td></tr>
+            <tr><td class="k">Renewal</td><td>${renewalTerms.trim() || "[Auto-renews annually unless terminated with XX days' written notice]"}</td></tr>
             <tr><td class="k">Monthly Management Fee</td><td><strong style="color:#C5A55A;">$${monthly.toLocaleString()}</strong>/mo ($${perUnit}/unit)</td></tr>
             <tr><td class="k">Annual Fee</td><td>$${annual.toLocaleString()}/yr</td></tr>
             <tr><td class="k">Ancillary Fees</td><td>${includeAncillaryFees || includeRateSchedule ? 'Per the attached Schedule(s) below' : 'Available upon request'}</td></tr>
@@ -871,6 +899,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page 5 of ${totalPages}</div>
           </div>
         </div>
 
@@ -886,6 +915,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page ${pAncillary} of ${totalPages}</div>
           </div>
         </div>` : ''}
 
@@ -901,6 +931,7 @@ export default function InstantProposal() {
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page ${pSchedule} of ${totalPages}</div>
           </div>
         </div>` : ''}
 
@@ -922,6 +953,11 @@ export default function InstantProposal() {
           <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to ${meetGreetPhrase}, in person or over Zoom. This gives ${meetGreetSubjectWord} a chance to put a face to the team managing the building, raise any concerns directly, and update contact information on file.</p>
           <p class="thankyou">Thank you again for your consideration.</p>
           <div class="contact-block"><img src="${CAMELOT_CONTACT_B64}" alt="Camelot contact information" /></div>
+          <div class="footer-bar">
+            57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
+            <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
+            <div class="page-num">Page ${pNextSteps} of ${totalPages}</div>
+          </div>
         </div>
 
       </body></html>`;
@@ -1009,18 +1045,21 @@ export default function InstantProposal() {
     toast.success('Print dialog opening...');
   };
 
-  // Export: PDF + Email — renders the PDF, then downloads a ready-to-send .eml
-  // draft with the recipient, subject, cover note, and PDF already attached.
-  // Nothing is sent automatically — the file opens as an editable draft in the
-  // user's mail app (Outlook recognizes the X-Unsent header and opens it as
-  // a compose window rather than a read-only message).
+  // Export: PDF + Email — opens the recipient's default email application
+  // immediately (mailto:) with To/Subject/Body pre-filled, and downloads the
+  // PDF at the same moment so it's ready to drag into that now-open draft.
+  // Browsers have no API to attach a file to a mailto: draft (a deliberate
+  // security restriction — no website can silently populate a native mail
+  // client with a file), so opening instantly and auto-attaching are mutually
+  // exclusive; this prioritizes the mail app opening right away. Nothing is
+  // ever sent automatically — it's a draft the user reviews and sends.
   const handlePdfEmail = async () => {
     if (!recipientEmail.trim()) {
       toast.error("Enter the recipient's email above before creating the draft");
       return;
     }
     if (releaseQA?.failures) {
-      toast.error('Jackie found report warnings/review issues; creating the draft anyway for internal review.', { duration: 5000 });
+      toast.error('Jackie found report warnings/review issues; opening the email draft anyway for internal review.', { duration: 5000 });
     }
     const content = getDraftContent();
     if (!content) { toast.error('No proposal content'); return; }
@@ -1034,7 +1073,6 @@ export default function InstantProposal() {
       const filename = `${filenameBase}.pdf`;
 
       const pdfBlob = await renderProposalPdfBlob(content, filename);
-      const pdfBase64 = await blobToBase64(pdfBlob);
 
       const address = reportData?.address || buildingName;
       const emailBase: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
@@ -1049,32 +1087,29 @@ export default function InstantProposal() {
 
       const subject = `Re: ${address} - Proposal of Services V1. ${todayStr}`;
       const body =
-        `Dear ${greetName},\r\n\r\n` +
-        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\r\n\r\n` +
-        `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\r\n\r\n` +
-        `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\r\n\r\n` +
-        `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\r\n\r\n` +
-        `Warm regards,\r\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
+        `Dear ${greetName},\n\n` +
+        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
+        `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\n\n` +
+        `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\n\n` +
+        `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\n\n` +
+        `Warm regards,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
 
-      const eml = buildEmlDraft({
-        to: recipientEmail.trim(),
-        subject,
-        body,
-        attachmentName: filename,
-        attachmentBase64: pdfBase64,
-      });
-
-      const emlBlob = new Blob([eml], { type: 'message/rfc822' });
+      // Download the PDF first so it's already sitting in Downloads by the
+      // time the compose window appears.
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(emlBlob);
-      a.download = `${filenameBase}.eml`;
+      a.href = URL.createObjectURL(pdfBlob);
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(a.href);
 
-      toast.success('Draft email downloaded with the PDF attached — open it to review and send', { duration: 7000 });
+      // Open the default mail app with To/Subject/Body pre-filled.
+      const mailto = `mailto:${encodeURIComponent(recipientEmail.trim())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailto;
+
+      toast.success('Opening your email app with the draft — attach the PDF that just downloaded, then review and send', { duration: 9000 });
     } catch (e: any) {
       console.error('PDF + Email failed:', e);
-      toast.error('Could not create the draft email — try Save as PDF instead');
+      toast.error('Could not prepare the email draft — try Save as PDF instead');
     } finally {
       setEmailLoading(false);
       setPdfLoading(false);
@@ -1297,6 +1332,33 @@ export default function InstantProposal() {
             </div>
             <div className="border border-gray-100 rounded-lg p-3">
               <span className="text-gray-500">ECB Penalties:</span> <strong>${d.ecbPenaltyBalance.toLocaleString()}</strong>
+            </div>
+            <div className="border border-gray-100 rounded-lg p-3 sm:col-span-2">
+              <span className="text-gray-500 block mb-1">Term &amp; Renewal:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Initial term (e.g. 12 months)"
+                  value={initialTerm}
+                  onChange={e => setInitialTerm(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <input
+                  type="text"
+                  placeholder="Commencing (e.g. upon execution)"
+                  value={commencing}
+                  onChange={e => setCommencing(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <input
+                  type="text"
+                  placeholder="Renewal (e.g. Auto-renews annually, 60 days' notice)"
+                  value={renewalTerms}
+                  onChange={e => setRenewalTerms(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Feeds the "Term, Rate &amp; Fees" page of the proposal — left blank shows a bracketed placeholder to fill in manually.</p>
             </div>
           </div>
 

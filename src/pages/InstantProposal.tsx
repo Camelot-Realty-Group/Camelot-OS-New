@@ -342,6 +342,14 @@ export default function InstantProposal() {
   // Who this proposal is being sent to — used to build the "PDF + Email" draft
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
+  // Client type — swaps "Board" framing in the proposal narrative for court-
+  // appointed receivership language (e.g. Article 20/78 or 6301 receivership
+  // cases) when the recipient isn't a co-op/condo Board
+  const [clientType, setClientType] = useState<'board' | 'receiver'>('board');
+  const [recipientTitle, setRecipientTitle] = useState('');
+  const [recipientOrgName, setRecipientOrgName] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [recipientPhone, setRecipientPhone] = useState('');
   // Rate sheets — toggled + editable on the Verify step, inserted as new pages
   // near the end of the generated proposal when checked
   const [includeAncillaryFees, setIncludeAncillaryFees] = useState(true);
@@ -497,6 +505,32 @@ export default function InstantProposal() {
         `${owner ? `Ownership is on file as ${owner}. ` : ''}` +
         `${d.violationsOpen ? `The building currently has ${d.violationsOpen} open violation${d.violationsOpen === 1 ? '' : 's'} on record.` : 'The building currently has no open violations on record.'}`;
 
+      // Recipient + client-type framing — court-appointed receivers (e.g. Bergy
+      // Management-style engagements) get receivership language throughout
+      // instead of co-op/condo "Board" language.
+      const isReceiver = clientType === 'receiver';
+      const recName = recipientName.trim() || '[Recipient Name]';
+      const recTitleDefault = isReceiver ? 'Court-Appointed Receiver' : 'Board President';
+      const recTitle = recipientTitle.trim() || `[Recipient Title — e.g. ${recTitleDefault}]`;
+      const recOrgDefault = isReceiver ? '[Building Name / Receivership Estate]' : '[Building / Association Name]';
+      const recOrg = recipientOrgName.trim() || recOrgDefault;
+      const addrLines = recipientAddress.trim() ? recipientAddress.trim().split('\n').map(l => l.trim()).filter(Boolean) : [];
+      const addrLine1 = addrLines[0] || '[Address Line 1]';
+      const addrLine2 = addrLines.slice(1).join(', ') || '[City, State ZIP]';
+      const recContact = [recipientEmail.trim(), recipientPhone.trim()].filter(Boolean).join(' / ') || '[Email / Phone]';
+      const clientEntityDefault = isReceiver ? '[Receivership Estate / Ownership Entity Name]' : '[Board / Ownership Entity Name]';
+      const clientEntity = recipientOrgName.trim() || clientEntityDefault;
+      const boardAndResidents = isReceiver ? 'the property, its residents, and the receivership estate you oversee' : 'your Board and residents';
+      const boardMeetingsPhrase = isReceiver ? 'regular reporting to you as Receiver' : 'Board meetings';
+      const boardMeetingsListItem = isReceiver ? 'Regular reporting and coordination with the Court-Appointed Receiver' : 'Management of Board and Annual meetings';
+      const ownershipUpdatesPhrase = isReceiver ? 'ownership/you as Receiver' : 'ownership/the Board';
+      const violationsBoardPhrase = isReceiver ? 'brought to you as Receiver' : 'brought to the Board';
+      const alterationBoardPhrase = isReceiver ? 'on behalf of the Receiver' : 'on behalf of the Board';
+      const financeReportPhrase = isReceiver ? 'to you as Receiver' : 'to the Board';
+      const meetGreetPhrase = isReceiver ? 'residents and to you as Receiver' : 'residents and the Board';
+      const meetGreetHeading = isReceiver ? 'Meet &amp; Greet with Ownership/Receiver' : 'Meet &amp; Greet with Owners/Board';
+      const finalizeTermPhrase = isReceiver ? 'the receivership' : 'the Board/ownership';
+
       const proposalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
         @page { margin: 0.6in; }
         body{font-family:Georgia,'Times New Roman',serif;line-height:1.6;color:#222;margin:0;padding:0;background:#fff;}
@@ -561,10 +595,10 @@ export default function InstantProposal() {
           <table class="info-table">
             <tr><td class="k">Date</td><td>${todayStr}</td></tr>
             <tr><td class="k">Version</td><td>v1.0</td></tr>
-            <tr><td class="k">Prepared For</td><td>[Recipient Name, Title — e.g. Board President]</td></tr>
-            <tr><td class="k">Addressed To</td><td>[Building / Association Name]</td></tr>
-            <tr><td class="k">Recipient Contact</td><td>[Email / Phone]</td></tr>
-            <tr><td class="k">Recipient Address</td><td>[Street, City, State ZIP]</td></tr>
+            <tr><td class="k">Prepared For</td><td>${recName}, ${recTitle}</td></tr>
+            <tr><td class="k">Addressed To</td><td>${recOrg}</td></tr>
+            <tr><td class="k">Recipient Contact</td><td>${recContact}</td></tr>
+            <tr><td class="k">Recipient Address</td><td>${addrLines.length ? `${addrLine1}, ${addrLine2}` : '[Street, City, State ZIP]'}</td></tr>
           </table>
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
@@ -577,15 +611,15 @@ export default function InstantProposal() {
           <hr class="brand-rule" />
           <p>${todayStr}</p>
           <div class="addr-block">
-            <p>[Recipient Name]</p>
-            <p>[Recipient Title — e.g. Board President]</p>
-            <p>[Building / Association Name]</p>
-            <p>[Address Line 1]</p>
-            <p>[City, State ZIP]</p>
+            <p>${recName}</p>
+            <p>${recTitle}</p>
+            <p>${recOrg}</p>
+            <p>${addrLine1}</p>
+            <p>${addrLine2}</p>
           </div>
           <p class="re-line">Re:&nbsp; Property Management Proposal — <em>${d.buildingName || d.address}, ${d.address || ''}</em></p>
-          <p>Dear [Recipient Name],</p>
-          <p>It was a pleasure connecting with you about the opportunity to manage ${d.buildingName || d.address}. We are grateful for your consideration and the trust you're placing in Camelot — we're confident that our hands-on approach, vetted network of contractors and vendors, and responsive team can bring real, measurable value to your Board and residents.</p>
+          <p>Dear ${recName},</p>
+          <p>It was a pleasure connecting with you about the opportunity to manage ${d.buildingName || d.address}. We are grateful for your consideration and the trust you're placing in Camelot — we're confident that our hands-on approach, vetted network of contractors and vendors, and responsive team can bring real, measurable value to ${boardAndResidents}.</p>
           <p>Outlined in this proposal is the scope of services, fee structure, and next steps we recommend for ${d.buildingName || d.address}. We would welcome the opportunity to discuss this further at your convenience, and we look forward to the possibility of working together.</p>
           <div class="sig-block">
             <img src="${CAMELOT_SIGNATURE_B64}" alt="David Goldoff signature" />
@@ -616,7 +650,7 @@ export default function InstantProposal() {
           <h3 class="sub">Property Snapshot</h3>
           <table class="info-table">
             <tr><td class="k">The Property</td><td>${d.address || 'N/A'}</td></tr>
-            <tr><td class="k">The Client</td><td>[Board / Ownership Entity Name]</td></tr>
+            <tr><td class="k">The Client</td><td>${clientEntity}</td></tr>
             <tr><td class="k">Unit Mix</td><td>${unitMix || `${d.propertyType || 'Residential'} — ${resUnits ?? 'N/A'} units`}</td></tr>
             <tr><td class="k">Square Footage</td><td>${sqFt} (lot: ${lotSqFt})</td></tr>
             <tr><td class="k">HPD Registration (MDR)</td><td>${hpdReg}</td></tr>
@@ -634,16 +668,16 @@ export default function InstantProposal() {
           <div class="brand-header"><img src="${CAMELOT_HEADER_B64}" alt="Camelot Realty Group" /></div>
           <hr class="brand-rule" />
           <h2 class="section">Scope of Services</h2>
-          <p style="font-size:13px;">If retained, Camelot will assign a dedicated team to ${d.buildingName || d.address}, including a Property Manager who leads day-to-day operations and Board meetings, an account manager and administrative support, and an in-house controller and CPA for budget development and financial oversight.</p>
+          <p style="font-size:13px;">If retained, Camelot will assign a dedicated team to ${d.buildingName || d.address}, including a Property Manager who leads day-to-day operations and ${boardMeetingsPhrase}, an account manager and administrative support, and an in-house controller and CPA for budget development and financial oversight.</p>
           <h3 class="sub">Property Management Services</h3>
           <ul class="services">
             <li>24/7 on-call response to building and resident inquiries</li>
             <li>Administrative tracking, filings, and recordkeeping</li>
             <li>Regular on-site visits and inspections</li>
             <li>Coordination with service trades, contractors, and vendors</li>
-            <li>Regular reporting and updates to ownership/the Board</li>
+            <li>Regular reporting and updates to ${ownershipUpdatesPhrase}</li>
             <li>Enforcement of House Rules, bylaws, alteration agreements, and sublet submittals</li>
-            <li>Management of Board and Annual meetings</li>
+            <li>${boardMeetingsListItem}</li>
           </ul>
           <h3 class="sub">Accounting Services</h3>
           <ul class="services">
@@ -654,10 +688,10 @@ export default function InstantProposal() {
           </ul>
           <h3 class="sub">Compliance &amp; Local Law Supervision</h3>
           <ul class="services">
-            <li>Review of open violations, with a resolution plan brought to the Board</li>
+            <li>Review of open violations, with a resolution plan ${violationsBoardPhrase}</li>
             <li>Review of current Local Law and code compliance status</li>
             <li>Management of annual registrations and life-safety mechanical filings</li>
-            <li>Oversight of open alteration permit reviews on behalf of the Board</li>
+            <li>Oversight of open alteration permit reviews ${alterationBoardPhrase}</li>
             <li>Monitoring of energy benchmarking and related regulatory requirements</li>
           </ul>
           <h3 class="sub">Brokerage &amp; Transfer Services</h3>
@@ -727,16 +761,16 @@ export default function InstantProposal() {
           <h2 class="section">Next Steps</h2>
           <ol class="next-steps">
             <li><b>Discuss This Proposal Further</b> — schedule a call or meeting to walk through scope, fee, and answer any questions.</li>
-            <li><b>Finalize Term &amp; Fee</b> — confirm the management term and fee structure that works best for the Board/ownership.</li>
+            <li><b>Finalize Term &amp; Fee</b> — confirm the management term and fee structure that works best for ${finalizeTermPhrase}.</li>
             <li><b>Execute Property Management Agreement</b> — once terms are identified, Camelot will issue the formal Agreement for signature.</li>
             <li><b>Begin Transition</b> — our transition team takes over from there, outlined below.</li>
           </ol>
           <h3 class="sub">Summary of Transitional Procedures</h3>
           <p style="font-size:12.5px;">Camelot understands that a change in management can feel disruptive if it isn't handled carefully. Our transition team works closely with the outgoing management company, ownership, and building staff to make the handoff as seamless as possible — most transitions take 45–60 days. Upon being retained, we contact the outgoing manager directly, request all building files and financial records, and set target dates for payroll, billing, and any time-sensitive operational items so nothing falls through the cracks.</p>
           <h3 class="sub">Budget, Facility &amp; Staff Review</h3>
-          <p style="font-size:12.5px;">In parallel with the transition, we conduct a full review of the building's finances, staff, and current vendor relationships against comparable properties in our portfolio. We meet with building staff to understand what's working and what isn't, and we deliver a written report to the Board within the first 30 days, along with recommendations for cost savings or operational improvements.</p>
-          <h3 class="sub">Meet &amp; Greet with Owners/Board</h3>
-          <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to residents and the Board, in person or over Zoom. This gives owners a chance to put a face to the team managing their building, raise any concerns directly, and update their contact information on file.</p>
+          <p style="font-size:12.5px;">In parallel with the transition, we conduct a full review of the building's finances, staff, and current vendor relationships against comparable properties in our portfolio. We meet with building staff to understand what's working and what isn't, and we deliver a written report ${financeReportPhrase} within the first 30 days, along with recommendations for cost savings or operational improvements.</p>
+          <h3 class="sub">${meetGreetHeading}</h3>
+          <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to ${meetGreetPhrase}, in person or over Zoom. This gives ${isReceiver ? 'you' : 'owners'} a chance to put a face to the team managing the building, raise any concerns directly, and update contact information on file.</p>
           <p class="thankyou">Thank you again for your consideration.</p>
           <div class="contact-block"><img src="${CAMELOT_CONTACT_B64}" alt="Camelot contact information" /></div>
         </div>
@@ -853,7 +887,7 @@ export default function InstantProposal() {
       const pdfBlob = await renderProposalPdfBlob(content, filename);
       const pdfBase64 = await blobToBase64(pdfBlob);
 
-      const greetName = recipientName.trim() || 'Board';
+      const greetName = recipientName.trim() || (clientType === 'receiver' ? 'Receiver' : 'Board');
       const subject = `Proposal of Services — ${buildingName} — v1.0 — ${todayStr}`;
       const body =
         `Dear ${greetName},\r\n\r\n` +
@@ -1141,6 +1175,77 @@ export default function InstantProposal() {
                   RealtyMX and PropertyShark don't offer a public data API — cross-check unit mix there manually, or key it in above once confirmed.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Recipient + client type — who this proposal is addressed to, and whether it should
+              read as a co-op/condo Board letter or a court-appointed receivership letter */}
+          <div className="mb-4">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Recipient & Client Type</h3>
+            <div className="border border-gray-100 rounded-lg p-3">
+              <div className="flex gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setClientType('board')}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'board' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  Board (Co-op / Condo)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientType('receiver')}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'receiver' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  Court-Appointed Receiver
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Recipient name (e.g. Marc R. Bergman)"
+                  value={recipientName}
+                  onChange={e => setRecipientName(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <input
+                  type="text"
+                  placeholder={clientType === 'receiver' ? 'Title (e.g. Court-Appointed Receiver)' : 'Title (e.g. Board President)'}
+                  value={recipientTitle}
+                  onChange={e => setRecipientTitle(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <input
+                  type="text"
+                  placeholder={clientType === 'receiver' ? 'Firm / entity (e.g. Bergy Management Group LLC)' : 'Building / Association name'}
+                  value={recipientOrgName}
+                  onChange={e => setRecipientOrgName(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50 sm:col-span-2"
+                />
+                <textarea
+                  placeholder={'Mailing address (one line per row), e.g.\n376 Hollywood Ave. Suite 204\nFairfield, NJ 07004'}
+                  value={recipientAddress}
+                  onChange={e => setRecipientAddress(e.target.value)}
+                  rows={2}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50 sm:col-span-2 resize-none"
+                />
+                <input
+                  type="email"
+                  placeholder="Recipient email"
+                  value={recipientEmail}
+                  onChange={e => setRecipientEmail(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <input
+                  type="text"
+                  placeholder="Recipient phone"
+                  value={recipientPhone}
+                  onChange={e => setRecipientPhone(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-2">
+                Fills in the cover page, letter, and salutation. When set to Receiver, "Board" language throughout the proposal switches to receivership language automatically.
+              </p>
             </div>
           </div>
 

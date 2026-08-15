@@ -73,6 +73,10 @@ export default function InstantProposal() {
   const [showJackieModal, setShowJackieModal] = useState(false);
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  // Editable fee (Verify step) — defaults to the auto-calculated suggestion until the user overrides it
+  const [customFee, setCustomFee] = useState<number | null>(null);
+  // Manual unit-mix entry (studios/1BR/2BR/3BR) — not published by any NYC Open Data source
+  const [unitMix, setUnitMix] = useState('');
   const draftRef = useRef<HTMLDivElement>(null);
 
   const stepIndex = STEPS.findIndex(s => s.key === step);
@@ -97,6 +101,8 @@ export default function InstantProposal() {
       const data = await buildMasterReport(address.trim(), borough || undefined);
       setReportData(data);
       setReleaseQA(null);
+      setCustomFee(null);
+      setUnitMix('');
       setStep('verify');
       toast.success('Property data loaded');
     } catch (e: unknown) {
@@ -131,6 +137,8 @@ export default function InstantProposal() {
       const data = await buildMasterReport(resolved.address, borough);
       setReportData(data);
       setReleaseQA(null);
+      setCustomFee(null);
+      setUnitMix('');
       setStep('verify');
       toast.success('Property data loaded');
     } catch (e: unknown) {
@@ -151,6 +159,8 @@ export default function InstantProposal() {
       const data = await buildMasterReport(DEMO_ADDRESS, DEMO_BOROUGH);
       setReportData(data);
       setReleaseQA(null);
+      setCustomFee(null);
+      setUnitMix('');
       setStep('verify');
       toast.success('Demo property loaded: 201 East 79th Street');
     } catch (e: unknown) {
@@ -193,7 +203,15 @@ export default function InstantProposal() {
     }
     try {
       const d = reportData;
-      const monthly = d.monthlyFee || 0;
+      const monthly = customFee ?? d.monthlyFee ?? 0;
+      const perUnit = d.units ? Math.round(monthly / d.units) : (d.pricePerUnit ?? 0);
+      const sqFt = d.buildingArea ? d.buildingArea.toLocaleString() + ' sq ft' : 'N/A';
+      const lotSqFt = d.lotArea ? d.lotArea.toLocaleString() + ' sq ft' : 'N/A';
+      const resUnits = d.unitsResidential ?? d.units;
+      const totalUnits = d.unitsTotalAll ?? d.units;
+      const hpdReg = d.registrationDate ? `On file since ${d.registrationDate}` : 'Not registered / N/A';
+      const lastSale = d.lastSalePrice ? `$${d.lastSalePrice.toLocaleString()}${d.lastSaleDate ? ' on ' + d.lastSaleDate : ''}${d.lastSaleBuyer ? ' to ' + d.lastSaleBuyer : ''}` : 'No sale on record (ACRIS)';
+      const dobPermits = `${d.permitsCount ?? 0} filed${d.hasRecentPermits ? ' (recent activity)' : ''}`;
       const proposalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
         body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#222;margin:0;padding:32px;}
         .wrap{max-width:900px;margin:0 auto;}
@@ -215,10 +233,16 @@ export default function InstantProposal() {
         <h2>Property Information</h2>
         <div class="info">
           <div class="row"><span class="label">Address</span><span>${d.address || 'N/A'}</span></div>
-          <div class="row"><span class="label">Units</span><span>${d.units ?? 'N/A'}</span></div>
+          <div class="row"><span class="label">Units (Residential / Total)</span><span>${resUnits} / ${totalUnits}</span></div>
           <div class="row"><span class="label">Stories</span><span>${d.stories ?? 'N/A'}</span></div>
           <div class="row"><span class="label">Building Type</span><span>${d.propertyType || 'N/A'}</span></div>
           <div class="row"><span class="label">Year Built</span><span>${d.yearBuilt ?? 'N/A'}</span></div>
+          <div class="row"><span class="label">Building Square Footage</span><span>${sqFt}</span></div>
+          <div class="row"><span class="label">Lot Area</span><span>${lotSqFt}</span></div>
+          ${unitMix ? `<div class="row"><span class="label">Unit Mix</span><span>${unitMix}</span></div>` : ''}
+          <div class="row"><span class="label">HPD Registration</span><span>${hpdReg}</span></div>
+          <div class="row"><span class="label">Last Sale (ACRIS)</span><span>${lastSale}</span></div>
+          <div class="row"><span class="label">DOB Permits</span><span>${dobPermits}</span></div>
           <div class="row"><span class="label">Open Violations</span><span>${d.violationsOpen ?? 0}</span></div>
           <div class="row"><span class="label">Grade</span><span>${d.scoutGrade || 'N/A'}</span></div>
           <div class="row"><span class="label">Current Management</span><span>${d.managementCompany || 'Management to verify'}</span></div>
@@ -227,7 +251,7 @@ export default function InstantProposal() {
         <h2>Pricing Estimate</h2>
         <div class="pricing">
           <div class="row"><span class="label">Monthly Fee</span><span style="font-size:18px;color:#c5a55a;font-weight:700;">$${monthly.toLocaleString()}/mo</span></div>
-          <div class="row"><span class="label">Per Unit</span><span>$${d.pricePerUnit ?? 0}/unit</span></div>
+          <div class="row"><span class="label">Per Unit</span><span>$${perUnit}/unit</span></div>
           <div class="row"><span class="label">Annual Fee</span><span>$${(monthly * 12).toLocaleString()}/yr</span></div>
         </div>
 
@@ -381,6 +405,8 @@ export default function InstantProposal() {
   };
 
   const d = reportData;
+  const displayFee = customFee ?? (d?.monthlyFee ?? 0);
+  const displayPerUnit = d?.units ? Math.round(displayFee / d.units) : (d?.pricePerUnit ?? 0);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -573,11 +599,66 @@ export default function InstantProposal() {
             <div className="border border-gray-100 rounded-lg p-3">
               <span className="text-gray-500">Owner:</span> <strong>{d.registrationOwner || d.dofOwner || 'Unknown'}</strong>
             </div>
-            <div className="border border-gray-100 rounded-lg p-3">
-              <span className="text-gray-500">Proposed Fee:</span> <strong className="text-camelot-gold">${d.monthlyFee.toLocaleString()}/mo (${d.pricePerUnit}/unit)</strong>
+            <div className="border border-gray-100 rounded-lg p-3 sm:col-span-2">
+              <span className="text-gray-500 block mb-1">Monthly Fee:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-camelot-gold font-bold text-sm">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={displayFee}
+                  onChange={e => setCustomFee(e.target.value === '' ? 0 : Number(e.target.value))}
+                  className="w-28 px-2 py-1 border border-gray-300 rounded-lg text-sm font-bold text-camelot-gold focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <span className="text-xs text-gray-400">/mo (${displayPerUnit}/unit) · suggested ${d.monthlyFee.toLocaleString()}</span>
+                {customFee !== null && customFee !== d.monthlyFee && (
+                  <button onClick={() => setCustomFee(null)} className="text-xs text-gray-400 hover:text-camelot-gold underline">
+                    Reset to suggested
+                  </button>
+                )}
+              </div>
             </div>
             <div className="border border-gray-100 rounded-lg p-3">
               <span className="text-gray-500">ECB Penalties:</span> <strong>${d.ecbPenaltyBalance.toLocaleString()}</strong>
+            </div>
+          </div>
+
+          {/* Property identification — richer source data for confirming this is the right building */}
+          <div className="mb-4">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Property Identification</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="border border-gray-100 rounded-lg p-3">
+                <span className="text-gray-500">Square Footage:</span> <strong>{d.buildingArea ? `${d.buildingArea.toLocaleString()} sq ft` : 'N/A'}</strong>
+              </div>
+              <div className="border border-gray-100 rounded-lg p-3">
+                <span className="text-gray-500">Lot Area:</span> <strong>{d.lotArea ? `${d.lotArea.toLocaleString()} sq ft` : 'N/A'}</strong>
+              </div>
+              <div className="border border-gray-100 rounded-lg p-3">
+                <span className="text-gray-500">Residential / Total Units:</span> <strong>{d.unitsResidential ?? d.units} / {d.unitsTotalAll ?? d.units}</strong>
+              </div>
+              <div className="border border-gray-100 rounded-lg p-3">
+                <span className="text-gray-500">HPD Registration (MDR):</span> <strong>{d.registrationDate ? `On file since ${d.registrationDate}` : 'Not registered / N/A'}</strong>
+              </div>
+              <div className="border border-gray-100 rounded-lg p-3">
+                <span className="text-gray-500">Last Sale (ACRIS):</span>{' '}
+                <strong>{d.lastSalePrice ? `$${d.lastSalePrice.toLocaleString()}${d.lastSaleDate ? ` on ${d.lastSaleDate}` : ''}` : 'No sale on record'}</strong>
+              </div>
+              <div className="border border-gray-100 rounded-lg p-3">
+                <span className="text-gray-500">DOB Permits:</span> <strong>{d.permitsCount ?? 0} filed{d.hasRecentPermits ? ' (recent activity)' : ''}</strong>
+              </div>
+              <div className="border border-gray-100 rounded-lg p-3 sm:col-span-2">
+                <span className="text-gray-500 block mb-1">Unit Mix (studios / 1BR / 2BR / 3BR+):</span>
+                <input
+                  type="text"
+                  value={unitMix}
+                  onChange={e => setUnitMix(e.target.value)}
+                  placeholder="Not published by NYC Open Data, HPD, ACRIS, or DOB — enter manually if known (e.g. 4 studio, 10 1BR, 8 2BR, 2 3BR)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  RealtyMX and PropertyShark don't offer a public data API — cross-check unit mix there manually, or key it in above once confirmed.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -607,7 +688,7 @@ export default function InstantProposal() {
             <CheckCircle size={20} className="text-green-600" />
             <div>
               <p className="font-semibold text-green-800 text-sm">Jackie report ready — {d?.buildingName}</p>
-              <p className="text-xs text-green-600">{d?.units} units · {d?.violationsOpen} open violations · Grade {d?.scoutGrade} · {d?.propertyType} · Fee ${d?.monthlyFee.toLocaleString()}/mo · Mgmt: {d?.managementCompany || 'Management to verify'}</p>
+              <p className="text-xs text-green-600">{d?.units} units · {d?.violationsOpen} open violations · Grade {d?.scoutGrade} · {d?.propertyType} · Fee ${displayFee.toLocaleString()}/mo · Mgmt: {d?.managementCompany || 'Management to verify'}</p>
             </div>
           </div>
 
@@ -728,7 +809,7 @@ export default function InstantProposal() {
             <CheckCircle size={32} className="text-green-600" />
           </div>
           <h2 className="text-lg font-bold text-camelot-navy mb-2">Proposal Ready</h2>
-          <p className="text-sm text-gray-500 mb-6">{d?.buildingName} — {d?.units} units — ${d?.monthlyFee.toLocaleString()}/month</p>
+          <p className="text-sm text-gray-500 mb-6">{d?.buildingName} — {d?.units} units — ${displayFee.toLocaleString()}/month</p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
             <button onClick={handlePrint} className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">

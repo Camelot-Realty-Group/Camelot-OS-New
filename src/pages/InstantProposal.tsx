@@ -151,6 +151,29 @@ function RateSheetEditor({
   );
 }
 
+type BuildingClientType = 'coop' | 'condo' | 'rental' | 'newdev';
+type NewDevBase = 'rental' | 'condo';
+
+/** UI-side mirror of the recipient-title defaults used when generating the
+ *  proposal — keeps the Verify-step placeholder text in sync with what will
+ *  actually appear in the document. */
+function recipientTitleHint(clientType: BuildingClientType, newDevBase: NewDevBase, isReceiver: boolean): string {
+  if (isReceiver) return 'Court-Appointed Receiver';
+  const base = clientType === 'newdev' ? newDevBase : clientType;
+  if (base === 'coop') return 'Board President';
+  if (base === 'condo') return 'President, Board of Managers';
+  return 'Owner / Managing Member';
+}
+
+/** UI-side mirror of the "who is the client entity" placeholder. */
+function recipientOrgHint(clientType: BuildingClientType, newDevBase: NewDevBase, isReceiver: boolean): string {
+  if (isReceiver) return 'Firm / entity (e.g. Bergy Management Group LLC)';
+  const base = clientType === 'newdev' ? newDevBase : clientType;
+  if (base === 'coop') return 'Cooperative corporation name';
+  if (base === 'condo') return 'Condominium association name';
+  return 'Ownership entity / investment group name';
+}
+
 // ---------------------------------------------------------------------------
 // PDF / Email export helpers (module scope — no component state needed)
 // ---------------------------------------------------------------------------
@@ -342,10 +365,17 @@ export default function InstantProposal() {
   // Who this proposal is being sent to — used to build the "PDF + Email" draft
   const [recipientName, setRecipientName] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
-  // Client type — swaps "Board" framing in the proposal narrative for court-
-  // appointed receivership language (e.g. Article 20/78 or 6301 receivership
-  // cases) when the recipient isn't a co-op/condo Board
-  const [clientType, setClientType] = useState<'board' | 'receiver'>('board');
+  // Building/client type — swaps "Board," "shareholders," "unit owners," etc.
+  // for the correct vocabulary throughout the proposal. Defaults to Rental
+  // since most Camelot properties are rental buildings, not co-ops/condos —
+  // never inferred from NYC data, always a manual, per-proposal choice.
+  const [clientType, setClientType] = useState<'coop' | 'condo' | 'rental' | 'newdev'>('rental');
+  // Only used when clientType === 'newdev' — a new development can be either
+  // a newly delivered rental building or a sponsor-controlled condo/co-op.
+  const [newDevBase, setNewDevBase] = useState<'rental' | 'condo'>('rental');
+  // Independent of building type — a court-appointed receiver can be recipient
+  // of a proposal for any building type, so this is its own toggle.
+  const [isReceiver, setIsReceiver] = useState(false);
   const [recipientTitle, setRecipientTitle] = useState('');
   const [recipientOrgName, setRecipientOrgName] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -385,7 +415,9 @@ export default function InstantProposal() {
       // Recipient/client info is a manual, one-off override per proposal — never
       // inferred from NYC data — so it's cleared on every new property search
       // rather than silently carrying over to the next building.
-      setClientType('board');
+      setClientType('rental');
+      setNewDevBase('rental');
+      setIsReceiver(false);
       setRecipientName('');
       setRecipientTitle('');
       setRecipientOrgName('');
@@ -431,7 +463,9 @@ export default function InstantProposal() {
       // Recipient/client info is a manual, one-off override per proposal — never
       // inferred from NYC data — so it's cleared on every new property search
       // rather than silently carrying over to the next building.
-      setClientType('board');
+      setClientType('rental');
+      setNewDevBase('rental');
+      setIsReceiver(false);
       setRecipientName('');
       setRecipientTitle('');
       setRecipientOrgName('');
@@ -463,7 +497,9 @@ export default function InstantProposal() {
       // Recipient/client info is a manual, one-off override per proposal — never
       // inferred from NYC data — so it's cleared on every new property search
       // rather than silently carrying over to the next building.
-      setClientType('board');
+      setClientType('rental');
+      setNewDevBase('rental');
+      setIsReceiver(false);
       setRecipientName('');
       setRecipientTitle('');
       setRecipientOrgName('');
@@ -535,31 +571,112 @@ export default function InstantProposal() {
         `${owner ? `Ownership is on file as ${owner}. ` : ''}` +
         `${d.violationsOpen ? `The building currently has ${d.violationsOpen} open violation${d.violationsOpen === 1 ? '' : 's'} on record.` : 'The building currently has no open violations on record.'}`;
 
-      // Recipient + client-type framing — court-appointed receivers (e.g. Bergy
-      // Management-style engagements) get receivership language throughout
-      // instead of co-op/condo "Board" language.
-      const isReceiver = clientType === 'receiver';
+      // Recipient + building-type framing. `base` is the underlying vocabulary
+      // track (co-op / condo / rental) — New Development borrows whichever
+      // base the user picked (a new dev can be a rental building or a
+      // sponsor-controlled condo) and layers on transition-specific language.
+      // `isReceiver` is independent of building type — a court-appointed
+      // receiver can be the recipient for any of these.
+      const base: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
+      const isNewDev = clientType === 'newdev';
+      const occupantNoun = base === 'coop' ? 'shareholders' : base === 'condo' ? 'unit owners' : 'tenants';
+
       const recName = recipientName.trim() || '[Recipient Name]';
-      const recTitleDefault = isReceiver ? 'Court-Appointed Receiver' : 'Board President';
+      const recTitleDefaultMap: Record<'coop' | 'condo' | 'rental', string> = {
+        coop: 'Board President',
+        condo: 'President, Board of Managers',
+        rental: 'Owner / Managing Member',
+      };
+      const recTitleDefault = isReceiver ? 'Court-Appointed Receiver' : recTitleDefaultMap[base];
       const recTitle = recipientTitle.trim() || `[Recipient Title — e.g. ${recTitleDefault}]`;
-      const recOrgDefault = isReceiver ? '[Building Name / Receivership Estate]' : '[Building / Association Name]';
+
+      const clientEntityDefaultMap: Record<'coop' | 'condo' | 'rental', string> = {
+        coop: '[Board / Cooperative Corporation Name]',
+        condo: '[Board of Managers / Condominium Association Name]',
+        rental: '[Ownership Entity / Investment Group Name]',
+      };
+      const recOrgDefault = isReceiver ? '[Building Name / Receivership Estate]' : clientEntityDefaultMap[base];
       const recOrg = recipientOrgName.trim() || recOrgDefault;
       const addrLines = recipientAddress.trim() ? recipientAddress.trim().split('\n').map(l => l.trim()).filter(Boolean) : [];
       const addrLine1 = addrLines[0] || '[Address Line 1]';
       const addrLine2 = addrLines.slice(1).join(', ') || '[City, State ZIP]';
       const recContact = [recipientEmail.trim(), recipientPhone.trim()].filter(Boolean).join(' / ') || '[Email / Phone]';
-      const clientEntityDefault = isReceiver ? '[Receivership Estate / Ownership Entity Name]' : '[Board / Ownership Entity Name]';
+      const clientEntityDefault = isReceiver ? '[Receivership Estate / Ownership Entity Name]' : clientEntityDefaultMap[base];
       const clientEntity = recipientOrgName.trim() || clientEntityDefault;
-      const boardAndResidents = isReceiver ? 'the property, its residents, and the receivership estate you oversee' : 'your Board and residents';
-      const boardMeetingsPhrase = isReceiver ? 'regular reporting to you as Receiver' : 'Board meetings';
-      const boardMeetingsListItem = isReceiver ? 'Regular reporting and coordination with the Court-Appointed Receiver' : 'Management of Board and Annual meetings';
-      const ownershipUpdatesPhrase = isReceiver ? 'ownership/you as Receiver' : 'ownership/the Board';
-      const violationsBoardPhrase = isReceiver ? 'brought to you as Receiver' : 'brought to the Board';
-      const alterationBoardPhrase = isReceiver ? 'on behalf of the Receiver' : 'on behalf of the Board';
-      const financeReportPhrase = isReceiver ? 'to you as Receiver' : 'to the Board';
-      const meetGreetPhrase = isReceiver ? 'residents and to you as Receiver' : 'residents and the Board';
-      const meetGreetHeading = isReceiver ? 'Meet &amp; Greet with Ownership/Receiver' : 'Meet &amp; Greet with Owners/Board';
-      const finalizeTermPhrase = isReceiver ? 'the receivership' : 'the Board/ownership';
+
+      const boardAndResidents = isReceiver
+        ? 'the property, its residents, and the receivership estate you oversee'
+        : base === 'rental'
+          ? `your ownership and the property's ${occupantNoun}`
+          : `your Board and the building's ${occupantNoun}`;
+      const boardMeetingsPhrase = isReceiver
+        ? 'regular reporting to you as Receiver'
+        : base === 'rental' ? 'regular ownership reporting' : 'Board meetings';
+      const boardMeetingsListItem = isReceiver
+        ? 'Regular reporting and coordination with the Court-Appointed Receiver'
+        : base === 'rental'
+          ? 'Regular ownership reporting and financial review meetings'
+          : base === 'coop'
+            ? 'Management of Board and annual shareholder meetings'
+            : 'Management of Board of Managers and annual unit owner meetings';
+      const ownershipUpdatesPhrase = isReceiver
+        ? 'ownership/you as Receiver'
+        : base === 'rental' ? 'ownership' : 'ownership/the Board';
+      const enforcementPhrase = base === 'coop'
+        ? 'Enforcement of House Rules, the proprietary lease, and alteration agreements'
+        : base === 'condo'
+          ? 'Enforcement of House Rules, bylaws, and alteration agreements'
+          : 'Enforcement of House Rules, lease terms, and landlord-tenant compliance';
+      const violationsBoardPhrase = isReceiver
+        ? 'brought to you as Receiver'
+        : base === 'rental' ? 'brought to Ownership' : 'brought to the Board';
+      const alterationBoardPhrase = isReceiver
+        ? 'on behalf of the Receiver'
+        : base === 'rental' ? 'on behalf of Ownership' : 'on behalf of the Board';
+      const financeReportPhrase = isReceiver
+        ? 'to you as Receiver'
+        : base === 'rental' ? 'to Ownership' : 'to the Board';
+      const meetGreetPhrase = isReceiver
+        ? 'residents and to you as Receiver'
+        : base === 'rental' ? 'tenants and ownership' : `${occupantNoun} and the Board`;
+      const meetGreetHeading = isReceiver
+        ? 'Meet &amp; Greet with Ownership/Receiver'
+        : base === 'rental'
+          ? 'Meet &amp; Greet with Tenants/Ownership'
+          : base === 'coop'
+            ? 'Meet &amp; Greet with Shareholders/Board'
+            : 'Meet &amp; Greet with Unit Owners/Board';
+      const meetGreetSubjectWord = isReceiver ? 'you' : base === 'rental' ? 'ownership' : 'owners';
+      const finalizeTermPhrase = isReceiver
+        ? 'the receivership'
+        : base === 'rental' ? 'ownership' : 'the Board/ownership';
+
+      const transferHeading = base === 'rental' ? 'Leasing &amp; Renewal Services' : 'Brokerage &amp; Transfer Services';
+      const transferBullets = base === 'rental'
+        ? [
+            'Management of lease renewals, new leasing, and unit turnover',
+            'Tenant screening coordination and move-in/move-out inspections',
+            'Insurance requirement review (renter\'s insurance / COI compliance)',
+          ]
+        : base === 'coop'
+          ? [
+              'Management of sublet and shareholder transfer submittals',
+              'Insurance requirement review to protect the cooperative corporation',
+              'Scheduled move-ins, coordinated only after proof of insurance (COI) is received',
+            ]
+          : [
+              'Management of sale and rental submittals',
+              'Insurance requirement review to protect the condominium association',
+              'Scheduled move-ins, coordinated only after proof of insurance (COI) is received',
+            ];
+
+      const newDevBullets = isNewDev ? [
+        newDevBase === 'condo'
+          ? 'Coordination with the Sponsor on remaining unit sales, closings, and eventual Board transition'
+          : 'Coordination of initial lease-up, marketing support, and unit turnover for newly delivered units',
+        'Certificate of Occupancy (TCO/CO) and punch-list tracking with the developer/general contractor',
+        'Warranty claim coordination during the building\'s initial post-construction period',
+      ] : [];
 
       const proposalHtml = `<!DOCTYPE html><html><head><meta charset="utf-8" /><style>
         @page { margin: 0.6in; }
@@ -663,7 +780,7 @@ export default function InstantProposal() {
             <ul>
               <li>[Note — e.g. a specific concern, current management pain point, or special request the client raised]</li>
               <li>[Note — e.g. staffing, vendor, or building-condition context]</li>
-              <li>[Note — e.g. timeline, decision process, or board dynamics]</li>
+              <li>[Note — e.g. timeline, decision process, or ownership dynamics]</li>
             </ul>
           </div>
           <div class="footer-bar">
@@ -706,7 +823,7 @@ export default function InstantProposal() {
             <li>Regular on-site visits and inspections</li>
             <li>Coordination with service trades, contractors, and vendors</li>
             <li>Regular reporting and updates to ${ownershipUpdatesPhrase}</li>
-            <li>Enforcement of House Rules, bylaws, alteration agreements, and sublet submittals</li>
+            <li>${enforcementPhrase}</li>
             <li>${boardMeetingsListItem}</li>
           </ul>
           <h3 class="sub">Accounting Services</h3>
@@ -724,12 +841,14 @@ export default function InstantProposal() {
             <li>Oversight of open alteration permit reviews ${alterationBoardPhrase}</li>
             <li>Monitoring of energy benchmarking and related regulatory requirements</li>
           </ul>
-          <h3 class="sub">Brokerage &amp; Transfer Services</h3>
+          <h3 class="sub">${transferHeading}</h3>
           <ul class="services">
-            <li>Management of sublet and rental submittals</li>
-            <li>Insurance requirement review to protect the association</li>
-            <li>Scheduled move-ins, coordinated only after proof of insurance (COI) is received</li>
+            ${transferBullets.map(b => `<li>${b}</li>`).join('')}
           </ul>
+          ${isNewDev ? `<h3 class="sub">New Development Transition Services</h3>
+          <ul class="services">
+            ${newDevBullets.map(b => `<li>${b}</li>`).join('')}
+          </ul>` : ''}
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
@@ -800,7 +919,7 @@ export default function InstantProposal() {
           <h3 class="sub">Budget, Facility &amp; Staff Review</h3>
           <p style="font-size:12.5px;">In parallel with the transition, we conduct a full review of the building's finances, staff, and current vendor relationships against comparable properties in our portfolio. We meet with building staff to understand what's working and what isn't, and we deliver a written report ${financeReportPhrase} within the first 30 days, along with recommendations for cost savings or operational improvements.</p>
           <h3 class="sub">${meetGreetHeading}</h3>
-          <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to ${meetGreetPhrase}, in person or over Zoom. This gives ${isReceiver ? 'you' : 'owners'} a chance to put a face to the team managing the building, raise any concerns directly, and update contact information on file.</p>
+          <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to ${meetGreetPhrase}, in person or over Zoom. This gives ${meetGreetSubjectWord} a chance to put a face to the team managing the building, raise any concerns directly, and update contact information on file.</p>
           <p class="thankyou">Thank you again for your consideration.</p>
           <div class="contact-block"><img src="${CAMELOT_CONTACT_B64}" alt="Camelot contact information" /></div>
         </div>
@@ -917,12 +1036,24 @@ export default function InstantProposal() {
       const pdfBlob = await renderProposalPdfBlob(content, filename);
       const pdfBase64 = await blobToBase64(pdfBlob);
 
-      const greetName = recipientName.trim() || (clientType === 'receiver' ? 'Receiver' : 'Board');
-      const subject = `Proposal of Services — ${buildingName} — v1.0 — ${todayStr}`;
+      const address = reportData?.address || buildingName;
+      const emailBase: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
+      const emailOccupantNoun = emailBase === 'coop' ? 'shareholders' : emailBase === 'condo' ? 'unit owners' : 'tenants';
+      const greetName = recipientName.trim() || (isReceiver ? 'Receiver' : emailBase === 'rental' ? 'Ownership' : 'Board');
+      const decisionMakerPhrase = isReceiver ? 'you as Receiver' : emailBase === 'rental' ? 'ownership' : 'the Board';
+      const entityPhrase = isReceiver
+        ? 'the property and the receivership estate you oversee'
+        : emailBase === 'rental'
+          ? `your ownership and the property's ${emailOccupantNoun}`
+          : `your Board and the building's ${emailOccupantNoun}`;
+
+      const subject = `Re: ${address} - Proposal of Services V1. ${todayStr}`;
       const body =
         `Dear ${greetName},\r\n\r\n` +
-        `Please find attached our Proposal of Property Management Services for ${buildingName}, dated ${todayStr}.\r\n\r\n` +
-        `We appreciate the opportunity to be considered and look forward to discussing this proposal further at your convenience.\r\n\r\n` +
+        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\r\n\r\n` +
+        `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\r\n\r\n` +
+        `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\r\n\r\n` +
+        `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\r\n\r\n` +
         `Warm regards,\r\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
 
       const eml = buildEmlDraft({
@@ -1208,45 +1339,87 @@ export default function InstantProposal() {
             </div>
           </div>
 
-          {/* Recipient + client type — who this proposal is addressed to, and whether it should
-              read as a co-op/condo Board letter or a court-appointed receivership letter */}
+          {/* Recipient + building type — who this proposal is addressed to, and which
+              vocabulary track it reads in (co-op/condo Board, rental Ownership, a new
+              development, or a court-appointed receivership on top of any of those). */}
           <div className="mb-4">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Recipient & Client Type</h3>
             <div className="border border-gray-100 rounded-lg p-3">
-              <div className="flex gap-2 mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                 <button
                   type="button"
-                  onClick={() => setClientType('board')}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'board' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  onClick={() => setClientType('coop')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'coop' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                 >
-                  Board (Co-op / Condo)
+                  Co-op
                 </button>
                 <button
                   type="button"
-                  onClick={() => setClientType('receiver')}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'receiver' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  onClick={() => setClientType('condo')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'condo' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                 >
-                  Court-Appointed Receiver
+                  Condo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientType('rental')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'rental' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  Rental
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientType('newdev')}
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${clientType === 'newdev' ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  New Development
                 </button>
               </div>
+              {clientType === 'newdev' && (
+                <div className="flex gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewDevBase('rental')}
+                    className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${newDevBase === 'rental' ? 'bg-camelot-gold text-white' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'}`}
+                  >
+                    New Rental Building
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewDevBase('condo')}
+                    className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${newDevBase === 'condo' ? 'bg-camelot-gold text-white' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'}`}
+                  >
+                    Sponsor-Controlled Condo
+                  </button>
+                </div>
+              )}
+              <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isReceiver}
+                  onChange={() => setIsReceiver(v => !v)}
+                  className="w-4 h-4 accent-camelot-gold"
+                />
+                <span className="text-xs font-semibold text-camelot-navy">This recipient is a Court-Appointed Receiver</span>
+              </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   type="text"
-                  placeholder="Recipient name (e.g. Marc R. Bergman)"
+                  placeholder={isReceiver ? 'Recipient name (e.g. Marc R. Bergman)' : 'Recipient name'}
                   value={recipientName}
                   onChange={e => setRecipientName(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
                 />
                 <input
                   type="text"
-                  placeholder={clientType === 'receiver' ? 'Title (e.g. Court-Appointed Receiver)' : 'Title (e.g. Board President)'}
+                  placeholder={`Title (e.g. ${recipientTitleHint(clientType, newDevBase, isReceiver)})`}
                   value={recipientTitle}
                   onChange={e => setRecipientTitle(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50"
                 />
                 <input
                   type="text"
-                  placeholder={clientType === 'receiver' ? 'Firm / entity (e.g. Bergy Management Group LLC)' : 'Building / Association name'}
+                  placeholder={recipientOrgHint(clientType, newDevBase, isReceiver)}
                   value={recipientOrgName}
                   onChange={e => setRecipientOrgName(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50 sm:col-span-2"
@@ -1274,7 +1447,7 @@ export default function InstantProposal() {
                 />
               </div>
               <p className="text-[10px] text-gray-400 mt-2">
-                Fills in the cover page, letter, and salutation. When set to Receiver, "Board" language throughout the proposal switches to receivership language automatically.
+                Building type controls the vocabulary throughout the proposal (Board vs. Ownership vs. Sponsor) — Co-op and Condo use Board language, Rental and New Rental use Ownership/tenant language. Everything here is a manual, one-off entry for this proposal only — nothing is inferred from the property data collected above.
               </p>
             </div>
           </div>

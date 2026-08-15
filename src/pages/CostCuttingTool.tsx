@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Clock, DollarSign, TrendingDown, Mail, Eye } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, DollarSign, TrendingDown, Mail, Eye, Award, FileSignature, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { authenticatedApiFetch } from '../lib/api-auth';
 
@@ -42,6 +42,30 @@ interface SavingsOpportunity {
   timeline_months: number;
 }
 
+// Portfolio-wide KPI rollup — see 012_cost_optimization_contracts_kpis.sql
+// (cost_opt_kpi_summary view). Nullable everywhere because the migration may
+// not be deployed in every environment yet; the dashboard degrades to "—"
+// rather than breaking the page if the view / tables don't exist.
+interface CostOptKpiSummary {
+  total_contracts: number | null;
+  active_contracts: number | null;
+  total_identified_savings: number | null;
+  total_year1_fees_earned: number | null;
+  total_savings_verified: number | null;
+  total_quarterly_fees_earned: number | null;
+  total_vendor_commission: number | null;
+  vendors_certified: number | null;
+  vendors_gold: number | null;
+  vendors_silver: number | null;
+  vendors_bronze: number | null;
+  avg_vendor_rating: number | null;
+}
+
+function fmtMoney(n?: number | null) {
+  if (n === null || n === undefined) return '—';
+  return `$${Math.round(n).toLocaleString()}`;
+}
+
 export default function CostCuttingTool() {
   const [buildings, setBuildings] = useState<any[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<string>('');
@@ -54,10 +78,41 @@ export default function CostCuttingTool() {
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
 
+  // Portfolio KPIs shown at the top of the page — total savings identified,
+  // fees earned, vendor commission, active contracts, and vendor certification
+  // mix, so this reads as a live program dashboard, not just a single-building
+  // analysis tool.
+  const [kpis, setKpis] = useState<CostOptKpiSummary | null>(null);
+  const [kpisLoading, setKpisLoading] = useState(true);
+  const [kpisUnavailable, setKpisUnavailable] = useState(false);
+
   // Load buildings on mount
   useEffect(() => {
     loadBuildings();
+    loadKpis();
   }, []);
+
+  async function loadKpis() {
+    setKpisLoading(true);
+    try {
+      const { data, error: err } = await supabase
+        .from('cost_opt_kpi_summary')
+        .select('*')
+        .single();
+      if (err) throw err;
+      setKpis(data);
+      setKpisUnavailable(false);
+    } catch (err) {
+      // View/tables not deployed yet (012_cost_optimization_contracts_kpis.sql
+      // not run) — show the dashboard shell with placeholders instead of
+      // failing the whole page.
+      console.warn('Cost Optimization KPI view unavailable:', err);
+      setKpis(null);
+      setKpisUnavailable(true);
+    } finally {
+      setKpisLoading(false);
+    }
+  }
 
   async function loadBuildings() {
     try {
@@ -221,6 +276,74 @@ export default function CostCuttingTool() {
           <p className="text-slate-600 mt-2">
             Analyze building expenses and identify specific cost-cutting opportunities
           </p>
+        </div>
+
+        {/* Portfolio KPI Dashboard */}
+        <div className="mb-8 bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Award className="w-5 h-5 text-emerald-600" />
+              Program KPIs
+            </h2>
+            {kpisUnavailable && !kpisLoading && (
+              <span className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+                Run 012_cost_optimization_contracts_kpis.sql in Supabase to enable live KPIs
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100">
+              <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Savings Identified</p>
+              <p className="text-2xl font-bold text-emerald-700 mt-1">
+                {kpisLoading ? '…' : fmtMoney(kpis?.total_identified_savings)}
+              </p>
+            </div>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Camelot Fees Earned</p>
+              <p className="text-2xl font-bold text-blue-700 mt-1">
+                {kpisLoading
+                  ? '…'
+                  : fmtMoney((kpis?.total_year1_fees_earned || 0) + (kpis?.total_quarterly_fees_earned || 0))}
+              </p>
+            </div>
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Vendor Commission</p>
+              <p className="text-2xl font-bold text-amber-700 mt-1">
+                {kpisLoading ? '…' : fmtMoney(kpis?.total_vendor_commission)}
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide flex items-center gap-1">
+                <FileSignature className="w-3 h-3" /> Active Contracts
+              </p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">
+                {kpisLoading ? '…' : (kpis?.active_contracts ?? '—')}
+                <span className="text-sm font-normal text-slate-400"> / {kpisLoading ? '…' : (kpis?.total_contracts ?? '—')}</span>
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 text-center">
+              <p className="text-[10px] font-bold text-yellow-700 uppercase">🥇 Gold Vendors</p>
+              <p className="text-lg font-bold text-yellow-800">{kpisLoading ? '…' : (kpis?.vendors_gold ?? '—')}</p>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
+              <p className="text-[10px] font-bold text-gray-600 uppercase">🥈 Silver Vendors</p>
+              <p className="text-lg font-bold text-gray-700">{kpisLoading ? '…' : (kpis?.vendors_silver ?? '—')}</p>
+            </div>
+            <div className="p-3 bg-orange-50 rounded-lg border border-orange-200 text-center">
+              <p className="text-[10px] font-bold text-orange-700 uppercase">🥉 Bronze Vendors</p>
+              <p className="text-lg font-bold text-orange-800">{kpisLoading ? '…' : (kpis?.vendors_bronze ?? '—')}</p>
+            </div>
+            <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200 text-center flex flex-col items-center justify-center">
+              <p className="text-[10px] font-bold text-indigo-700 uppercase flex items-center gap-1">
+                <Users className="w-3 h-3" /> Avg Vendor Rating
+              </p>
+              <p className="text-lg font-bold text-indigo-800">
+                {kpisLoading ? '…' : kpis?.avg_vendor_rating != null ? `${kpis.avg_vendor_rating}/10` : '—'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Messages */}

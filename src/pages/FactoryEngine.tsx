@@ -1,1 +1,121 @@
-aW1wb3J0IHsgQm90LCBDcHUsIERhdGFiYXNlLCBBY3Rpdml0eSwgQ2hlY2tDaXJjbGUsIEFsZXJ0Q2lyY2xlLCBQbGF5LCBQYXVzZSwgU2V0dGluZ3MsIFJlZnJlc2hDdywgTWFpbCwgR2l0QnJhbmNoIH0gZnJvbSAnbHVjaWRlLXJlYWN0JzsKaW1wb3J0IHsgdXNlU3RhdGUgfSBmcm9tICdyZWFjdCc7Cgpjb25zdCBCT1RTID0gWwogIHsgaWQ6ICdyYWRhcicsIG5hbWU6ICdSYWRhciAoQm90IDEpJywgcm9sZTogJ1Njb3V0JywgZGVzY3JpcHRpb246ICdRdWVyaWVzIE5ZQyBQTFVUTyBmb3IgcHJvcGVydGllcyB3aXRoIDMwLTEwMCB1bml0cyBpbiB0aGUgTWFuaGF0dGFuIEdyaWQuJywgc3RhdHVzOiAnYWN0aXZlJywgY292ZXJhZ2U6ICczMTkgcHJvcGVydGllcycgfSwKICB7IGlkOiAndW5kZXJ3cml0ZXInLCBuYW1lOiAnVW5kZXJ3cml0ZXIgKEJvdCAyKScsIHJvbGU6ICdBcnRodXInLCBkZXNjcmlwdGlvbjogJ1VubWFza3MgaHVtYW4gZGVjaXNpb24tbWFrZXJzIHZpYSBIUEQsIERPQiwgYW5kIEFDUklTIHdhdGVyZmFsbC4nLCBzdGF0dXM6ICdhY3RpdmUnLCBzdWNjZXNzX3JhdGU6ICc5MiUnIH0sCiAgeyBpZDogJ2Nsb3NlcicsIG5hbWU6ICdDbG9zZXIgKEJvdCAzKScsIHJvbGU6ICdKYWNraWUnLCBkZXNjcmlwdGlvbjogJ0luamVjdHMgdmVyaWZpZWQgY29udGFjdHMgaW50byBIdWJTcG90IGFuZCBnZW5lcmF0ZXMgR29sZCBTdGFuZGFyZCBQREZzLicsIHN0YXR1czogJ2FjdGl2ZScsIHBpcGVsaW5lOiAnNTAtMTUwIFBvdGVudGlhbCBMZWFkcycgfSwKXTsKCmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIEZhY3RvcnlFbmdpbmUoKSB7CiAgY29uc3QgW2FjdGl2ZVRhYiwgc2V0QWN0aXZlQm90XSA9IHVzZVN0YXRlKCdyYWRhcicpOwoKICByZXR1cm4gKAogICAgPGRpdiBjbGFzc05hbWU9Im1pbi1oLXNjcmVlbiBiZy1ncmF5LTUwIj4KICAgICAgPGRpdiBjbGFzc05hbWU9ImJnLXdoaXRlIGJvcmRlci1iIGJvcmRlci1ncmF5LTIwMCBweC04IHB5LTYiPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4iPgogICAgICAgICAgPGRpdj4KICAgICAgICAgICAgPGgxIGNsYXNzTmFtZT0idGV4dC0yeGwgZm9udC1ib2xkIGZsZXggaXRlbXMtY2VudGVyIGdhcC0zIHRleHQtY2FtZWxvdC1kYXJrIj4KICAgICAgICAgICAgICA8Q3B1IGNsYXNzTmFtZT0idGV4dC1jYW1lbG90LWdvbGQiIHNpemU9ezI4fSAvPiBGYWN0b3J5IEVuZ2luZSDigJQgTllDIE1hbmhhdHRhbiBHcmlkCiAgICAgICAgICAgIDwvaDE+CiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1zbSB0ZXh0LWdyYXktNTAwIG10LTEiPgogICAgICAgICAgICAgIEF1dG9tYXRlZCAzLUJvdCBsZWFkIGdlbmVyYXRpb24gYW5kIHVubWFza2luZyBwaXBlbGluZS4KICAgICAgICAgICAgPC9wPgogICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTMiPgogICAgICAgICAgICA8c3BhbiBjbGFzc05hbWU9ImZsZXggaXRlbXMtY2VudGVyIGdhcC0xLjUgcHgtMyBweS0xLjUgcm91bmRlZC1mdWxsIGJnLWVtZXJhbGQtNTAgdGV4dC1lbWVyYWxkLTcwMCBib3JkZXIgYm9yZGVyLWVtZXJhbGQtMTAwIHRleHQtc20gZm9udC1tZWRpdW0iPgogICAgICAgICAgICAgIDxBY3Rpdml0eSBzaXplPXsxNH0gLz4gU3lzdGVtIE9ubGluZQogICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgPC9kaXY+CgogICAgICA8ZGl2IGNsYXNzTmFtZT0icC04IHNwYWNlLXktNiBtYXgtdy03eGwgbXgtYXV0byI+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImdyaWQgZ3JpZC1jb2xzLTEgbWQ6Z3JpZC1jb2xzLTMgZ2FwLTYiPgogICAgICAgICAge0JPVFMubWFwKChib3QpID0+ICgKICAgICAgICAgICAgPGRpdiBrZXk9e2JvdC5pZH0gY2xhc3NOYW1lPXtiZy13aGl0ZSBib3JkZXIgcm91bmRlZC14bCBwLTUgdHJhbnNpdGlvbi1hbGwgJHthY3RpdmVUYWIgPT09IGJvdC5pZCA/ICdib3JkZXItY2FtZWxvdC1nb2xkIHNoYWRvdy1zbSByaW5nLTEgcmluZy1jYW1lbG90LWdvbGQvMjAnIDogJ2JvcmRlci1ncmF5LTIwMCd9fT4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1zdGFydCBqdXN0aWZ5LWJldHdlZW4iPgogICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InctMTIgaC0xMiBiZy1jYW1lbG90LW5hdnkgcm91bmRlZC1sZyBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWNlbnRlciI+CiAgICAgICAgICAgICAgICAgIDxCb3Qgc2l6ZT17MjR9IGNsYXNzTmFtZT0idGV4dC1jYW1lbG90LWdvbGQiIC8+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGZsZXgtY29sIGl0ZW1zLWVuZCI+CiAgICAgICAgICAgICAgICAgIDxzcGFuIGNsYXNzTmFtZT0idGV4dC1bMTBweF0gdXBwZXJjYXNlIHRyYWNraW5nLXdpZGVzdCBmb250LWJvbGQgdGV4dC1ncmF5LTQwMCI+e2JvdC5yb2xlfTwvc3Bhbj4KICAgICAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJ0ZXh0LXhzIHRleHQtZW1lcmFsZC02MDAgZm9udC1zZW1pYm9sZCBtdC0xIGZsZXggaXRlbXMtY2VudGVyIGdhcC0xIj4KICAgICAgICAgICAgICAgICAgICA8Q2hlY2tDaXJjbGUgc2l6ZT17MTJ9IC8+IHtib3Quc3RhdHVzfQogICAgICAgICAgICAgICAgICA8L3NwYW4+CiAgICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICA8aDMgY2xhc3NOYW1lPSJmb250LWJvbGQgdGV4dC1sZyBtdC00Ij57Ym90Lm5hbWV9PC9oMz4KICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQteHMgdGV4dC1ncmF5LTUwMCBtdC0xIGxlYWRpbmctcmVsYXhlZCBoLTEyIj57Ym90LmRlc2NyaXB0aW9ufTwvcD4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibXQtNCBwdC00IGJvcmRlci10IGJvcmRlci1ncmF5LTEwMCBmbGV4IGl0ZW1zLWNlbnRlciBqdXN0aWZ5LWJldHdlZW4gdGV4dC14cyBmb250LW1lZGl1bSB0ZXh0LWdyYXktNDAwIj4KICAgICAgICAgICAgICAgIDxzcGFuPntib3QuY292ZXJhZ2UgfHwgYm90LnN1Y2Nlc3NfcmF0ZSB8fCBib3QucGlwZWxpbmV9PC9zcGFuPgogICAgICAgICAgICAgICAgPGJ1dHRvbiBvbkNsaWNrPXsoKSA9PiBzZXRBY3RpdmVCb3QoYm90LmlkKX0gY2xhc3NOYW1lPSJ0ZXh0LWNhbWVsb3QtZ29sZCBob3Zlcjp1bmRlcmxpbmUiPlZpZXcgSW50ZWxsaWdlbmNlPC9idXR0b24+CiAgICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgKSl9CiAgICAgICAgPC9kaXY+CgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJiZy13aGl0ZSBib3JkZXIgYm9yZGVyLWdyYXktMjAwIHJvdW5kZWQteGwgb3ZlcmZsb3ctaGlkZGVuIHNoYWRvdy1zbSI+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icC01IGJvcmRlci1iIGJvcmRlci1ncmF5LTEwMCBiZy1bI0ZDRkJGN10gZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1iZXR3ZWVuIj4KICAgICAgICAgICAgPGgyIGNsYXNzTmFtZT0iZm9udC1ib2xkIHRleHQtZ3JheS03MDAgZmxleCBpdGVtcy1jZW50ZXI gapLTIiPgogICAgICAgICAgICAgIDxEYXRhYmFzZSBzaXplPXsxOH0gY2xhc3NOYW1lPSJ0ZXh0LWNhbWVsb3QtZ29sZCIgLz4gQXV0b21hdGlvbiBDb250cm9sIENlbnRlcgogICAgICAgICAgICA8L2gyPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBnYXAtMiI+CiAgICAgICAgICAgICAgPGJ1dHRvbiBjbGFzc05hbWU9ImlubGluZS1mbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiB0ZXh0LXNtIGJvcmRlci1ncmF5LTIwMCBweC00IHB5LTIgcm91bmRlZC1sZyBob3ZlcjpiZy1ncmF5LTUwIHRyYW5zaXRpb24tY29sb3JzIGZvbnQtbWVkaXVtIj4KICAgICAgICAgICAgICAgIDxQbGF5IHNpemU9ezE0fSAvPiBFeGVjdXRlIFJ1bgogICAgICAgICAgICAgIDwvYnV0dG9uPgogICAgICAgICAgICAgIDxidXR0b24gY2xhc3NOYW1lPSJpbmxpbmUtZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTIgdGV4dC1zbSBib3JkZXItZ3JheS0yMDAgcHgtNCBweS0yIHJvdW5kZWQtbGcgaG92ZXI6YmctZ3JheS01MCB0cmFuc2l0aW9uLWNvbG9ycyBmb250LW1lZGl1bSI+CiAgICAgICAgICAgICAgICA8U2V0dGluZ3Mgc2l6ZT17MTR9IC8+IFNjaGVkdWxlCiAgICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icC0xMCB0ZXh0LWNlbnRlciBzcGFjZS15LTQiPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0idy0xNiBoLTE2IGJnLWdyYXktNTAgcm91bmRlZC1mdWxsIGZsZXggaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIG14LWF1dG8iPgogICAgICAgICAgICAgIDxSZmZpbiBDdyBjbGFzc05hbWU9InRleHQtZ3JheS0zMDAgYW5pbWF0ZS1zcGluLXNsb3ciIHNpemU9ezMyfSAvPgogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPGRpdj4KICAgICAgICAgICAgICA8aDMgY2xhc3NOYW1lPSJmb250LWJvbGQgdGV4dC1ncmF5LTgwMCI+Qm90IEludGVsbGlnZW5jZSBBY3RpdmU8L2gzPgogICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1zbSB0ZXh0LWdyYXktNTAwIG10LTEgbWF4LXctbWQgbXgtYXV0byI+CiAgICAgICAgICAgICAgICBUaGUgRmFjdG9yeSBFbmdpbmUgaXMgY3VycmVudGx5IG1vbml0b3JpbmcgKiozMTkgcHJvcGVydGllcyoqLiBUaGUgbmV4dCBhdXRvbWF0ZWQgdW5tYXNraW5nIHdhdGVyZmFsbCBpcyBzY2hlZHVsZWQgZm9yICoqMzowMCBBTSBFVCoqLgogICAgICAgICAgICAgIDwvcD4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KCiAgICAgICAgPGRpdiBjbGFzc05hbWU9ImdyaWQgZ3JpZC1jb2xzLTEgbGc6Z3JpZC1jb2xzLTIgZ2FwLTYiPgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImJnLXdoaXRlIGJvcmRlci1ib3JkZXItZ3JheS0yMDAgcm91bmRlZC14bCBwLTUiPgogICAgICAgICAgICA8aDIgY2xhc3NOYW1lPSJmb250LWJvbGQgdGV4dC1ncmF5LTcwMCBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiBtYi00Ij4KICAgICAgICAgICAgICA8R2l0QnJhbmNoIHNpemU9ezE4fSBjbGFzc05hbWU9InRleHQtY2FtZWxvdC1nb2xkIiAvPiBIdWJTcG90IFN5bmMgTG9naWMKICAgICAgICAgICAgPC9oMj4KICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InNwYWNlLXktMyI+CiAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXggaXRlbXMtc3RhcnQgZ2FwLTMgcC0zIGJnLWdyYXktNTAgcm91bmRlZC1sZyBib3JkZXIgYm9yZGVyLWdyYXktMTAwIj4KICAgICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJ3LTIgaC0yIG10LTEuNSByb3VuZGVkLWZ1bGwgYmctY2FtZWxvdC1nb2xkIGZsZXgtc2hyaW5rLTAiIC8+CiAgICAgICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQteHMgdGV4dC1ncmF5LTYwMCI+KipQaXBlbGluZToqKiAiNTAtMTUwIFBvdGVudGlhbCBMZWFkcyIgKElEOiAyMTI4OTk5MTMyKTwvcD4KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1zdGFydCBnYXAtMyBwLTMgYmctZ3JheS01MCByb3VuZGVkLWxnIGJvcmRlci1ib3JkZXItZ3JheS0xMDAiPgogICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InctMiBoLTIgbXQtMS41IHJvdW5kZWQtZnVsbCBiZy1jYW1lbG90LWdvbGQgZmxleC1zaHJpbmstMCIgLz4KICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC14cyB0ZXh0LWdyYXktNjAwIj4qKkRlYWwgVGl0bGU6KiogIjFzdCBlbmdhZ2VtZW50IG9mIENhbWVsb3QiPC9wPgogICAgICAgICAgICAgIDwvZGl2PgogICAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLXN0YXJ0IGdhcC0zIHBLTMgYmctZ3JheS01MCByb3VuZGVkLWxnIGJvcmRlci1ib3JkZXItZ3JheS0xMDAiPgogICAgICAgICAgICAgICAgPGRpdiBjbGFzc05hbWU9InctMiBoLTIgbXQtMS41IHJvdW5kZWQtZnVsbCBiZy1jYW1lbG90LWdvbGQgZmxleC1zaHJpbmstMCIgLz4KICAgICAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC14cyB0ZXh0LWdyYXktNjAwIj4qKkFzc29jaWF0aW9uOioqIExpbmtpbmcgdmVyaWZpZWQgaHVtYW4gY29udGFjdHMgdG8gZGVhbCBjYXJkcyBhdXRvbWF0aWNhbGx5LjwvcD4KICAgICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KCiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iYmctd2hpdGUgYm9yZGVyIGJvcmRlci1ncmF5LTIwMCByb3VuZGVkLXhsIHAtNSI+CiAgICAgICAgICAgIDxoMiBjbGFzc05hbWU9ImZvbnQtYm9sZCB0ZXh0LWdyYXktNzAwIGZsZXggaXRlbXMtY2VudGVyIGdhcC0yIG1iLTQiPgogICAgICAgICAgICAgIDxNYWlsIHNpemU9ezE4fSBjbGFzc05hbWU9InRleHQtY2FtZWxvdC1nb2xkIiAvPiBFeGVjdXRpb24gUmVwb3J0aW5nCiAgICAgICAgICAgIDwvaDI+CiAgICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC14cyB0ZXh0LWdyYXktNTAwIG1iLTQgbGVhZGluZy1yZWxheGVkIj4KICAgICAgICAgICAgICBEYXZpZCBHb2xkb2ZmIGlzIHRoZSBleGNsdXNpdmUgcmVjaXBpZW50IG9mIGRhaWx5IHJlcG9ydHMuIERpc3RyaWJ1dGlvbiB0byBpbnRlcm5zIGFuZCBzdGFmZiBpcyBjdXJyZW50bHkgZGlzYWJsZWQgcGVyIERhdmlkJ3MgZGlyZWN0aXZlLgogICAgICAgICAgICA8L3A+CiAgICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJwLTMgYmctYmx1ZS01MCB0ZXh0LWJsdWUtNzAwIHJvdW5kZWQtbGcgYm9yZGVyIGJvcmRlci1ibHVlLTEwMCB0ZXh0LVsxMXB4XSBmb250LW1lZGl1bSBmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMiI+CiAgICAgICAgICAgICAgPENoZWNrQ2lyY2xlIHNpemU9ezE0fSAvPiBSZXBvcnRzIHNlbnQgdG8gZGdvbGRvZmZAY2FtZWxvdC5ueWMKICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICA8L2Rpdj4KICAgICAgICA8L2Rpdj4KICAgICAgPC9kaXY+CiAgICA8L2Rpdj4KICApOwp9Cg==
+import { Bot, Cpu, Database, Activity, CheckCircle, AlertCircle, Play, Pause, Settings, RefreshCw, Mail, GitBranch } from 'lucide-react';
+import { useState } from 'react';
+
+const BOTS = [
+  { id: 'radar', name: 'Radar (Bot 1)', role: 'Scout', description: 'Queries NYC PLUTO for properties with 30-100 units in the Manhattan Grid.', status: 'active', coverage: '319 properties' },
+  { id: 'underwriter', name: 'Underwriter (Bot 2)', role: 'Arthur', description: 'Unmasks human decision-makers via HPD, DOB, and ACRIS waterfall.', status: 'active', success_rate: '92%' },
+  { id: 'closer', name: 'Closer (Bot 3)', role: 'Jackie', description: 'Injects verified contacts into HubSpot and generates Gold Standard PDFs.', status: 'active', pipeline: '50-150 Potential Leads' },
+];
+
+export default function FactoryEngine() {
+  const [activeTab, setActiveBot] = useState('radar');
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200 px-8 py-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-3 text-camelot-dark">
+              <Cpu className="text-camelot-gold" size={28} /> Factory Engine — NYC Manhattan Grid
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Automated 3-Bot lead generation and unmasking pipeline.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-medium">
+              <Activity size={14} /> System Online
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-8 space-y-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {BOTS.map((bot) => (
+            <div key={bot.id} className={`bg-white border rounded-xl p-5 transition-all ${activeTab === bot.id ? 'border-camelot-gold shadow-sm ring-1 ring-camelot-gold/20' : 'border-gray-200'}`}>
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 bg-camelot-navy rounded-lg flex items-center justify-center">
+                  <Bot size={24} className="text-camelot-gold" />
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">{bot.role}</span>
+                  <span className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                    <CheckCircle size={12} /> {bot.status}
+                  </span>
+                </div>
+              </div>
+              <h3 className="font-bold text-lg mt-4">{bot.name}</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed h-12">{bot.description}</p>
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-medium text-gray-400">
+                <span>{bot.coverage || bot.success_rate || bot.pipeline}</span>
+                <button onClick={() => setActiveBot(bot.id)} className="text-camelot-gold hover:underline">View Intelligence</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-gray-100 bg-[#FCFBF7] flex items-center justify-between">
+            <h2 className="font-bold text-gray-700 flex items-center gap-2">
+              <Database size={18} className="text-camelot-gold" /> Automation Control Center
+            </h2>
+            <div className="flex gap-2">
+              <button className="inline-flex items-center gap-2 text-sm border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                <Play size={14} /> Execute Run
+              </button>
+              <button className="inline-flex items-center gap-2 text-sm border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                <Settings size={14} /> Schedule
+              </button>
+            </div>
+          </div>
+          <div className="p-10 text-center space-y-4">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+              <RefreshCw className="text-gray-300 animate-spin-slow" size={32} />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800">Bot Intelligence Active</h3>
+              <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                The Factory Engine is currently monitoring **319 properties**. The next automated unmasking waterfall is scheduled for **3:00 AM ET**.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="font-bold text-gray-700 flex items-center gap-2 mb-4">
+              <GitBranch size={18} className="text-camelot-gold" /> HubSpot Sync Logic
+            </h2>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="w-2 h-2 mt-1.5 rounded-full bg-camelot-gold flex-shrink-0" />
+                <p className="text-xs text-gray-600">**Pipeline:** "50-150 Potential Leads" (ID: 2128999132)</p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="w-2 h-2 mt-1.5 rounded-full bg-camelot-gold flex-shrink-0" />
+                <p className="text-xs text-gray-600">**Deal Title:** "1st engagement of Camelot"</p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="w-2 h-2 mt-1.5 rounded-full bg-camelot-gold flex-shrink-0" />
+                <p className="text-xs text-gray-600">**Association:** Linking verified human contacts to deal cards automatically.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="font-bold text-gray-700 flex items-center gap-2 mb-4">
+              <Mail size={18} className="text-camelot-gold" /> Execution Reporting
+            </h2>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              David Goldoff is the exclusive recipient of daily reports. Distribution to interns and staff is currently disabled per David's directive.
+            </p>
+            <div className="p-3 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 text-[11px] font-medium flex items-center gap-2">
+              <CheckCircle size={14} /> Reports sent to dgoldoff@camelot.nyc
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

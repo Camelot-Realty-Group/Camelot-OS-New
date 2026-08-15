@@ -41,6 +41,8 @@ const Templates = lazy(() => import('@/pages/Templates'));
 const PartnerPitches = lazy(() => import('@/pages/PartnerPitches'));
 const TradedNY = lazy(() => import('@/pages/TradedNY'));
 const CostCuttingTool = lazy(() => import('@/pages/CostCuttingTool'));
+const CostBeatReportBuilder = lazy(() => import('@/pages/CostBeatReportBuilder'));
+const FactoryEngine = lazy(() => import('@/pages/FactoryEngine'));
 
 function page(Page: ComponentType) {
   return (
@@ -97,6 +99,8 @@ export default function App() {
           <Route path="/report-center" element={page(ReportCenter)} />
           <Route path="/partner-pitches" element={page(PartnerPitches)} />
           <Route path="/cost-cutting" element={page(CostCuttingTool)} />
+          <Route path="/cost-beat-report" element={page(CostBeatReportBuilder)} />
+          <Route path="/factory-engine" element={page(FactoryEngine)} />
           <Route path="/traded-ny" element={page(TradedNY)} />
           <Route path="/agreements" element={page(Agreements)} />
           <Route path="/sentinel" element={page(Sentinel)} />

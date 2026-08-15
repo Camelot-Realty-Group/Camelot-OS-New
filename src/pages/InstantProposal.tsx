@@ -382,6 +382,16 @@ export default function InstantProposal() {
       setReleaseQA(null);
       setCustomFee(null);
       setUnitMix('');
+      // Recipient/client info is a manual, one-off override per proposal — never
+      // inferred from NYC data — so it's cleared on every new property search
+      // rather than silently carrying over to the next building.
+      setClientType('board');
+      setRecipientName('');
+      setRecipientTitle('');
+      setRecipientOrgName('');
+      setRecipientAddress('');
+      setRecipientEmail('');
+      setRecipientPhone('');
       setStep('verify');
       toast.success('Property data loaded');
     } catch (e: unknown) {
@@ -418,6 +428,16 @@ export default function InstantProposal() {
       setReleaseQA(null);
       setCustomFee(null);
       setUnitMix('');
+      // Recipient/client info is a manual, one-off override per proposal — never
+      // inferred from NYC data — so it's cleared on every new property search
+      // rather than silently carrying over to the next building.
+      setClientType('board');
+      setRecipientName('');
+      setRecipientTitle('');
+      setRecipientOrgName('');
+      setRecipientAddress('');
+      setRecipientEmail('');
+      setRecipientPhone('');
       setStep('verify');
       toast.success('Property data loaded');
     } catch (e: unknown) {
@@ -440,6 +460,16 @@ export default function InstantProposal() {
       setReleaseQA(null);
       setCustomFee(null);
       setUnitMix('');
+      // Recipient/client info is a manual, one-off override per proposal — never
+      // inferred from NYC data — so it's cleared on every new property search
+      // rather than silently carrying over to the next building.
+      setClientType('board');
+      setRecipientName('');
+      setRecipientTitle('');
+      setRecipientOrgName('');
+      setRecipientAddress('');
+      setRecipientEmail('');
+      setRecipientPhone('');
       setStep('verify');
       toast.success('Demo property loaded: 201 East 79th Street');
     } catch (e: unknown) {

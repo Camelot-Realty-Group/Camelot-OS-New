@@ -50,8 +50,8 @@ interface CostOptKpiSummary {
   total_contracts: number | null;
   active_contracts: number | null;
   total_identified_savings: number | null;
-  total_year1_fees_earned: number | null;
   total_savings_verified: number | null;
+  // Recurring: 35% of verified savings billed every quarter, not a one-time fee.
   total_quarterly_fees_earned: number | null;
   total_vendor_commission: number | null;
   vendors_certified: number | null;
@@ -299,12 +299,11 @@ export default function CostCuttingTool() {
               </p>
             </div>
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Camelot Fees Earned</p>
+              <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Camelot Fees Earned (Recurring)</p>
               <p className="text-2xl font-bold text-blue-700 mt-1">
-                {kpisLoading
-                  ? '…'
-                  : fmtMoney((kpis?.total_year1_fees_earned || 0) + (kpis?.total_quarterly_fees_earned || 0))}
+                {kpisLoading ? '…' : fmtMoney(kpis?.total_quarterly_fees_earned)}
               </p>
+              <p className="text-[10px] text-blue-600 mt-1">35% of verified savings, billed every quarter</p>
             </div>
             <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
               <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Vendor Commission</p>

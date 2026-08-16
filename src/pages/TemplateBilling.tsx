@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   ClipboardList,
   CreditCard,
   DollarSign,
+  FileDown,
   FileText,
   Filter,
   Mail,
   Plus,
+  Printer,
   Receipt,
   Search,
   Send,
@@ -25,7 +28,9 @@ import {
   type TemplateInvoiceDraft,
 } from '@/lib/template-billing';
 import { cn } from '@/lib/utils';
-import { openEmailDraft } from '@/lib/pdf-generator';
+import { openEmailDraft, openBrochureForPrint, downloadAsPDF } from '@/lib/pdf-generator';
+import { CAMELOT_LOGO_B64 } from '@/lib/camelot-brand-assets';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { Building } from '@/types';
 
 const INVOICE_LIBRARY_KEY = 'camelot_template_invoice_library_v1';
@@ -83,8 +88,116 @@ function formatMoney(value: number) {
   }).format(value || 0);
 }
 
+// Branded, printable invoice HTML — used for both "Print" (opens in a new
+// tab for the browser's native print dialog) and "Download PDF" (rendered
+// off-screen and rasterized to a PDF blob), so there's a real leave-behind
+// document alongside the email draft.
+function buildInvoiceHtml(draft: TemplateInvoiceDraft): string {
+  const rows = draft.lines
+    .map(
+      (line) => `
+      <tr>
+        <td class="desc">${line.description}${line.notes ? `<div class="notes">${line.notes}</div>` : ''}</td>
+        <td class="party">${line.billingParty.replace('_', ' ')}</td>
+        <td class="qty">${line.quantity}</td>
+        <td class="amt">${formatMoney(line.amount)}</td>
+      </tr>`
+    )
+    .join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    * { box-sizing: border-box; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; padding: 36px; color: #1a1a1a; }
+    .brand { display:flex; align-items:center; gap:12px; margin-bottom: 18px; }
+    .brand img { height: 38px; }
+    .brand .name { font-size: 20px; font-weight: 700; color: #162B5E; }
+    .brand .tag { font-size: 11px; color: #666; }
+    h1 { font-size: 22px; color: #162B5E; margin: 18px 0 4px; }
+    .meta { font-size: 12px; color: #444; margin: 2px 0; }
+    .meta strong { color: #162B5E; }
+    table { width: 100%; border-collapse: collapse; margin-top: 22px; font-size: 12px; }
+    th { text-align: left; background: #162B5E; color: #fff; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    td { padding: 10px; border-bottom: 1px solid #E5E1D8; vertical-align: top; }
+    td.amt, th.amt { text-align: right; white-space: nowrap; }
+    td.notes, .notes { font-size: 10.5px; color: #777; margin-top: 2px; }
+    .party { text-transform: capitalize; color: #555; }
+    .total-row td { border-bottom: none; padding-top: 16px; font-weight: 700; font-size: 15px; color: #162B5E; }
+    .note { margin-top: 24px; background: #F8F3E3; border: 1px solid #C5A55A55; border-radius: 6px; padding: 12px 14px; font-size: 11px; color: #5B4A1F; }
+    .footer { margin-top: 40px; padding-top: 12px; border-top: 1px solid #E5E1D8; font-size: 10px; color: #999; }
+  </style></head><body>
+    <div class="brand">
+      <img src="${CAMELOT_LOGO_B64}" />
+      <div><div class="name">CAMELOT REALTY GROUP</div><div class="tag">Real Estate · Property Management · Brokerage · Investment Services</div></div>
+    </div>
+    <h1>Invoice ${draft.invoiceNumber}</h1>
+    <p class="meta"><strong>Property:</strong> ${draft.buildingAddress}${draft.buildingName ? ` (${draft.buildingName})` : ''}</p>
+    ${draft.recipientName ? `<p class="meta"><strong>Bill To:</strong> ${draft.recipientName}${draft.recipientEmail ? ` — ${draft.recipientEmail}` : ''}</p>` : ''}
+    <p class="meta"><strong>Date:</strong> ${new Date(draft.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} &nbsp;·&nbsp; <strong>Status:</strong> ${draft.status.replace('_', ' ')}</p>
+    <table>
+      <thead><tr><th>Description</th><th>Billed To</th><th>Qty</th><th class="amt">Amount</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="total-row"><td colspan="3">Total Due</td><td class="amt">${formatMoney(draft.subtotal)}</td></tr></tfoot>
+    </table>
+    <p class="note">${draft.approvalNote}</p>
+    <div class="footer">Camelot Realty Group · 57 West 57th Street, Suite 410, New York, NY 10019 · (212) 206-9939 · info@camelot.nyc · www.camelot.nyc</div>
+  </body></html>`;
+}
+
+// Fire-and-forget archive to the real camelot_template_invoices /
+// camelot_template_invoice_lines tables — same pattern used elsewhere in
+// the app (saveProposalToLibrary, trackReportWorkflowEvent): never blocks
+// the UI, and silently no-ops if Supabase isn't configured or the session
+// isn't authenticated.
+async function syncInvoiceToSupabase(draft: TemplateInvoiceDraft) {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const { data, error } = await supabase
+      .from('camelot_template_invoices')
+      .upsert(
+        {
+          building_address: draft.buildingAddress,
+          building_name: draft.buildingName || null,
+          invoice_number: draft.invoiceNumber,
+          recipient_name: draft.recipientName || null,
+          recipient_email: draft.recipientEmail || null,
+          recipient_phone: draft.recipientPhone || null,
+          status: draft.status,
+          subtotal: draft.subtotal,
+          total_amount: draft.subtotal,
+          notes: draft.approvalNote,
+          created_by: draft.createdBy,
+        },
+        { onConflict: 'invoice_number' }
+      )
+      .select('id')
+      .single();
+    if (error || !data) {
+      console.error('Invoice Supabase sync failed:', error);
+      return;
+    }
+    await supabase.from('camelot_template_invoice_lines').delete().eq('invoice_id', data.id);
+    if (draft.lines.length) {
+      await supabase.from('camelot_template_invoice_lines').insert(
+        draft.lines.map((line) => ({
+          invoice_id: data.id,
+          template_rate_id: line.rateId,
+          description: line.description,
+          billing_party: line.billingParty,
+          quantity: line.quantity,
+          unit_price: line.unitPrice,
+          amount: line.amount,
+          notes: line.notes || null,
+        }))
+      );
+    }
+  } catch (e) {
+    console.error('Invoice Supabase sync error:', e);
+  }
+}
+
 export default function TemplateBilling() {
   const { buildings } = useBuildings();
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<TemplateCategory | 'all'>('all');
   const [selectedRateIds, setSelectedRateIds] = useState<string[]>([
@@ -97,6 +210,31 @@ export default function TemplateBilling() {
   const [draft, setDraft] = useState<TemplateInvoiceDraft | null>(null);
   const [invoiceLibrary, setInvoiceLibrary] = useState<TemplateInvoiceDraft[]>(() => loadInvoices());
   const [taskQueue, setTaskQueue] = useState<BillableTaskEvent[]>(() => loadTaskQueue());
+  const [incomingTemplate, setIncomingTemplate] = useState<{ title: string; category: string } | null>(null);
+
+  // Arriving from Templates.tsx's "Bill for This" link (?templateId=&title=&category=)
+  // — try to find a matching rate-sheet line item and pre-select it,
+  // otherwise just filter the table to the incoming title so it's one click away.
+  useEffect(() => {
+    const title = searchParams.get('title');
+    const cat = searchParams.get('category');
+    if (!title) return;
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const target = norm(title);
+    const matched = TEMPLATE_RATE_SHEET.find(
+      (rate) => norm(rate.templateName) === target || norm(rate.templateName).includes(target) || target.includes(norm(rate.templateName))
+    );
+    if (matched) {
+      setSelectedRateIds((current) => (current.includes(matched.id) ? current : [...current, matched.id]));
+      setQuery('');
+      toast.success(`Added "${matched.templateName}" to the invoice from Template Concierge.`);
+    } else {
+      setQuery(title);
+      toast(`No rate-sheet line item found for "${title}" yet — search results filtered to it below.`, { icon: '🔍' });
+    }
+    setIncomingTemplate({ title, category: cat || '' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
 
@@ -148,6 +286,7 @@ export default function TemplateBilling() {
     const next = [invoice, ...invoiceLibrary.filter((item) => item.id !== invoice.id)];
     setInvoiceLibrary(next);
     saveInvoices(next);
+    void syncInvoiceToSupabase(invoice);
     toast.success('Invoice draft created for review.');
   };
 
@@ -207,6 +346,7 @@ export default function TemplateBilling() {
     const nextInvoices = [invoice, ...invoiceLibrary.filter((item) => item.id !== invoice.id)];
     setInvoiceLibrary(nextInvoices);
     saveInvoices(nextInvoices);
+    void syncInvoiceToSupabase(invoice);
     updateTaskStatus(task.id, 'invoiced');
     toast.success('Invoice draft created from queued task.');
   };
@@ -218,7 +358,35 @@ export default function TemplateBilling() {
     const next = [nextDraft, ...invoiceLibrary.filter((item) => item.id !== draft.id)];
     setInvoiceLibrary(next);
     saveInvoices(next);
+    void syncInvoiceToSupabase(nextDraft);
     toast.success(`Invoice marked ${status.replace('_', ' ')}.`);
+  };
+
+  const handleQueueHubSpotSync = () => {
+    if (!draft) return;
+    const nextDraft: TemplateInvoiceDraft = { ...draft, hubspotSyncStatus: 'queued', updatedAt: new Date().toISOString() };
+    setDraft(nextDraft);
+    const next = [nextDraft, ...invoiceLibrary.filter((item) => item.id !== draft.id)];
+    setInvoiceLibrary(next);
+    saveInvoices(next);
+    void syncInvoiceToSupabase(nextDraft);
+    toast.success('Queued for HubSpot sync — will push automatically once the sync worker runs.');
+  };
+
+  const handleDownloadInvoicePdf = async () => {
+    if (!draft) return;
+    try {
+      await downloadAsPDF(buildInvoiceHtml(draft), `Camelot-Invoice-${draft.invoiceNumber}.pdf`);
+      toast.success('Invoice PDF downloaded.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not generate the invoice PDF.');
+    }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!draft) return;
+    openBrochureForPrint(buildInvoiceHtml(draft), `Camelot-Invoice-${draft.invoiceNumber}.pdf`);
   };
 
   const emailSubject = draft ? `Camelot Invoice ${draft.invoiceNumber} - ${draft.buildingAddress}` : '';
@@ -262,6 +430,11 @@ export default function TemplateBilling() {
                 Turn repeatable property-management forms into controlled templates with fee codes,
                 invoice drafts, approval status, HubSpot handoff, and payment tracking.
               </p>
+              {incomingTemplate && (
+                <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#F7F1DE] px-3 py-1.5 text-xs font-semibold text-camelot-gold">
+                  <Receipt size={13} /> Arrived from Template Concierge: {incomingTemplate.title}
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg border border-slate-200 bg-[#FBFAF6] p-3">
@@ -499,9 +672,23 @@ export default function TemplateBilling() {
                     Email
                   </button>
                   <button
+                    onClick={handlePrintInvoice}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Printer size={16} />
+                    Print
+                  </button>
+                  <button
+                    onClick={handleDownloadInvoicePdf}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <FileDown size={16} />
+                    Download PDF
+                  </button>
+                  <button
                     onClick={() => {
                       updateDraftStatus('sent');
-                      toast.success('Ready for HubSpot and accounting sync once credentials are configured.');
+                      handleQueueHubSpotSync();
                     }}
                     className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
                   >
@@ -509,6 +696,10 @@ export default function TemplateBilling() {
                     Queue Sync
                   </button>
                 </div>
+                <p className="mt-3 text-[11px] leading-5 text-slate-400">
+                  QuickBooks and Google Drive archiving aren't connected yet — this invoice is saved to Camelot OS
+                  and queued for HubSpot. Once QuickBooks/Drive credentials are added, this same button will push there too.
+                </p>
               </div>
             )}
           </aside>

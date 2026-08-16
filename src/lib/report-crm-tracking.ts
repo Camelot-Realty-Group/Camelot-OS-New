@@ -5,7 +5,7 @@ import type { MasterReportData } from '@/lib/camelot-report';
 import type { JackieReportPackage } from '@/lib/pitch-report';
 import type { Building, Contact, PipelineStage } from '@/types';
 
-export type ReportWorkflowPackage = JackieReportPackage | 'proposal_of_services' | 'quick_email_intro' | 'partner_pitch';
+export type ReportWorkflowPackage = JackieReportPackage | 'proposal_of_services' | 'quick_email_intro' | 'partner_pitch' | 'management_agreement';
 
 export type ReportWorkflowAction =
   | 'generated'

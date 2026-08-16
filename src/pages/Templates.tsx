@@ -1,5 +1,18 @@
 import { useMemo, useState } from 'react';
-import { FileText, Download, Loader2, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  FileText,
+  Download,
+  Loader2,
+  ChevronRight,
+  CheckCircle2,
+  Clock,
+  Eye,
+  Printer,
+  Mail,
+  Receipt,
+  FileEdit,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { authenticatedApiFetch } from '@/lib/api-auth';
@@ -9,12 +22,19 @@ import {
   type DocumentTemplate,
   type TemplateField,
 } from '@/lib/document-templates';
+import { getTemplateFiles } from '@/lib/template-library-files';
 
 // Template Concierge — restyled July 31 2026 per David: editorial-magazine
 // treatment (Vogue / GQ / Architectural Digest), ink-on-cream, serif display
 // headlines, hairline rules, gold accents. This is the house style for every
 // page going forward. The original dark-theme classes rendered white-on-white
 // inside the light Layout shell and were unreadable.
+//
+// Aug 16 2026: every template — wired to the fill-in generator or not — now
+// carries its real branded file (View / Download Word / Fillable PDF /
+// Email / Send to Template Billing), sourced from the Camelot Template
+// Library. "Fill Questionnaire & Generate" stays available only for
+// templates with a merge-tag master wired server-side.
 
 function FieldInput({
   field,
@@ -143,6 +163,122 @@ function TemplateFillPanel({ template, onClose }: { template: DocumentTemplate; 
   );
 }
 
+// One outbound email compose can't attach a file — that's a browser security
+// restriction, not a bug (see the same pattern/comment in InstantProposal.tsx
+// and Agreements.tsx). So Email here downloads the file, copies a short note
+// to the clipboard, and opens a mailto: draft the user pastes into and
+// attaches the just-downloaded file to.
+function emailTemplate(template: DocumentTemplate, fileUrl: string, fileLabel: string) {
+  const a = document.createElement('a');
+  a.href = fileUrl;
+  a.download = '';
+  a.click();
+  const subject = `Camelot ${template.title}`;
+  const body =
+    `Hi,\n\nAttached is Camelot's ${template.title} (${fileLabel}) for your reference.\n\n` +
+    `Warm regards,\nCamelot Realty Group`;
+  navigator.clipboard?.writeText(body).catch(() => {});
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+  toast.success(`${fileLabel} downloading — a draft is opening; attach the file and paste the note (already on your clipboard).`, { duration: 8000 });
+}
+
+function TemplateCard({ t, onFill }: { t: DocumentTemplate; onFill: () => void }) {
+  const navigate = useNavigate();
+  const fileSet = getTemplateFiles(t.id);
+
+  const sendToBilling = () => {
+    const params = new URLSearchParams({ templateId: t.id, title: t.title, category: t.category });
+    navigate(`/template-billing?${params.toString()}`);
+  };
+
+  return (
+    <div
+      className={cn(
+        'group flex flex-col gap-3 border bg-white p-5 text-left transition-all',
+        'border-[#1a2744]/15 hover:border-[#B8973A] hover:shadow-[0_10px_30px_rgba(26,39,68,0.08)]'
+      )}
+    >
+      <div className="flex items-start gap-4">
+        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center bg-[#1a2744] text-[#F4D26A] group-hover:bg-[#B8973A] group-hover:text-white transition-colors">
+          <FileText className="h-5 w-5" />
+        </span>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[15px] text-slate-950 leading-snug">{t.title}</span>
+            {t.ready ? (
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            ) : (
+              <Clock className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+            )}
+          </div>
+          <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{t.description}</p>
+          {!t.ready && (
+            <p className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold">
+              Fill-in generator in production — blank template available below
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* File actions — always available for every catalogued template */}
+      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[#1a2744]/10">
+        {t.ready && (
+          <button
+            onClick={onFill}
+            className="inline-flex items-center gap-1.5 bg-[#1a2744] text-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:bg-[#B8973A] transition-colors"
+          >
+            <FileEdit className="h-3 w-3" /> Fill &amp; Generate
+          </button>
+        )}
+        {fileSet ? (
+          <>
+            <a
+              href={fileSet.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+            >
+              <Eye className="h-3 w-3" /> View / Print
+            </a>
+            <a
+              href={fileSet.docxUrl}
+              download
+              className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+            >
+              <Download className="h-3 w-3" /> Word
+            </a>
+            {fileSet.fillablePdfUrl && (
+              <a
+                href={fileSet.fillablePdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+              >
+                <Printer className="h-3 w-3" /> Fillable PDF
+              </a>
+            )}
+            <button
+              onClick={() => emailTemplate(t, fileSet.docxUrl, 'Word doc')}
+              className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+            >
+              <Mail className="h-3 w-3" /> Email
+            </button>
+            <button
+              onClick={sendToBilling}
+              className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+            >
+              <Receipt className="h-3 w-3" /> Bill for This
+            </button>
+          </>
+        ) : (
+          <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold py-1.5">File not uploaded yet</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Templates() {
   const grouped = useMemo(() => getTemplatesByCategory(), []);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -162,8 +298,8 @@ export default function Templates() {
             Template Concierge
           </h1>
           <p className="text-center text-[15px] text-slate-600 mt-5 max-w-2xl mx-auto leading-relaxed">
-            Choose a document. Answer a short questionnaire. Receive a finished, branded Camelot Word file —
-            ready to print, email, or file. Quietly efficient, impeccably dressed.
+            Every template is view/print/download/email-ready today. Templates marked with a checkmark can also
+            be filled in through a short questionnaire for a branded, merge-filled Word document.
           </p>
         </div>
       </div>
@@ -183,36 +319,7 @@ export default function Templates() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {grouped[category].map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => t.ready && setActiveId(t.id)}
-                  disabled={!t.ready}
-                  className={cn(
-                    'group flex items-start gap-4 border bg-white p-5 text-left transition-all',
-                    t.ready
-                      ? 'border-[#1a2744]/15 hover:border-[#B8973A] hover:shadow-[0_10px_30px_rgba(26,39,68,0.08)] cursor-pointer'
-                      : 'border-[#1a2744]/10 opacity-55 cursor-not-allowed'
-                  )}
-                >
-                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center bg-[#1a2744] text-[#F4D26A] group-hover:bg-[#B8973A] group-hover:text-white transition-colors">
-                    <FileText className="h-5 w-5" />
-                  </span>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[15px] text-slate-950 leading-snug">{t.title}</span>
-                      {t.ready ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                      ) : (
-                        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-300" />
-                      )}
-                    </div>
-                    <p className="mt-1 text-[13px] leading-relaxed text-slate-500">{t.description}</p>
-                    {!t.ready && (
-                      <p className="mt-1.5 text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold">In production</p>
-                    )}
-                  </div>
-                  {t.ready && <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-[#B8973A] transition-colors self-center" />}
-                </button>
+                <TemplateCard key={t.id} t={t} onFill={() => setActiveId(t.id)} />
               ))}
             </div>
           </section>

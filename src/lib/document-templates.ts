@@ -87,7 +87,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'workers_comp', label: "Workers' Compensation on File", type: 'select', options: ['Y', 'N'] },
       { key: 'auto_liability', label: 'Auto Liability on File', type: 'select', options: ['Y', 'N'] },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'w9-request-cover-sheet',
@@ -101,7 +101,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'date_received', label: 'Date Received', type: 'date' },
       { key: 'tin_on_file', label: 'TIN / EIN on File', type: 'select', options: ['Y', 'N'] },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'bank-questionnaire-cover-sheet',
@@ -116,7 +116,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'date_received', label: 'Date Received', type: 'date' },
       { key: 'date_completed', label: 'Date Completed', type: 'date' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'rpie-abatement-filing-tracker',
@@ -130,7 +130,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'due_date', label: 'Due Date', type: 'date' },
       { key: 'filed_date', label: 'Filed Date', type: 'date' },
     ],
-    ready: false,
+    ready: true,
   },
 
   // ---------------- Leasing & Sales ----------------
@@ -145,7 +145,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'purchase_price', label: 'Purchase Price', type: 'text' },
       { key: 'board_interview_date', label: 'Board Interview Date', type: 'date' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'rental-package-cover-sheet',
@@ -158,7 +158,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'lease_term', label: 'Lease Term', type: 'text' },
       { key: 'monthly_rent', label: 'Monthly Rent', type: 'text' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'unit-alteration-agreement',
@@ -166,14 +166,16 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     category: 'Leasing & Sales',
     description: 'Short-form agreement for a Unit Holder undertaking a renovation or alteration.',
     fields: [
+      { key: 'effective_date', label: 'Agreement Date', type: 'date', required: true },
       { key: 'unit_owner_name', label: 'Unit Owner Name', type: 'text', required: true },
       { key: 'unit_number', label: 'Unit #', type: 'text', required: true },
       { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'board_managing_agent_name', label: 'Board / Managing Agent Name', type: 'text', required: true },
       { key: 'contractor_name', label: 'Contractor Name', type: 'text' },
       { key: 'estimated_start_date', label: 'Estimated Start Date', type: 'date' },
       { key: 'estimated_completion_date', label: 'Estimated Completion Date', type: 'date' },
     ],
-    ready: false,
+    ready: true,
   },
 
   // ---------------- Board & Governance ----------------
@@ -190,7 +192,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'meeting_type', label: 'Meeting Type', type: 'select', options: ['Annual', 'Special'] },
       { key: 'meeting_date', label: 'Meeting Date', type: 'date' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'annual-special-meeting-notice',
@@ -204,7 +206,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'location', label: 'Location / Virtual Link', type: 'text' },
       { key: 'agenda', label: 'Agenda Items', type: 'textarea' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'board-meeting-minutes',
@@ -219,7 +221,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'discussion_summary', label: 'Discussion Summary', type: 'textarea' },
       { key: 'adjournment_time', label: 'Adjournment Time', type: 'text' },
     ],
-    ready: false,
+    ready: true,
   },
 
   // ---------------- Reports & Financials ----------------
@@ -234,7 +236,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'financial_highlights', label: 'Financial Highlights', type: 'textarea' },
       { key: 'occupancy_arrears_summary', label: 'Occupancy / Arrears Summary', type: 'textarea' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'purchase-order-form',
@@ -248,7 +250,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'description', label: 'Description of Goods / Services', type: 'textarea' },
       { key: 'total_amount', label: 'Total Amount', type: 'text' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'transition-manifest-checklist',
@@ -298,7 +300,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'requested_times', label: 'Requested Time(s)', type: 'text' },
       { key: 'number_of_guests', label: 'Number of Guests', type: 'number' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'capital-project-status-report',
@@ -315,7 +317,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'percent_complete', label: '% Complete', type: 'text' },
       { key: 'issues_risks', label: 'Issues / Risks', type: 'textarea' },
     ],
-    ready: false,
+    ready: true,
   },
   {
     id: 'vendor-work-authorization',
@@ -329,7 +331,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
       { key: 'estimated_cost', label: 'Estimated Cost', type: 'text' },
       { key: 'coi_on_file', label: 'COI on File', type: 'select', options: ['Y', 'N'] },
     ],
-    ready: false,
+    ready: true,
   },
 ];
 

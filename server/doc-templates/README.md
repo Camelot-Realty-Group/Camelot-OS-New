@@ -23,6 +23,28 @@ header/footer/color styling as the standalone template library) with
 ## Currently wired
 
 - `work-order-request.docx` → `work-order-request-form`
+- `coi-tracking-form.docx` → `coi-tracking-form`
+- `w9-request-cover-sheet.docx` → `w9-request-cover-sheet`
+- `bank-questionnaire-cover-sheet.docx` → `bank-questionnaire-cover-sheet`
+- `rpie-abatement-filing-tracker.docx` → `rpie-abatement-filing-tracker`
+- `sales-package-cover-sheet.docx` → `sales-package-cover-sheet`
+- `rental-package-cover-sheet.docx` → `rental-package-cover-sheet`
+- `unit-alteration-agreement.docx` → `unit-alteration-agreement`
+- `board-meeting-proxy-form.docx` → `board-meeting-proxy-form`
+- `annual-special-meeting-notice.docx` → `annual-special-meeting-notice`
+- `board-meeting-minutes.docx` → `board-meeting-minutes`
+- `monthly-management-report-cover-sheet.docx` → `monthly-management-report-cover-sheet`
+- `purchase-order-form.docx` → `purchase-order-form`
+- `amenity-reservation-request-form.docx` → `amenity-reservation-request-form`
+- `capital-project-status-report.docx` → `capital-project-status-report`
+- `vendor-work-authorization.docx` → `vendor-work-authorization`
+
+Not yet wired (need a merge-tag master + field schema): the 4 full Property
+Management Agreement variants (condo/co-op, rental, office/commercial, new
+construction — these are long-form contracts, not cover sheets, and need the
+same care as `Camelot_Residential_Property_Management_Agreement_v2.docx`),
+and `transition-manifest-checklist` (its schema doesn't map onto its source
+doc's repeating checklist table yet).
 
 ## Adding a new template
 

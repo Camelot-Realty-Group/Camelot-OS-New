@@ -1614,6 +1614,21 @@ const DOC_TEMPLATES_DIR = path.join(__dirname, 'server', 'doc-templates');
 // id -> master docx filename (must match a file in server/doc-templates/)
 const READY_TEMPLATE_FILES = {
   'work-order-request-form': 'work-order-request.docx',
+  'coi-tracking-form': 'coi-tracking-form.docx',
+  'w9-request-cover-sheet': 'w9-request-cover-sheet.docx',
+  'bank-questionnaire-cover-sheet': 'bank-questionnaire-cover-sheet.docx',
+  'rpie-abatement-filing-tracker': 'rpie-abatement-filing-tracker.docx',
+  'sales-package-cover-sheet': 'sales-package-cover-sheet.docx',
+  'rental-package-cover-sheet': 'rental-package-cover-sheet.docx',
+  'unit-alteration-agreement': 'unit-alteration-agreement.docx',
+  'board-meeting-proxy-form': 'board-meeting-proxy-form.docx',
+  'annual-special-meeting-notice': 'annual-special-meeting-notice.docx',
+  'board-meeting-minutes': 'board-meeting-minutes.docx',
+  'monthly-management-report-cover-sheet': 'monthly-management-report-cover-sheet.docx',
+  'purchase-order-form': 'purchase-order-form.docx',
+  'amenity-reservation-request-form': 'amenity-reservation-request-form.docx',
+  'capital-project-status-report': 'capital-project-status-report.docx',
+  'vendor-work-authorization': 'vendor-work-authorization.docx',
 };
 
 app.get('/api/templates/list', async (_req, res) => {

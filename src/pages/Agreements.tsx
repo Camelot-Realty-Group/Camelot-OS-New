@@ -4,6 +4,8 @@ import { generateAgreement, DEFAULT_INPUT, ASSET_CLASS_LABELS, type AgreementInp
 import { buildMasterReport, type MasterReportData } from '@/lib/camelot-report';
 import { openBrochureForPrint, downloadAsHTML } from '@/lib/pdf-generator';
 import { formatLibraryDate, loadLocalJackieReportLibrary, type SavedJackieReport } from '@/lib/jackie-report-library';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { trackReportWorkflowEvent, buildingFromReportData } from '@/lib/report-crm-tracking';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
@@ -177,6 +179,74 @@ export default function Agreements() {
     toast.success(`Agreement fields loaded from ${record.reportNumber}`);
   };
 
+  // Archives to Supabase (camelot_generated_documents — address, building
+  // name, recipient, date, version) and queues the same HubSpot/Pipeline
+  // activity used by proposals and reports, so every generated agreement is
+  // trackable by address, name, "to who," date, and version, not just saved
+  // to this browser's localStorage. Both calls are fire-and-forget — a CRM
+  // hiccup should never block generating or downloading an agreement.
+  const versionLabel = (() => {
+    const now = new Date();
+    return `v${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.1`;
+  })();
+
+  const archiveAgreementToCrm = async (record: SavedAgreementRecord) => {
+    const recipientName = input.clientName || input.clientEntityName || undefined;
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('camelot_generated_documents').insert({
+          building_address: record.propertyAddress || 'Unassigned property',
+          building_name: input.clientEntityName || jackieData?.buildingName || null,
+          document_title: `${ASSET_CLASS_LABELS[input.assetClass]} — Property Management Agreement`,
+          document_number: record.agreementNumber,
+          version_label: versionLabel,
+          recipient_name: recipientName || null,
+          recipient_email: null,
+          generated_by: 'Excalibur Agreement Engine',
+          generated_payload: { assetClass: input.assetClass, units: input.units, selectedTier: input.selectedTier, linkedJackieReportNumber: record.linkedJackieReportNumber },
+          status: 'draft',
+        });
+      } catch (e) {
+        console.error('Failed to archive agreement to Supabase:', e);
+      }
+    }
+
+    try {
+      const building = jackieData
+        ? buildingFromReportData(jackieData)
+        : {
+            id: `agreement-${record.agreementNumber.toLowerCase()}`,
+            address: record.propertyAddress || 'Unassigned property',
+            name: input.clientEntityName || record.propertyAddress || 'Draft Agreement',
+            type: (['coop', 'condo'].includes(input.assetClass) ? 'co-op' : input.assetClass === 'office' ? 'commercial' : 'rental') as any,
+            grade: 'C' as const,
+            score: 0,
+            signals: [],
+            contacts: [],
+            enriched_data: { source: 'Excalibur Agreement Engine' },
+            status: 'proposal',
+            tags: ['agreement-generated'],
+            pipeline_stage: 'proposal' as const,
+            violations_count: 0,
+            open_violations_count: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+      void trackReportWorkflowEvent({
+        building,
+        packageType: 'management_agreement',
+        packageLabel: `${ASSET_CLASS_LABELS[input.assetClass]} — Property Management Agreement`,
+        action: 'generated',
+        filename: record.filename,
+        reportNumber: record.agreementNumber,
+        recipients: [],
+        metadata: { versionLabel, recipientName, clientEntityName: input.clientEntityName, units: input.units },
+      });
+    } catch (e) {
+      console.error('Failed to queue agreement HubSpot/Pipeline activity:', e);
+    }
+  };
+
   const archiveAgreement = (html: string) => {
     const generatedAt = new Date().toISOString();
     const agreementNumber = `AGMT-${generatedAt.slice(0, 10).replace(/-/g, '')}-${String(Date.now()).slice(-6)}`;
@@ -193,6 +263,7 @@ export default function Agreements() {
     };
     const next = writeAgreementLibrary([record, ...loadAgreementLibrary()]);
     setSavedAgreements(next);
+    void archiveAgreementToCrm(record);
     return record;
   };
 

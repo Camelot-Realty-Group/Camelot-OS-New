@@ -3,7 +3,10 @@
  *
  * Computes p25/p50/p75 cost-per-unit bands per (category, building_type,
  * size_band, year) cell from categorized AP actuals, and upserts them into
- * `portfolio_benchmarks` (see 019_portfolio_benchmarks.sql).
+ * `portfolio_benchmark_bands` (see 019_portfolio_benchmark_bands.sql). Named
+ * distinctly from the older, unrelated `portfolio_benchmarks` table that
+ * already existed live in Supabase (flat, per-building, created outside this
+ * repo on 2026-08-04/08-15) — see that migration's reconciliation note.
  *
  * -----------------------------------------------------------------------
  * WHY COST-PER-UNIT
@@ -193,7 +196,7 @@ export function computeBenchmarks(observations) {
 
 /**
  * Full pipeline: vouchers + building metadata -> benchmark rows ready to
- * upsert into portfolio_benchmarks.
+ * upsert into portfolio_benchmark_bands.
  */
 export function buildPortfolioBenchmarks(vouchers, buildingsByCompanyRcd) {
   const observations = buildCpuObservations(vouchers, buildingsByCompanyRcd);
@@ -202,8 +205,16 @@ export function buildPortfolioBenchmarks(vouchers, buildingsByCompanyRcd) {
 
 /**
  * Upsert benchmark rows into Supabase. Server-only — requires a Supabase
- * client configured with SUPABASE_SERVICE_ROLE_KEY (RLS on portfolio_benchmarks
- * blocks anon writes; see 019_portfolio_benchmarks.sql section 4).
+ * client configured with SUPABASE_SERVICE_ROLE_KEY (RLS on
+ * portfolio_benchmark_bands blocks anon writes; see
+ * 019_portfolio_benchmark_bands.sql section 4).
+ *
+ * Table name note (2026-08-16): the live Supabase project already had an
+ * older, unrelated ad hoc table literally named `portfolio_benchmarks`
+ * (flat, per-building, created 2026-08-04/08-15 outside this repo — see the
+ * reconciliation note in 019_portfolio_benchmark_bands.sql). This module
+ * writes to the new `portfolio_benchmark_bands` table instead so it never
+ * touches that older table's data or schema.
  *
  * @param {object} supabase  a Supabase JS client
  * @param {Array} benchmarkRows  output of buildPortfolioBenchmarks()
@@ -215,7 +226,7 @@ export async function upsertBenchmarks(supabase, benchmarkRows) {
 
   for (const row of benchmarkRows) {
     const { error } = await supabase
-      .from('portfolio_benchmarks')
+      .from('portfolio_benchmark_bands')
       .upsert(
         {
           category: row.category,

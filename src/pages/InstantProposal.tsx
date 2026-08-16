@@ -16,6 +16,9 @@ import { CAMELOT_LOGO_B64, CAMELOT_HEADER_B64, CAMELOT_SIGNATURE_B64, CAMELOT_CO
 // (scout_proposals table) — Instant Proposal writes here too so every
 // proposal shows up in one place regardless of which flow generated it.
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+// Real Gmail draft creation with attachments already in place (no manual
+// download-and-attach step) — see src/lib/google-gmail.ts.
+import { isGmailComposeConfigured, getGmailComposeToken, createGmailDraftWithAttachments } from '@/lib/google-gmail';
 
 type Step = 'search' | 'verify' | 'jackie' | 'draft' | 'export';
 
@@ -366,6 +369,7 @@ export default function InstantProposal() {
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
+  const [gmailDraftLoading, setGmailDraftLoading] = useState(false);
   // Editable fee (Verify step) — defaults to the auto-calculated suggestion until the user overrides it
   const [customFee, setCustomFee] = useState<number | null>(null);
   // Manual unit-mix entry (studios/1BR/2BR/3BR) — not published by any NYC Open Data source
@@ -1301,6 +1305,99 @@ export default function InstantProposal() {
     }
   };
 
+  // Real Gmail draft with the PDF(s) already attached — no manual
+  // download-and-attach step. Requires VITE_GOOGLE_GMAIL_CLIENT_ID to be
+  // configured (see src/lib/google-gmail.ts); the button that calls this
+  // is only shown when that's true. Still never sends automatically — the
+  // draft opens in Gmail for the user to review and click Send themselves.
+  const handleCreateGmailDraft = async () => {
+    if (!recipientEmail.trim()) {
+      toast.error("Enter the recipient's email above before creating the draft");
+      return;
+    }
+    const content = getDraftContent();
+    if (!content) { toast.error('No proposal content'); return; }
+
+    setGmailDraftLoading(true);
+    try {
+      const token = await getGmailComposeToken();
+
+      const buildingName = reportData?.buildingName || reportData?.address || 'the property';
+      const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const filenameBase = getFilenameBase();
+      const filename = `${filenameBase}.pdf`;
+
+      const pdfBlob = await renderProposalPdfBlob(content, filename);
+
+      let reportBlob: Blob | null = null;
+      let reportFilename = '';
+      if (includeEngagementReport && jackieHTML) {
+        reportFilename = `${filenameBase}-Property-Engagement-Report.pdf`;
+        try {
+          reportBlob = await renderProposalPdfBlob(jackieHTML, reportFilename);
+        } catch (reportErr) {
+          console.error('Engagement report PDF render failed:', reportErr);
+          toast.error('Proposal PDF is ready, but the Engagement Report PDF failed to render — sending the proposal alone.', { duration: 6000 });
+        }
+      }
+
+      const address = reportData?.address || buildingName;
+      const emailBase: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
+      const emailOccupantNoun = emailBase === 'coop' ? 'shareholders' : emailBase === 'condo' ? 'unit owners' : 'tenants';
+      const greetName = recipientName.trim() || (isReceiver ? 'Receiver' : emailBase === 'rental' ? 'Ownership' : 'Board');
+      const decisionMakerPhrase = isReceiver ? 'you as Receiver' : emailBase === 'rental' ? 'ownership' : 'the Board';
+      const entityPhrase = isReceiver
+        ? 'the property and the receivership estate you oversee'
+        : emailBase === 'rental'
+          ? `your ownership and the property's ${emailOccupantNoun}`
+          : `your Board and the building's ${emailOccupantNoun}`;
+
+      const subject = `Re: ${address} - Proposal of Services V1. ${todayStr}`;
+      const fullBody =
+        `Dear ${greetName},\n\n` +
+        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services${reportBlob ? ' along with our Property Engagement Report on the building' : ''}, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
+        `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\n\n` +
+        `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\n\n` +
+        `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\n\n` +
+        `Warm regards,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
+
+      const attachments = [{ blob: pdfBlob, filename, mimeType: 'application/pdf' }];
+      if (reportBlob) attachments.push({ blob: reportBlob, filename: reportFilename, mimeType: 'application/pdf' });
+
+      const to = recipientEmail.trim();
+      const draft = await createGmailDraftWithAttachments({ accessToken: token, to, subject, bodyText: fullBody, attachments });
+
+      window.open(draft.draftUrl, '_blank');
+      toast.success(
+        `Gmail draft created with ${attachments.length === 2 ? 'both PDFs' : 'the proposal PDF'} already attached — review and send from the tab that just opened.`,
+        { duration: 9000 }
+      );
+
+      const trackingBuilding = buildProposalTrackingBuilding();
+      if (trackingBuilding) {
+        void trackReportWorkflowEvent({
+          building: trackingBuilding,
+          reportData: reportData || undefined,
+          packageType: 'proposal_of_services',
+          packageLabel: reportBlob ? 'Proposal of Property Management Services + Property Engagement Report' : 'Proposal of Property Management Services',
+          action: 'email_draft_opened',
+          filename,
+          emailSubject: subject,
+          emailBody: fullBody,
+          recipients: [to],
+          extraContacts: buildProposalTrackingContacts(),
+          metadata: { clientType, isReceiver, emailProvider: 'gmail', includedEngagementReport: !!reportBlob, reportFilename: reportBlob ? reportFilename : undefined, autoAttached: true, gmailDraftId: draft.draftId },
+        });
+      }
+      saveProposalToLibrary({ subject, to, includedEngagementReport: !!reportBlob });
+    } catch (e: any) {
+      console.error('Gmail auto-attach draft failed:', e);
+      toast.error(e?.message || 'Could not create the Gmail draft — try "PDF + Email" instead (manual attach).', { duration: 7000 });
+    } finally {
+      setGmailDraftLoading(false);
+    }
+  };
+
   const d = reportData;
   const displayFee = customFee ?? (d?.monthlyFee ?? 0);
   const displayPerUnit = d?.units ? Math.round(displayFee / d.units) : (d?.pricePerUnit ?? 0);
@@ -1945,7 +2042,7 @@ export default function InstantProposal() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto">
+          <div className={`grid grid-cols-2 ${emailProvider === 'gmail' && isGmailComposeConfigured() ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-3 max-w-3xl mx-auto`}>
             <button onClick={handlePrint} className="flex flex-col items-center gap-2 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
               <Printer size={24} className="text-camelot-navy" />
               <span className="text-xs font-semibold text-camelot-navy">Print</span>
@@ -1968,6 +2065,22 @@ export default function InstantProposal() {
               <FileText size={24} className="text-camelot-navy" />
               <span className="text-xs font-semibold text-camelot-navy">Download HTML</span>
             </button>
+            {emailProvider === 'gmail' && isGmailComposeConfigured() && (
+              <button
+                onClick={handleCreateGmailDraft}
+                disabled={gmailDraftLoading}
+                className="flex flex-col items-center gap-2 p-4 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors border border-emerald-200 disabled:opacity-50"
+              >
+                {gmailDraftLoading ? (
+                  <Loader2 size={24} className="text-emerald-600 animate-spin" />
+                ) : (
+                  <Mail size={24} className="text-emerald-600" />
+                )}
+                <span className="text-xs font-semibold text-camelot-navy text-center">
+                  {gmailDraftLoading ? 'Creating draft...' : 'Gmail Draft (Auto-Attach)'}
+                </span>
+              </button>
+            )}
             <button
               onClick={handlePdfEmail}
               disabled={emailLoading}
@@ -1984,20 +2097,32 @@ export default function InstantProposal() {
             </button>
           </div>
 
-          {/* Step-by-step guidance — browsers can't attach a file to a webmail
-              compose window automatically (a security restriction, not a bug),
-              so this spells out the two manual steps that remain after
-              "PDF + Email" opens the draft. */}
-          <div className="max-w-md mx-auto mt-6 bg-gray-50 rounded-xl p-4 text-left">
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Next steps to send</h3>
-            <ol className="text-xs text-gray-600 space-y-2 list-decimal list-inside">
-              <li><strong className="text-camelot-navy">Click "PDF + Email"</strong> — downloads the proposal{includeEngagementReport && jackieHTML ? ' and the Property Engagement Report' : ''} to your computer, copies the full cover note to your clipboard, and opens a draft in the service selected above.</li>
-              <li><strong className="text-camelot-navy">Paste the cover note</strong> — click into the draft's message body and press Ctrl/Cmd+V (Gmail/Outlook Web don't accept a long cover note through the link itself).</li>
-              <li><strong className="text-camelot-navy">Attach the downloaded file{includeEngagementReport && jackieHTML ? 's' : ''}</strong> from your Downloads folder — drag in, or use the paperclip/attach button.</li>
-              <li><strong className="text-camelot-navy">Review and send</strong> — nothing goes out automatically; the draft waits for you.</li>
-            </ol>
-            <p className="text-[10px] text-gray-400 mt-3">This proposal is also logged to Pipeline, HubSpot, and the Proposal Library the moment the draft opens.</p>
-          </div>
+          {emailProvider === 'gmail' && isGmailComposeConfigured() ? (
+            <div className="max-w-md mx-auto mt-6 bg-emerald-50 rounded-xl p-4 text-left border border-emerald-200">
+              <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-wide mb-3">Gmail Draft (Auto-Attach) — recommended</h3>
+              <ol className="text-xs text-emerald-900 space-y-2 list-decimal list-inside">
+                <li><strong>Click "Gmail Draft (Auto-Attach)"</strong> — the first time, Google will ask you to sign in and approve Camelot OS creating drafts in your Gmail (nothing else — it can't read or send).</li>
+                <li><strong>The draft opens</strong> with the recipient, subject, cover note, and PDF{includeEngagementReport && jackieHTML ? 's' : ''} already attached — no downloading or attaching by hand.</li>
+                <li><strong>Review and send</strong> from Gmail yourself — nothing goes out automatically.</li>
+              </ol>
+              <p className="text-[10px] text-emerald-700 mt-3">Prefer the manual route, or using Outlook/another provider? "PDF + Email" still works exactly as before.</p>
+            </div>
+          ) : (
+            /* Step-by-step guidance — browsers can't attach a file to a webmail
+               compose window automatically (a security restriction, not a bug),
+               so this spells out the two manual steps that remain after
+               "PDF + Email" opens the draft. */
+            <div className="max-w-md mx-auto mt-6 bg-gray-50 rounded-xl p-4 text-left">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Next steps to send</h3>
+              <ol className="text-xs text-gray-600 space-y-2 list-decimal list-inside">
+                <li><strong className="text-camelot-navy">Click "PDF + Email"</strong> — downloads the proposal{includeEngagementReport && jackieHTML ? ' and the Property Engagement Report' : ''} to your computer, copies the full cover note to your clipboard, and opens a draft in the service selected above.</li>
+                <li><strong className="text-camelot-navy">Paste the cover note</strong> — click into the draft's message body and press Ctrl/Cmd+V (Gmail/Outlook Web don't accept a long cover note through the link itself).</li>
+                <li><strong className="text-camelot-navy">Attach the downloaded file{includeEngagementReport && jackieHTML ? 's' : ''}</strong> from your Downloads folder — drag in, or use the paperclip/attach button.</li>
+                <li><strong className="text-camelot-navy">Review and send</strong> — nothing goes out automatically; the draft waits for you.</li>
+              </ol>
+              <p className="text-[10px] text-gray-400 mt-3">This proposal is also logged to Pipeline, HubSpot, and the Proposal Library the moment the draft opens.</p>
+            </div>
+          )}
 
           <div className="mt-6 flex gap-3 justify-center">
             <button onClick={() => setStep('draft')} className="text-sm text-gray-500 hover:text-camelot-gold flex items-center gap-1">

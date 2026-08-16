@@ -35,6 +35,7 @@ import {
   Newspaper,
   Briefcase,
   TrendingDown,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/store';
@@ -73,14 +74,20 @@ const navigation: NavSection[] = [
     ],
   },
   {
+    title: 'Portfolio — Cost Optimization',
+    items: [
+      { label: 'Portfolio', href: '/portfolio', icon: <Building2 size={18} /> },
+      { label: 'Cost Optimization', href: '/cost-cutting', icon: <TrendingDown size={18} /> },
+      { label: 'Cost-Beat Report Builder', href: '/cost-beat-report', icon: <FileText size={18} /> },
+    ],
+  },
+  {
     title: 'Engagement — Pitches',
     items: [
       { label: 'Instant Proposal', href: '/instant-proposal', icon: <Zap size={18} /> },
       { label: 'Proposal Library', href: '/proposals', icon: <FileText size={18} /> },
       { label: 'Engagement Reports', href: '/report-center', icon: <Crown size={18} /> },
       { label: 'Partner Pitch Decks', href: '/partner-pitches', icon: <Briefcase size={18} /> },
-      { label: 'Cost Optimization', href: '/cost-cutting', icon: <TrendingDown size={18} /> },
-      { label: 'Cost-Beat Report Builder', href: '/cost-beat-report', icon: <FileText size={18} /> },
     ],
   },
   {

@@ -74,6 +74,16 @@ type InstantProposalSavedInputs = {
 
 type FeeLine = { label: string; fee: string };
 
+// These two ancillary-fee line items only apply to co-op/condo buildings
+// (CCTA is a co-op/condo tax-abatement filing; the closing fee is for
+// share/unit closings) — they're filtered out of the fee sheet whenever the
+// proposal's building type is Rental, so a rental proposal never shows
+// co-op/condo language. See the clientType effect below.
+const COOP_CONDO_ONLY_FEE_LABELS = [
+  'CCTA (Cooperative Condo Tax Abatement)',
+  'Coop or Condo Closing (inside management offices)',
+];
+
 const DEFAULT_ANCILLARY_FEES: FeeLine[] = [
   { label: 'Alteration Fee', fee: '$500.00' },
   { label: 'CCTA (Cooperative Condo Tax Abatement)', fee: '$200 per bldg. filing' },
@@ -409,10 +419,38 @@ export default function InstantProposal() {
   const [includeRateSchedule, setIncludeRateSchedule] = useState(true);
   const [ancillaryFees, setAncillaryFees] = useState<FeeLine[]>(DEFAULT_ANCILLARY_FEES);
   const [rateSchedule, setRateSchedule] = useState<FeeLine[]>(DEFAULT_RATE_SCHEDULE);
+
+  // Keep the ancillary fee sheet's co-op/condo-only line items (CCTA filing,
+  // co-op/condo closing fee) in sync with the selected building type — a
+  // Rental proposal should never carry co-op/condo wording anywhere in the
+  // document, including this fee sheet. Adds/removes just those two lines
+  // rather than resetting the whole sheet, so any other manual fee edits the
+  // user made are preserved.
+  useEffect(() => {
+    const base: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
+    setAncillaryFees(prev => {
+      const hasCoopCondoLines = prev.some(f => COOP_CONDO_ONLY_FEE_LABELS.includes(f.label));
+      if (base === 'rental') {
+        return hasCoopCondoLines ? prev.filter(f => !COOP_CONDO_ONLY_FEE_LABELS.includes(f.label)) : prev;
+      }
+      if (hasCoopCondoLines) return prev;
+      // Re-insert the co-op/condo lines in their default position (right
+      // after "Alteration Fee") if the user switches back from Rental.
+      const alterationIdx = prev.findIndex(f => f.label === 'Alteration Fee');
+      const coopCondoLines = DEFAULT_ANCILLARY_FEES.filter(f => COOP_CONDO_ONLY_FEE_LABELS.includes(f.label));
+      const insertAt = alterationIdx === -1 ? 0 : alterationIdx + 1;
+      return [...prev.slice(0, insertAt), ...coopCondoLines, ...prev.slice(insertAt)];
+    });
+  }, [clientType, newDevBase]);
   // Whether to bundle the Property Engagement Report alongside the proposal —
   // shown as proof of Camelot's intelligence on the property. Defaults on
   // once a report has actually been generated (jackieHTML is set).
   const [includeEngagementReport, setIncludeEngagementReport] = useState(true);
+  // Separate from includeEngagementReport — lets the sender also attach the
+  // full Property Intelligence Dossier (fullJackieHTML) as a third PDF, even
+  // when the lighter "Intro to Camelot" version is the one selected as the
+  // gift attachment above. Only relevant once a report has been generated.
+  const [includePropertyReport, setIncludePropertyReport] = useState(false);
   const draftRef = useRef<HTMLDivElement>(null);
 
   const stepIndex = STEPS.findIndex(s => s.key === step);
@@ -742,6 +780,12 @@ export default function InstantProposal() {
         table.info-table{width:100%;max-width:520px;margin:0 auto;border-collapse:collapse;font-size:12.5px;text-align:left;}
         table.info-table td{padding:8px 12px;border-bottom:1px solid #eee;}
         table.info-table td.k{background:#F7F5F0;font-weight:700;color:#162B5E;width:38%;}
+        .cover-signoff{max-width:340px;margin:26px auto 0;text-align:center;}
+        .cover-signoff img.sig{width:150px;display:block;margin:0 auto 4px;}
+        .cover-signoff .name{font-weight:700;font-size:12.5px;color:#162B5E;}
+        .cover-signoff .role{font-size:11.5px;color:#666;margin-bottom:10px;}
+        .cover-signoff .contact-card{border-top:1px solid #eee;padding-top:10px;}
+        .cover-signoff .contact-card img{width:280px;display:block;margin:0 auto;}
         .letter p{font-size:13.5px;margin:0 0 14px;}
         .letter .addr-block p{margin:0 0 2px;font-style:italic;color:#777;}
         .letter .re-line{font-weight:700;color:#162B5E;margin:18px 0 14px;}
@@ -793,6 +837,12 @@ export default function InstantProposal() {
             <tr><td class="k">Recipient Contact</td><td>${recContact}</td></tr>
             <tr><td class="k">Recipient Address</td><td>${addrLines.length ? `${addrLine1}, ${addrLine2}` : '[Street, City, State ZIP]'}</td></tr>
           </table>
+          <div class="cover-signoff">
+            <img class="sig" src="${CAMELOT_SIGNATURE_B64}" alt="David Goldoff signature" />
+            <div class="name">David Goldoff</div>
+            <div class="role">President, Camelot Property Management Services Corp.</div>
+            <div class="contact-card"><img src="${CAMELOT_CONTACT_B64}" alt="Camelot contact information" /></div>
+          </div>
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
@@ -974,7 +1024,6 @@ export default function InstantProposal() {
           <h3 class="sub">${meetGreetHeading}</h3>
           <p style="font-size:12.5px;">Within the first 30–60 days, we like to introduce the Camelot team to ${meetGreetPhrase}, in person or over Zoom. This gives ${meetGreetSubjectWord} a chance to put a face to the team managing the building, raise any concerns directly, and update contact information on file.</p>
           <p class="thankyou">Thank you again for your consideration.</p>
-          <div class="contact-block"><img src="${CAMELOT_CONTACT_B64}" alt="Camelot contact information" /></div>
           <div class="footer-bar">
             57 West 57th Street, Suite 410, New York, NY 10019 &nbsp;·&nbsp; (212) 206-9939 &nbsp;·&nbsp; info@camelot.nyc
             <div class="conf">CONFIDENTIAL — PREPARED EXCLUSIVELY FOR THE ADDRESSEE</div>
@@ -1201,6 +1250,22 @@ export default function InstantProposal() {
         }
       }
 
+      // Optionally render the full Property Report (Property Intelligence
+      // Dossier) as a third PDF — independent of whichever version is
+      // selected as the Engagement Report gift above, so both can go out
+      // together (skipped if it's the same document already attached).
+      let propertyReportBlob: Blob | null = null;
+      let propertyReportFilename = '';
+      if (includePropertyReport && fullJackieHTML && fullJackieHTML !== jackieHTML) {
+        propertyReportFilename = `${filenameBase}-Property-Report.pdf`;
+        try {
+          propertyReportBlob = await renderProposalPdfBlob(fullJackieHTML, propertyReportFilename);
+        } catch (reportErr) {
+          console.error('Property Report PDF render failed:', reportErr);
+          toast.error('Proposal PDF is ready, but the Property Report PDF failed to render.', { duration: 6000 });
+        }
+      }
+
       const address = reportData?.address || buildingName;
       const emailBase: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
       const emailOccupantNoun = emailBase === 'coop' ? 'shareholders' : emailBase === 'condo' ? 'unit owners' : 'tenants';
@@ -1214,11 +1279,14 @@ export default function InstantProposal() {
 
       const subject = `Re: ${address} - Proposal of Services V1. ${todayStr}`;
 
+      const attachmentPhrase = [reportBlob && 'our Property Engagement Report', propertyReportBlob && 'our full Property Report']
+        .filter(Boolean).join(' and ');
+
       // Full cover note — this is what actually belongs in the email and what
       // gets copied to the clipboard for pasting into the draft.
       const fullBody =
         `Dear ${greetName},\n\n` +
-        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services${reportBlob ? ' along with our Property Engagement Report on the building' : ''}, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
+        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services${attachmentPhrase ? ` along with ${attachmentPhrase} on the building` : ''}, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
         `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\n\n` +
         `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\n\n` +
         `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\n\n` +
@@ -1233,7 +1301,7 @@ export default function InstantProposal() {
       // cover letter via clipboard (pasted in one step), fixes it.
       const shortBody =
         `Dear ${greetName},\n\n` +
-        `Attached please find our Proposal of Property Management Services for ${buildingName}${reportBlob ? ' along with our Property Engagement Report on the building' : ''}.\n\n` +
+        `Attached please find our Proposal of Property Management Services for ${buildingName}${attachmentPhrase ? ` along with ${attachmentPhrase} on the building` : ''}.\n\n` +
         `Full cover note is on your clipboard — paste it here (Ctrl/Cmd+V) before sending.\n\n` +
         `Warm regards,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
 
@@ -1248,6 +1316,7 @@ export default function InstantProposal() {
       };
       downloadBlob(pdfBlob, filename);
       if (reportBlob) downloadBlob(reportBlob, reportFilename);
+      if (propertyReportBlob) downloadBlob(propertyReportBlob, propertyReportFilename);
 
       // Copy the full letter to the clipboard so it's one paste away —
       // clipboard writes must happen in the same user-gesture chain, which
@@ -1271,27 +1340,28 @@ export default function InstantProposal() {
         providerLabel = 'your default mail app';
       }
 
-      const fileWord = reportBlob ? `${filename} and ${reportFilename}` : filename;
+      const fileWord = [filename, reportFilename, propertyReportFilename].filter(Boolean).join(', ');
       toast.success(`Opening ${providerLabel} with the draft — the full cover note is on your clipboard (paste with Ctrl/Cmd+V), then attach ${fileWord} from your Downloads and review before sending`, { duration: 11000 });
 
       // File this send in HubSpot + Pipeline (moves the board card to
       // "Contacted") — mirrors the 'generated' tracking call above so the
       // CRM sees the full lifecycle of this proposal. Also logs to the
       // Proposal Library archive so it shows up there, not just Pipeline.
+      const packageLabelParts = ['Proposal of Property Management Services', reportBlob && 'Property Engagement Report', propertyReportBlob && 'Property Report'].filter(Boolean);
       const trackingBuilding = buildProposalTrackingBuilding();
       if (trackingBuilding) {
         void trackReportWorkflowEvent({
           building: trackingBuilding,
           reportData: reportData || undefined,
           packageType: 'proposal_of_services',
-          packageLabel: reportBlob ? 'Proposal of Property Management Services + Property Engagement Report' : 'Proposal of Property Management Services',
+          packageLabel: packageLabelParts.join(' + '),
           action: 'email_draft_opened',
           filename,
           emailSubject: subject,
           emailBody: fullBody,
           recipients: [to],
           extraContacts: buildProposalTrackingContacts(),
-          metadata: { clientType, isReceiver, emailProvider, includedEngagementReport: !!reportBlob, reportFilename: reportBlob ? reportFilename : undefined },
+          metadata: { clientType, isReceiver, emailProvider, includedEngagementReport: !!reportBlob, reportFilename: reportBlob ? reportFilename : undefined, includedPropertyReport: !!propertyReportBlob, propertyReportFilename: propertyReportBlob ? propertyReportFilename : undefined },
         });
       }
       saveProposalToLibrary({ subject, to, includedEngagementReport: !!reportBlob });
@@ -1341,6 +1411,18 @@ export default function InstantProposal() {
         }
       }
 
+      let propertyReportBlob: Blob | null = null;
+      let propertyReportFilename = '';
+      if (includePropertyReport && fullJackieHTML && fullJackieHTML !== jackieHTML) {
+        propertyReportFilename = `${filenameBase}-Property-Report.pdf`;
+        try {
+          propertyReportBlob = await renderProposalPdfBlob(fullJackieHTML, propertyReportFilename);
+        } catch (reportErr) {
+          console.error('Property Report PDF render failed:', reportErr);
+          toast.error('Proposal PDF is ready, but the Property Report PDF failed to render.', { duration: 6000 });
+        }
+      }
+
       const address = reportData?.address || buildingName;
       const emailBase: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
       const emailOccupantNoun = emailBase === 'coop' ? 'shareholders' : emailBase === 'condo' ? 'unit owners' : 'tenants';
@@ -1353,9 +1435,11 @@ export default function InstantProposal() {
           : `your Board and the building's ${emailOccupantNoun}`;
 
       const subject = `Re: ${address} - Proposal of Services V1. ${todayStr}`;
+      const attachmentPhrase = [reportBlob && 'our Property Engagement Report', propertyReportBlob && 'our full Property Report']
+        .filter(Boolean).join(' and ');
       const fullBody =
         `Dear ${greetName},\n\n` +
-        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services${reportBlob ? ' along with our Property Engagement Report on the building' : ''}, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
+        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services${attachmentPhrase ? ` along with ${attachmentPhrase} on the building` : ''}, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
         `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\n\n` +
         `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\n\n` +
         `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\n\n` +
@@ -1363,30 +1447,32 @@ export default function InstantProposal() {
 
       const attachments = [{ blob: pdfBlob, filename, mimeType: 'application/pdf' }];
       if (reportBlob) attachments.push({ blob: reportBlob, filename: reportFilename, mimeType: 'application/pdf' });
+      if (propertyReportBlob) attachments.push({ blob: propertyReportBlob, filename: propertyReportFilename, mimeType: 'application/pdf' });
 
       const to = recipientEmail.trim();
       const draft = await createGmailDraftWithAttachments({ accessToken: token, to, subject, bodyText: fullBody, attachments });
 
       window.open(draft.draftUrl, '_blank');
       toast.success(
-        `Gmail draft created with ${attachments.length === 2 ? 'both PDFs' : 'the proposal PDF'} already attached — review and send from the tab that just opened.`,
+        `Gmail draft created with ${attachments.length > 1 ? `all ${attachments.length} PDFs` : 'the proposal PDF'} already attached — review and send from the tab that just opened.`,
         { duration: 9000 }
       );
 
+      const packageLabelParts = ['Proposal of Property Management Services', reportBlob && 'Property Engagement Report', propertyReportBlob && 'Property Report'].filter(Boolean);
       const trackingBuilding = buildProposalTrackingBuilding();
       if (trackingBuilding) {
         void trackReportWorkflowEvent({
           building: trackingBuilding,
           reportData: reportData || undefined,
           packageType: 'proposal_of_services',
-          packageLabel: reportBlob ? 'Proposal of Property Management Services + Property Engagement Report' : 'Proposal of Property Management Services',
+          packageLabel: packageLabelParts.join(' + '),
           action: 'email_draft_opened',
           filename,
           emailSubject: subject,
           emailBody: fullBody,
           recipients: [to],
           extraContacts: buildProposalTrackingContacts(),
-          metadata: { clientType, isReceiver, emailProvider: 'gmail', includedEngagementReport: !!reportBlob, reportFilename: reportBlob ? reportFilename : undefined, autoAttached: true, gmailDraftId: draft.draftId },
+          metadata: { clientType, isReceiver, emailProvider: 'gmail', includedEngagementReport: !!reportBlob, reportFilename: reportBlob ? reportFilename : undefined, includedPropertyReport: !!propertyReportBlob, propertyReportFilename: propertyReportBlob ? propertyReportFilename : undefined, autoAttached: true, gmailDraftId: draft.draftId },
         });
       }
       saveProposalToLibrary({ subject, to, includedEngagementReport: !!reportBlob });
@@ -1989,6 +2075,20 @@ export default function InstantProposal() {
                   <span className="text-xs text-gray-500 block mt-0.5">Sends it as a second attachment alongside the proposal — a gift that shows the prospective client we already know their property and can manage it with accuracy.</span>
                 </span>
               </label>
+              {fullJackieHTML && fullJackieHTML !== jackieHTML && (
+                <label className="flex items-start gap-3 cursor-pointer mt-3 pt-3 border-t border-amber-200">
+                  <input
+                    type="checkbox"
+                    checked={includePropertyReport}
+                    onChange={e => setIncludePropertyReport(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 accent-camelot-gold flex-shrink-0"
+                  />
+                  <span>
+                    <span className="text-sm font-semibold text-camelot-navy block">Also add the Property Report (full Property Intelligence Dossier)?</span>
+                    <span className="text-xs text-gray-500 block mt-0.5">Attaches the deeper, data-rich version as an additional PDF, alongside whichever report is included above.</span>
+                  </span>
+                </label>
+              )}
             </div>
           )}
 

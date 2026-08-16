@@ -413,7 +413,7 @@ export default function ReportCenter() {
         },
       ],
     });
-    toast.success(`Saved to Generated Jackie Report Library: ${record.reportNumber}`);
+    toast.success(`Saved to Property Engagement Report Library: ${record.reportNumber}`);
     return record;
   }, [inquiryContact, inquiryEmail, inquiryOrganization, inquiryPhone, inquiryRole, selectedFocus]);
 
@@ -1064,7 +1064,7 @@ export default function ReportCenter() {
         <div className="mt-5 border-t pt-5">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
-              <h2 className="text-sm font-bold text-gray-900">Jackie Report Focus</h2>
+              <h2 className="text-sm font-bold text-gray-900">Property Engagement Report Focus</h2>
               <p className="text-xs text-gray-500 mt-1">Select one or more areas. Facts stay source-checked; Jackie only changes the emphasis and proposal angle.</p>
             </div>
             <button
@@ -1418,11 +1418,11 @@ export default function ReportCenter() {
             </div>
           </div>
 
-          {/* Generated Jackie Report Library */}
+          {/* Property Engagement Report Library */}
           <div className="bg-white rounded-xl border p-6 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Generated Jackie Report Library</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Property Engagement Report Library</h2>
                 <p className="text-xs text-gray-500 mt-1">
                   Every Jackie preview, email intro, meeting agenda deck, appendix, or selected download is saved here with a report number, timestamp, contact, and reopen/download actions.
                 </p>

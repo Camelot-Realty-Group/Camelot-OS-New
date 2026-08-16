@@ -384,7 +384,7 @@ export async function trackReportWorkflowEvent({
         hubspot_bot_activity: {
           id: record.id,
           botId: 'jackie',
-          botName: 'Jackie Reports',
+          botName: 'Property Engagement Reports',
           action: action === 'generated' ? 'report_generated' : action,
           packageType,
           packageLabel,

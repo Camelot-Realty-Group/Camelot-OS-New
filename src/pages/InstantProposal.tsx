@@ -12,13 +12,17 @@ import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
 import { buildingFromReportData, trackReportWorkflowEvent } from '@/lib/report-crm-tracking';
 import toast from 'react-hot-toast';
 import { CAMELOT_LOGO_B64, CAMELOT_HEADER_B64, CAMELOT_SIGNATURE_B64, CAMELOT_CONTACT_B64 } from '@/lib/camelot-brand-assets';
+// Same Proposal Library archive the legacy Proposals page reads from
+// (scout_proposals table) — Instant Proposal writes here too so every
+// proposal shows up in one place regardless of which flow generated it.
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 type Step = 'search' | 'verify' | 'jackie' | 'draft' | 'export';
 
 const STEPS: { key: Step; label: string; icon: typeof Search }[] = [
   { key: 'search', label: 'Property', icon: Search },
   { key: 'verify', label: 'Verify', icon: CheckCircle },
-  { key: 'jackie', label: 'Jackie Report', icon: FileText },
+  { key: 'jackie', label: 'Engagement Report', icon: FileText },
   { key: 'draft', label: 'Review Draft', icon: Edit3 },
   { key: 'export', label: 'Export', icon: Download },
 ];
@@ -401,6 +405,10 @@ export default function InstantProposal() {
   const [includeRateSchedule, setIncludeRateSchedule] = useState(true);
   const [ancillaryFees, setAncillaryFees] = useState<FeeLine[]>(DEFAULT_ANCILLARY_FEES);
   const [rateSchedule, setRateSchedule] = useState<FeeLine[]>(DEFAULT_RATE_SCHEDULE);
+  // Whether to bundle the Property Engagement Report alongside the proposal —
+  // shown as proof of Camelot's intelligence on the property. Defaults on
+  // once a report has actually been generated (jackieHTML is set).
+  const [includeEngagementReport, setIncludeEngagementReport] = useState(true);
   const draftRef = useRef<HTMLDivElement>(null);
 
   const stepIndex = STEPS.findIndex(s => s.key === step);
@@ -735,7 +743,7 @@ export default function InstantProposal() {
         .letter .re-line{font-weight:700;color:#162B5E;margin:18px 0 14px;}
         .letter .re-line em{font-weight:400;font-style:italic;color:#777;}
         .sig-block{margin-top:26px;}
-        .sig-block img{width:285px;display:block;margin-bottom:4px;}
+        .sig-block img{width:200px;display:block;margin-bottom:4px;}
         .sig-block .name{font-weight:700;font-size:13px;}
         .sig-block .role{font-size:13px;}
         .notes-box{background:#F4F3EF;border:1px solid #D8D4C8;border-radius:4px;padding:16px 18px;margin-top:26px;}
@@ -1037,6 +1045,37 @@ export default function InstantProposal() {
     return { ...buildingFromReportData(reportData, buildProposalTrackingContacts()), status: 'active' };
   };
 
+  // Archives this proposal into the same Proposal Library (`scout_proposals`
+  // in Supabase) that the Proposals page reads from, so anything generated
+  // through Instant Proposal shows up there too — fire-and-forget, same
+  // pattern as trackReportWorkflowEvent, so a DB hiccup never blocks export.
+  const saveProposalToLibrary = async (opts: { subject: string; to: string; includedEngagementReport: boolean }) => {
+    if (!reportData || !isSupabaseConfigured()) return;
+    try {
+      const d = reportData;
+      const monthly = customFee ?? d.monthlyFee ?? 0;
+      const perUnit = d.units ? Math.round(monthly / d.units) : (d.pricePerUnit ?? 0);
+      await supabase.from('scout_proposals').insert({
+        building_address: d.address || d.buildingName || 'Unknown property',
+        contact_name: recipientName.trim() || undefined,
+        contact_email: opts.to,
+        pricing_per_unit: perUnit,
+        total_monthly: monthly,
+        total_annual: monthly * 12,
+        sections: {
+          source: 'instant_proposal',
+          client_type: clientType,
+          is_receiver: isReceiver,
+          included_engagement_report: opts.includedEngagementReport,
+          email_subject: opts.subject,
+        },
+        status: 'draft',
+      });
+    } catch (e) {
+      console.error('Failed to archive proposal to Proposal Library:', e);
+    }
+  };
+
   // Export: Download PDF directly (no popup)
   const handleDownloadPDF = async () => {
     if (releaseQA?.failures) {
@@ -1144,6 +1183,20 @@ export default function InstantProposal() {
 
       const pdfBlob = await renderProposalPdfBlob(content, filename);
 
+      // Optionally render the Property Engagement Report as a second PDF —
+      // sent alongside the proposal as a "gift"/proof-of-intelligence piece.
+      let reportBlob: Blob | null = null;
+      let reportFilename = '';
+      if (includeEngagementReport && jackieHTML) {
+        reportFilename = `${filenameBase}-Property-Engagement-Report.pdf`;
+        try {
+          reportBlob = await renderProposalPdfBlob(jackieHTML, reportFilename);
+        } catch (reportErr) {
+          console.error('Engagement report PDF render failed:', reportErr);
+          toast.error('Proposal PDF is ready, but the Engagement Report PDF failed to render — sending the proposal alone.', { duration: 6000 });
+        }
+      }
+
       const address = reportData?.address || buildingName;
       const emailBase: 'coop' | 'condo' | 'rental' = clientType === 'newdev' ? newDevBase : clientType;
       const emailOccupantNoun = emailBase === 'coop' ? 'shareholders' : emailBase === 'condo' ? 'unit owners' : 'tenants';
@@ -1156,59 +1209,88 @@ export default function InstantProposal() {
           : `your Board and the building's ${emailOccupantNoun}`;
 
       const subject = `Re: ${address} - Proposal of Services V1. ${todayStr}`;
-      const body =
+
+      // Full cover note — this is what actually belongs in the email and what
+      // gets copied to the clipboard for pasting into the draft.
+      const fullBody =
         `Dear ${greetName},\n\n` +
-        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
+        `Thank you for the opportunity to be considered to manage ${buildingName}. Attached please find our Proposal of Property Management Services${reportBlob ? ' along with our Property Engagement Report on the building' : ''}, outlining our recommended scope of services, fee structure, and next steps for transitioning management to Camelot Realty Group.\n\n` +
         `We have taken the time to research the property and are confident that our hands-on approach, responsive team, and vetted network of vendors and contractors can bring real, measurable value to ${entityPhrase}.\n\n` +
         `As a next step, we would welcome the opportunity to schedule a call or meeting to walk through this proposal in detail and answer any questions ${decisionMakerPhrase} may have. Once the term and fee are confirmed, we can move quickly to finalize the Property Management Agreement and begin a seamless transition — most transitions are completed within 45–60 days of engagement.\n\n` +
         `Please don't hesitate to reach out with any questions in the meantime. We look forward to the possibility of working together.\n\n` +
         `Warm regards,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
 
-      // Download the PDF first so it's already sitting in Downloads by the
-      // time the compose window appears.
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(pdfBlob);
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      // Gmail's compose deep link (mail.google.com/mail/?view=cm&...) has a
+      // known failure mode where a long `body=` query param — this letter
+      // runs 1,500+ characters before encoding — trips a server-side
+      // "Temporary Error / account unavailable" page instead of opening
+      // compose (that's the blank/error page this used to land on). Keeping
+      // the URL-embedded body short and reliable, and delivering the real
+      // cover letter via clipboard (pasted in one step), fixes it.
+      const shortBody =
+        `Dear ${greetName},\n\n` +
+        `Attached please find our Proposal of Property Management Services for ${buildingName}${reportBlob ? ' along with our Property Engagement Report on the building' : ''}.\n\n` +
+        `Full cover note is on your clipboard — paste it here (Ctrl/Cmd+V) before sending.\n\n` +
+        `Warm regards,\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`;
+
+      // Download the PDF(s) first so they're already sitting in Downloads by
+      // the time the compose window appears.
+      const downloadBlob = (blob: Blob, name: string) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      };
+      downloadBlob(pdfBlob, filename);
+      if (reportBlob) downloadBlob(reportBlob, reportFilename);
+
+      // Copy the full letter to the clipboard so it's one paste away —
+      // clipboard writes must happen in the same user-gesture chain, which
+      // an async handler like this technically breaks, so this is
+      // best-effort and silently ignored if the browser blocks it.
+      try { await navigator.clipboard.writeText(fullBody); } catch { /* clipboard may be unavailable */ }
 
       const to = recipientEmail.trim();
       let providerLabel = 'your email app';
       if (emailProvider === 'gmail') {
-        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(shortBody)}`;
         if (composeTab) composeTab.location.href = url; else window.open(url, '_blank');
         providerLabel = 'Gmail';
       } else if (emailProvider === 'outlook') {
-        const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const url = `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shortBody)}`;
         if (composeTab) composeTab.location.href = url; else window.open(url, '_blank');
         providerLabel = 'Outlook Web';
       } else {
-        const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shortBody)}`;
         window.location.href = mailto;
         providerLabel = 'your default mail app';
       }
 
-      toast.success(`Opening ${providerLabel} with the draft — attach the PDF that just downloaded, then review and send`, { duration: 9000 });
+      const fileWord = reportBlob ? `${filename} and ${reportFilename}` : filename;
+      toast.success(`Opening ${providerLabel} with the draft — the full cover note is on your clipboard (paste with Ctrl/Cmd+V), then attach ${fileWord} from your Downloads and review before sending`, { duration: 11000 });
 
       // File this send in HubSpot + Pipeline (moves the board card to
       // "Contacted") — mirrors the 'generated' tracking call above so the
-      // CRM sees the full lifecycle of this proposal.
+      // CRM sees the full lifecycle of this proposal. Also logs to the
+      // Proposal Library archive so it shows up there, not just Pipeline.
       const trackingBuilding = buildProposalTrackingBuilding();
       if (trackingBuilding) {
         void trackReportWorkflowEvent({
           building: trackingBuilding,
           reportData: reportData || undefined,
           packageType: 'proposal_of_services',
-          packageLabel: 'Proposal of Property Management Services',
+          packageLabel: reportBlob ? 'Proposal of Property Management Services + Property Engagement Report' : 'Proposal of Property Management Services',
           action: 'email_draft_opened',
           filename,
           emailSubject: subject,
-          emailBody: body,
+          emailBody: fullBody,
           recipients: [to],
           extraContacts: buildProposalTrackingContacts(),
-          metadata: { clientType, isReceiver, emailProvider },
+          metadata: { clientType, isReceiver, emailProvider, includedEngagementReport: !!reportBlob, reportFilename: reportBlob ? reportFilename : undefined },
         });
       }
+      saveProposalToLibrary({ subject, to, includedEngagementReport: !!reportBlob });
     } catch (e: any) {
       console.error('PDF + Email failed:', e);
       composeTab?.close();
@@ -1229,7 +1311,7 @@ export default function InstantProposal() {
       {showJackieModal && jackieHTML && (
         <ReportModal
           html={jackieHTML}
-          title={`Jackie Report — ${d?.buildingName || 'Property'}`}
+          title={`Property Engagement Report — ${d?.buildingName || 'Property'}`}
           onClose={() => setShowJackieModal(false)}
         />
       )}
@@ -1250,7 +1332,7 @@ export default function InstantProposal() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-camelot-navy font-heading">Instant Proposal</h1>
-          <p className="text-sm text-gray-500">Search → Verify → Jackie Report → Draft → Send</p>
+          <p className="text-sm text-gray-500">Search → Verify → Engagement Report → Draft → Send</p>
         </div>
       </div>
 
@@ -1645,17 +1727,17 @@ export default function InstantProposal() {
               disabled={loading}
               className="px-6 py-2.5 bg-camelot-gold text-white rounded-xl font-semibold text-sm hover:bg-camelot-gold/90 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              {loading ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <>Confirm & Generate Jackie <ChevronRight size={14} /></>}
+              {loading ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <>Confirm & Generate Report <ChevronRight size={14} /></>}
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Jackie Report Preview */}
+      {/* Step 3: Property Engagement Report Preview */}
       {step === 'jackie' && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-camelot-navy">Jackie Report Generated</h2>
+            <h2 className="text-lg font-bold text-camelot-navy">Property Engagement Report Generated</h2>
             <button onClick={() => setStep('verify')} className="text-sm text-gray-500 hover:text-camelot-gold flex items-center gap-1">
               <ArrowLeft size={14} /> Back
             </button>
@@ -1663,7 +1745,7 @@ export default function InstantProposal() {
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4 flex items-center gap-3">
             <CheckCircle size={20} className="text-green-600" />
             <div>
-              <p className="font-semibold text-green-800 text-sm">Jackie report ready — {d?.buildingName}</p>
+              <p className="font-semibold text-green-800 text-sm">Property Engagement Report ready — {d?.buildingName}</p>
               <p className="text-xs text-green-600">{d?.units} units · {d?.violationsOpen} open violations · Grade {d?.scoutGrade} · {d?.propertyType} · Fee ${displayFee.toLocaleString()}/mo · Mgmt: {d?.managementCompany || 'Management to verify'}</p>
             </div>
           </div>
@@ -1705,7 +1787,7 @@ export default function InstantProposal() {
           <div className="border border-gray-200 rounded-xl overflow-hidden mb-4" style={{ height: '50vh' }}>
             <iframe
               srcDoc={jackieHTML}
-              title="Jackie Report Preview"
+              title="Property Engagement Report Preview"
               className="w-full h-full"
               sandbox="allow-same-origin"
             />
@@ -1716,13 +1798,13 @@ export default function InstantProposal() {
               onClick={() => setJackieHTML(pitchHTML)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${jackieHTML === pitchHTML ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              ✨ Pitch Report (External)
+              ✨ Intro to Camelot (client-facing)
             </button>
             <button
               onClick={() => setJackieHTML(fullJackieHTML)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${jackieHTML === fullJackieHTML ? 'bg-camelot-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              Full Report (Internal)
+              Property Intelligence Dossier (full, internal)
             </button>
           </div>
 
@@ -1792,6 +1874,26 @@ export default function InstantProposal() {
           </div>
           <h2 className="text-lg font-bold text-camelot-navy mb-2">Proposal Ready</h2>
           <p className="text-sm text-gray-500 mb-6">{d?.buildingName} — {d?.units} units — ${displayFee.toLocaleString()}/month</p>
+
+          {/* Include the Engagement Report as a gift — proof to the prospective
+              client that Camelot already knows their property in depth. Only
+              offered if a report was actually generated in Step 3. */}
+          {jackieHTML && (
+            <div className="max-w-md mx-auto mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-left">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={includeEngagementReport}
+                  onChange={e => setIncludeEngagementReport(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 accent-camelot-gold flex-shrink-0"
+                />
+                <span>
+                  <span className="text-sm font-semibold text-camelot-navy block">Include the Property Engagement Report with this proposal?</span>
+                  <span className="text-xs text-gray-500 block mt-0.5">Sends it as a second attachment alongside the proposal — a gift that shows the prospective client we already know their property and can manage it with accuracy.</span>
+                </span>
+              </label>
+            </div>
+          )}
 
           {/* Send To — captured up front so the PDF + Email draft has a real recipient */}
           <div className="max-w-md mx-auto mb-6 bg-gray-50 rounded-xl p-4 text-left">
@@ -1880,6 +1982,21 @@ export default function InstantProposal() {
                 {emailLoading ? 'Preparing...' : 'PDF + Email'}
               </span>
             </button>
+          </div>
+
+          {/* Step-by-step guidance — browsers can't attach a file to a webmail
+              compose window automatically (a security restriction, not a bug),
+              so this spells out the two manual steps that remain after
+              "PDF + Email" opens the draft. */}
+          <div className="max-w-md mx-auto mt-6 bg-gray-50 rounded-xl p-4 text-left">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Next steps to send</h3>
+            <ol className="text-xs text-gray-600 space-y-2 list-decimal list-inside">
+              <li><strong className="text-camelot-navy">Click "PDF + Email"</strong> — downloads the proposal{includeEngagementReport && jackieHTML ? ' and the Property Engagement Report' : ''} to your computer, copies the full cover note to your clipboard, and opens a draft in the service selected above.</li>
+              <li><strong className="text-camelot-navy">Paste the cover note</strong> — click into the draft's message body and press Ctrl/Cmd+V (Gmail/Outlook Web don't accept a long cover note through the link itself).</li>
+              <li><strong className="text-camelot-navy">Attach the downloaded file{includeEngagementReport && jackieHTML ? 's' : ''}</strong> from your Downloads folder — drag in, or use the paperclip/attach button.</li>
+              <li><strong className="text-camelot-navy">Review and send</strong> — nothing goes out automatically; the draft waits for you.</li>
+            </ol>
+            <p className="text-[10px] text-gray-400 mt-3">This proposal is also logged to Pipeline, HubSpot, and the Proposal Library the moment the draft opens.</p>
           </div>
 
           <div className="mt-6 flex gap-3 justify-center">

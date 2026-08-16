@@ -421,7 +421,7 @@ export default function TutorialDemoPlayer({ tutorialId, title, onClose }: Tutor
                   <div className="text-camelot-gold font-heading tracking-[0.26em] text-sm">CAMELOT</div>
                   <div className="text-[9px] uppercase tracking-[0.2em] text-slate-300 mt-1">OS V10</div>
                 </div>
-                {['Search', 'Results', 'Pipeline', 'Outreach', 'Jackie Reports', 'Proposals', 'Alerts', 'Tutorials'].map((item, i) => (
+                {['Search', 'Results', 'Pipeline', 'Outreach', 'Property Engagement Reports', 'Proposals', 'Alerts', 'Tutorials'].map((item, i) => (
                   <div
                     key={item}
                     className={`mb-2 h-8 rounded-lg px-3 flex items-center text-[11px] ${

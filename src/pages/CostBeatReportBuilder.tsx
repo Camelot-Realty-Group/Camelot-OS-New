@@ -294,6 +294,33 @@ export default function CostBeatReportBuilder() {
           </p>
         </div>
 
+        {/* How it works */}
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 mb-6">
+          <h2 className="text-sm font-bold text-emerald-900 uppercase tracking-wide mb-3">How it works</h2>
+          <ol className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-emerald-900">
+            <li>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold mb-2">1</span>
+              <strong className="block mb-0.5">Enter building info</strong>
+              <span className="text-emerald-800/80 text-xs">Name, address, budget year, descriptor, and total budgeted expenses.</span>
+            </li>
+            <li>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold mb-2">2</span>
+              <strong className="block mb-0.5">Add line items</strong>
+              <span className="text-emerald-800/80 text-xs">Their budget vs. Camelot's target per expense category, with comparable evidence — type manually or paste from Excel/Sheets.</span>
+            </li>
+            <li>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold mb-2">3</span>
+              <strong className="block mb-0.5">Review the totals</strong>
+              <span className="text-emerald-800/80 text-xs">Estimated annual savings and savings % calculate automatically as you edit line items.</span>
+            </li>
+            <li>
+              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold mb-2">4</span>
+              <strong className="block mb-0.5">Export &amp; share</strong>
+              <span className="text-emerald-800/80 text-xs">Download as a landscape PDF, or open a Gmail draft with the report attached, ready to send.</span>
+            </li>
+          </ol>
+        </div>
+
         {/* Building & report info */}
         <div className="bg-white rounded-lg shadow-md p-5 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>

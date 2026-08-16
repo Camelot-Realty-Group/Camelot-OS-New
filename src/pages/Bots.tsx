@@ -108,7 +108,7 @@ const DEMO_BOTS: DashboardBot[] = [
     sources: TWIN_KNOWLEDGE_SOURCE_CARDS,
     actions: [
       { label: 'Merlin AI', href: '/chat', icon: Sparkles },
-      { label: 'Jackie Reports', href: '/report-center', icon: Crown },
+      { label: 'Property Engagement Reports', href: '/report-center', icon: Crown },
       { label: 'Content Engine', href: '/content-engine', icon: Megaphone },
       { label: 'Integrations', href: '/integrations', icon: GitBranch },
     ],
@@ -193,7 +193,7 @@ const DEMO_BOTS: DashboardBot[] = [
     actions: [
       { label: 'Instant Proposal', href: '/instant-proposal', icon: Zap },
       { label: 'Proposal Library', href: '/proposals', icon: FileText },
-      { label: 'Jackie Reports', href: '/report-center', icon: Crown },
+      { label: 'Property Engagement Reports', href: '/report-center', icon: Crown },
       { label: 'Agreements', href: '/agreements', icon: ShieldCheck },
     ],
   },
@@ -224,7 +224,7 @@ const DEMO_BOTS: DashboardBot[] = [
     actions: [
       { label: 'Arthur Underwriting', href: '/arthur', icon: Landmark },
       { label: 'Sentinel', href: '/sentinel', icon: Sparkles },
-      { label: 'Jackie Reports', href: '/report-center', icon: Crown },
+      { label: 'Property Engagement Reports', href: '/report-center', icon: Crown },
       { label: 'Integrations', href: '/integrations', icon: GitBranch },
     ],
   },

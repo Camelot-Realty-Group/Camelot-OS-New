@@ -1317,8 +1317,16 @@ app.post('/api/documents/extract-text', async (req, res) => {
       return res.json({ text, kind: 'docx' });
     }
     // Default: treat as PDF. Import the parser lazily so the server still
-    // boots even if the dependency is missing in an old deploy.
-    const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
+    // boots even if the dependency is missing in an old deploy. Older
+    // pdf-parse versions expose lib/pdf-parse.js (side-effect-free); newer
+    // ones are clean at the package root — try both layouts.
+    let pdfParseMod;
+    try {
+      pdfParseMod = await import('pdf-parse/lib/pdf-parse.js');
+    } catch {
+      pdfParseMod = await import('pdf-parse');
+    }
+    const pdfParse = pdfParseMod.default || pdfParseMod;
     const parsed = await pdfParse(buffer);
     return res.json({ text: (parsed.text || '').trim(), kind: 'pdf', pages: parsed.numpages });
   } catch (err) {

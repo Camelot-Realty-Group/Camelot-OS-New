@@ -8,9 +8,9 @@
  *
  * IMPORTANT: every logical page is its own `.page` div with NO fixed
  * height / overflow:hidden — that combination silently clips content in
- * both screen and print rendering. Pages use `min-height` only, so any
- * page whose content runs long simply continues onto an extra physical
- * page instead of disappearing.
+ * both screen and print rendering. Pages use `min-height` only, and are
+ * split generously (one Article or a couple of short Articles per page)
+ * so no single page's content ever needs to overflow its own div.
  */
 
 import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
@@ -128,8 +128,7 @@ export function generateRentalAgreementV3(input: AgreementInput): string {
 
   const unitsText = input.units ? `${input.units}` : '[NUMBER OF UNITS]';
 
-  // ---- Article content, chunked into page-sized groups so nothing relies
-  // ---- on a single oversized div (which is what silently ate the pages). ----
+  // ---- Article content, fully detailed (matching approved template language) ----
 
   const article = (num: string, title: string, body: string) => `
 <div class="article-block">
@@ -169,50 +168,86 @@ ${body}
 <p class="ind"><b>Payment for Additional Services.</b> As consideration for the Additional Services, the Client shall pay the Agent the fees set forth in Article IX and the attached Fee Schedule (the "Additional Services Compensation," and together with the Services Compensation, the "Compensation"). The Agent shall invoice the Client for Additional Services Compensation not less than once per calendar quarter.</p>
 <p class="ind"><b>Payment Instructions.</b> All Compensation shall be paid within five (5) business days of the later of (i) the date it becomes due and payable, and (ii) the date the Agent provides the Client an invoice, where required (the "Payment Instructions").</p>
 <p class="ind"><b>Start-Up Fee.</b> ${startupFeeSentence}</p>
-<p class="ind"><b>Compensation Deductions.</b> To the extent Client Accounts are adequately funded, the Agent may deduct Compensation directly from Client Accounts in accordance with the Payment Instructions.</p>`);
+<p class="ind"><b>Compensation Deductions.</b> On the first day of each month, the Agent may withdraw from the Client Accounts an amount not exceeding the Compensation due for the prior month (a "Compensation Deduction"), subject to the Payment Instructions. If a Compensation Deduction is less than the Compensation then due (a "Compensation Deficiency"), the Client shall pay the Agent the amount of such deficiency in accordance with the Payment Instructions.</p>`);
 
-  const articleVI = article('VI', "Agent's Duties (the Services)", `<p class="body">As consideration for the Compensation, during the Term the Agent shall perform the following Services on the Client's behalf: maintain the Property in proper condition, conduct regular inspections, address violations, manage utilities and service contracts, purchase necessary supplies, review and pay all bills and assessments, collect rent, keep accurate records, provide monthly statements, and maintain 24-hour emergency contact.</p>
-<p class="ind"><b>Violations.</b> The Agent shall recommend, and upon the Client's approval cause, remediation of any violations issued by a governmental authority with jurisdiction over the Property.</p>
-<p class="ind"><b>Books and Records.</b> The Agent shall maintain orderly corporate books, checkbooks, rent records, insurance policies, leases, correspondence, receipted bills, cancelled checks, and other records relating to the Property, and shall make such records available to the Client upon reasonable request.</p>`);
+  const articleVI_a = article('VI', "Agent's Duties (the Services)", `
+<p class="body">As consideration for the Compensation, during the Term the Agent shall perform the following Services on the Client's behalf:</p>
+<p class="ind"><b>Regular Repairs and Maintenance.</b> The Agent shall maintain the Property in a condition deemed advisable by the Client, at the Client's expense from the Client Accounts, including the cleanliness and operability of the Property's interior, exterior, mechanical, electrical, and plumbing systems, and elevators. Repairs or alterations exceeding $5,000 shall require the Client's prior written consent, not to be unreasonably withheld.</p>
+<p class="ind"><b>Inspection Visits.</b> The Agent shall conduct inspections of the Property as it deems necessary, not to exceed two per month or twelve in any six-month period.</p>
+<p class="ind"><b>Violations.</b> The Agent shall recommend, and upon the Client's approval cause, remediation of any violations issued by a governmental authority with jurisdiction over the Property. Where prompt compliance is necessary to avoid exposure to penalty, fine, forfeiture, or injury to persons or property, remediation shall be treated as an Emergency Service. The Agent shall promptly notify the Client of any violation received. Remediation costs shall be paid from the Client Account and are not subject to the Payment Instructions.</p>
+<p class="ind"><b>Utilities and Service Contracts.</b> The Agent shall enter into, maintain, or renew contracts for electricity, gas, water treatment, elevator, telephone, window cleaning, rubbish removal, security, extermination, and architectural/engineering services necessary for Property operations. Contracts exceeding a two-year term or $10,000 in cumulative annual payments require the Client's prior written authorization.</p>
+<p class="ind"><b>Supplies.</b> The Agent shall purchase all supplies necessary to maintain and operate the Property, at market rate and acceptable quality, paid from the Client Accounts. Purchases shall be made in the Client's name. Supplies shall carry a combined 20% markup (10% overhead, 10% profit), billed monthly.</p>`);
 
-  const articleVII = article('VII', 'Insurance', `<p class="ind"><b>Agent's Insurance.</b> The Agent shall maintain commercial general liability, workers' compensation, professional liability, and employment practices liability insurance.</p>
-<p class="ind"><b>Client's Insurance.</b> The Client shall maintain fire, multi-peril, general liability, workers' compensation, and statutory disability coverage on the Property, and shall name the Agent as an additional insured where reasonably required.</p>`);
+  const articleVI_b = article('VI', "Agent's Duties (the Services), continued", `
+<p class="ind"><b>Corporate Expenses and Payments.</b> The Agent shall review and verify all bills for services, work, and supplies, and shall pay or cause to be paid from the Client Accounts all such bills, mortgage interest and amortization, water and sewer charges, assessments, and real estate taxes as they become due.</p>
+<p class="ind"><b>Rent Collection and Legal Proceedings.</b> The Agent shall bill Tenants for rent and other charges and use best efforts to collect such amounts, including serving notices to quit when instructed by the Client. When directed by the Client, the Agent may retain counsel and institute proceedings, in the Client's name, to collect rent or recover possession, provided no suit or summary proceeding shall be instituted absent the Client's prior written authorization. The Agent shall cooperate with the Client's attorneys on all related filings and proceedings.</p>
+<p class="ind"><b>Owner Communications.</b> The Agent shall provide the Client with regular updates on Property operations and, upon reasonable request, make Agent personnel available to meet with the Client to discuss Property performance.</p>
+<p class="ind"><b>Storage.</b> The Agent shall provide secure off-premises storage for the Client's Property files at the Client's expense, paid from the Client Accounts.</p>
+<p class="ind"><b>Tenant Complaints.</b> The Agent shall address reasonable Tenant complaints. If the Agent deems a complaint unreasonable, it shall advise the Client in writing of the complaint and the basis for that determination.</p>
+<p class="ind"><b>Monthly Reports.</b> The Agent shall render monthly statements to the Client of collections and disbursements, reconciled Client Account balances, and a schedule of accounts payable, including copies of paid bills and vouchers, delivered no later than the 20th of each month.</p>
+<p class="ind"><b>Books and Records.</b> The Agent shall maintain orderly corporate books, checkbooks, rent records, insurance policies, leases, correspondence, receipted bills, cancelled checks, and bank statements relating to the Property. The Agent shall further: (i) furnish records reasonably required by the Client's accountants for tax filings; (ii) prepare and file required unemployment, withholding, and social security filings relating to Employees; and (iii) cooperate with the Client's accountants on annual audits and with the Client's attorneys on any assessment-correction filings.</p>
+<p class="ind"><b>Emergency Contact.</b> The Agent shall maintain a 24-hour telephone line for reporting of, and prompt response to, emergency conditions at the Property.</p>`);
+
+  const articleVII = article('VII', 'Insurance', `
+<p class="ind"><b>Agent's Insurance Coverage.</b> The Agent shall maintain, at its own expense, commercial general liability insurance with limits acceptable to the Client (but not less than $1,000,000 per occurrence), workers' compensation and employer's liability insurance, professional liability (errors and omissions) insurance, employment practices liability insurance, and cyber liability insurance, as further summarized in the attached Insurance Coverage Summary (the "Agent Insurance Policies"). The Client shall pay the Agent an annual fee of $450 toward the premium for the Agent Insurance Policies. Except for workers' compensation, the Agent shall name the Client as an insured party on each such policy and shall provide the Client with a certificate evidencing coverage prior to the policy's commencement. This Article shall survive termination of this Agreement.</p>
+<p class="ind"><b>Client Insurance Requirements.</b> The Agent shall assist the Client in securing, at the Client's expense from the Client Accounts, appropriate coverage for the Property, Employees, and Tenants as requested by the Client, including fire, multi-peril, renters', plate glass, boiler, water damage, general liability, workers' compensation, employer's liability, and disability coverage, procured from a broker of good standing (the "Client Insurance Policies"). The Client shall separately maintain: (i) a fidelity bond or employee dishonesty coverage of not less than $1,000,000; (ii) Directors and Officers Liability coverage of not less than $1,000,000, with a Managing Agent rider; (iii) Umbrella Liability coverage of not less than $10,000,000, providing excess coverage over the Directors and Officers limits; and (iv) statutory New York workers' compensation and disability benefits coverage.</p>
+<p class="ind"><b>Move-In and Move-Out.</b> The Agent shall, with the Client's cooperation, provide written notice to Tenants moving into or out of a Unit of the procedures and fees applicable to such transition.</p>`);
 
   const articleVIII = article('VIII', 'Indemnification &amp; Limitation of Liability', `
-<p class="ind"><b>Client Indemnification.</b> The Client shall indemnify and hold the Agent harmless from and against (a) any liability, claim, or expense arising from the Property or the Agent's performance of this Agreement, except for claims caused by the Agent's negligence or willful misconduct, and (b) reasonable attorneys' fees incurred in defending any such claim. The indemnification obligations under this Article shall survive termination of this Agreement for five (5) years.</p>
-<p class="ind"><b>Limitation of Liability.</b> In no event shall the Agent be liable to the Client for consequential, incidental, special, or punitive damages, and the Agent's aggregate liability under this Agreement shall not exceed the Services Compensation paid to the Agent during the twelve (12) months preceding the claim.</p>`);
+<p class="ind"><b>Client Indemnification.</b> The Client shall indemnify and hold the Agent harmless from and against (a) any liability, damages, costs, and expenses (including reasonable attorneys' fees) arising from injury to any person or property in connection with the Property, unless caused by the Agent's own negligence, willful misconduct, or material breach of this Agreement, and (b) any liability, damages, penalties, costs, and expenses arising from acts the Agent performed pursuant to this Agreement or the Client's instructions — provided the Agent promptly notifies the Client of any such claim, cooperates fully with the Client and its counsel, and provides related documents, evidence, and witnesses within its control.</p>
+<p class="ind"><b>Exclusions.</b> The Agent shall not be liable for theft, fraud, cyber incidents, employment disputes, property damage, or third-party negligence, except to the extent caused by the Agent's own negligence or willful misconduct, or for any claim exceeding the limits of the insurance maintained under Article VII.</p>
+<p class="ind"><b>Survival.</b> The indemnification obligations of this Article shall survive termination of this Agreement for a period of five (5) years.</p>
+<p class="ind"><b>Fidelity Bond.</b> If requested by the Client, at the Client's expense, the Agent shall procure a fidelity bond, issued by a bonding company authorized to do business in New York, holding the Client harmless from loss caused by larceny, embezzlement, forgery, misappropriation, or other dishonest or fraudulent acts by the Agent or its officers or employees. The Agent represents that it maintains fidelity coverage of $1,000,000 and shall name the Client as an additional insured under such coverage.</p>`);
 
-  const articleIX = article('IX', 'Additional Services', `<p class="body">The Agent may provide Additional Services including Lease Services, Transfer Services, Financing Services, Hearing Services, Audit Services, Pre-Occupation Services, Emergency Services, and Extraordinary Project Services, each at rates specified in the Fee Schedule.</p>
-<p class="ind"><b>Transfer Services.</b> For any transfer of leasehold managed by the Agent, including in connection with an eviction, the Client shall pay the Agent a transfer fee per the Fee Schedule.</p>
-<p class="ind"><b>Emergency Services.</b> The Agent shall respond to Emergency Services requests on a 24-hour basis and may incur reasonable Reimbursable Expenses in doing so, which shall be billed to the Client in accordance with the Payment Instructions.</p>`);
+  const articleIX = article('IX', 'Additional Services', `
+<p class="ind"><b>Additional Services Process.</b> If the Agent determines Additional Services are necessary and they were not otherwise requested by the Client, the Agent shall provide written notice describing the proposed Additional Services in reasonable detail (an "Additional Services Notice"). If the Client does not object within five (5) business days of receipt (the "Rejection Period"), or otherwise approves or requests such Additional Services, the Agent shall perform them at the Compensation rates set forth herein. If the Client objects within the Rejection Period, the Parties shall negotiate in good faith; if no agreement is reached, the Agent may, at its discretion, terminate this Agreement upon written notice.</p>
+<p class="ind"><b>Lease Services.</b> During the Term, the Agent shall have the exclusive right to render leasing services for all Units, per a separate brokerage agreement. Lease Rates shall not decrease by more than 3% year-over-year absent the Client's prior written approval. On any lease renewal, the Client shall pay the Agent 15% of the increase between the renewed and prior annual rent, due upon the first month of the renewed occupancy.</p>
+<p class="ind"><b>Transfer Services.</b> For any transfer of leasehold managed by the Agent, including in connection with an eviction, the Client shall pay the Agent a transfer fee per the attached Fee Schedule, due on the first day of the month following the month such service was rendered.</p>
+<p class="ind"><b>Financing Services.</b> For any mortgage, refinancing, or credit line for which the Agent serves as broker, the Client shall pay the Agent (i) 1% of the first $1,000,000 of financing, plus (ii) 0.5% of any amount above $1,000,000. Where the Agent provides supporting documentation but does not serve as broker, the Client shall pay the Agent 0.33% of the total financing amount.</p>
+<p class="ind"><b>Hearing Services.</b> For any civil, criminal, arbitration, mediation, environmental, or other hearing at which Agent personnel appear on the Client's behalf, the Client shall pay the Agent $150 per hour, including travel time.</p>
+<p class="ind"><b>Audit Services.</b> For any Client-organized audit managed by the Agent, the Client shall pay the Agent $150 per hour.</p>
+<p class="ind"><b>Pre-Occupation Services.</b> For services rendered prior to a Unit's occupancy, the Client shall pay the Agent $150 per hour.</p>
+<p class="ind"><b>Emergency Services.</b> The Agent shall maintain personnel at the Property during the rendering of any Emergency Service and shall be paid $150 per hour, payable immediately, from the Client Accounts to the extent not covered by insurance. The Agent shall maintain a roster of vetted emergency contractors (plumbers, electricians, HVAC technicians) and solicit standard rates from each. The Agent may cease Emergency Services upon the Client's written notice, and may, at its discretion, terminate this Agreement upon such notice.</p>
+<p class="ind"><b>Extraordinary Project Services.</b> For any construction project requiring immediate or short-notice commencement, the Agent shall manage the project for a fee of 20% of project cost, due on the first day of the month following the month such services were rendered, paid from the Client Accounts to the extent not covered by insurance. Extraordinary Project Services shall be treated as Emergency Services for purposes of this Agreement.</p>`);
 
-  const articleX = article('X', 'Additional Fees &amp; Supplemental Services', `<p class="body">The Agent may bill for supplemental services including Application Review ($200) and Alteration Review ($500). All Reimbursable Expenses are due on the first day of the month following the month incurred.</p>
-<p class="ind"><b>Additional Client Fees.</b> At the Client's request, and subject to the Payment Instructions, the Agent will also, for a fee: (i) process and file Forms 1098/1099 ($25 per form filed); (ii) prepare emergency site plans ($175.00); and (iii) complete bank and insurance questionnaires ($200.00).</p>`);
+  const articleX = article('X', 'Additional Fees &amp; Supplemental Services', `
+<p class="ind"><b>Supplemental Fees.</b> Separately from the Compensation, the Agent may bill and collect from a lease applicant an Application Review fee of $200 (or the maximum amount permissible under applicable law), and from a Tenant requesting alterations, an Alteration Review fee of $500 (together, the "Supplemental Services"). The Agent has the sole right to perform and approve Supplemental Services; if the Client engages a third party without the Agent's written consent, the Client shall pay the Agent the fees it would otherwise have earned.</p>
+<p class="ind"><b>Reimbursable Expenses.</b> The Agent shall be reimbursed for all Reimbursable Expenses, due on the first day of the month following the month incurred, in accordance with the Payment Instructions.</p>
+<p class="ind"><b>Additional Client Fees.</b> At the Client's request, and subject to the Payment Instructions, the Agent will also, for a fee: (i) process and file Forms 1098/1099 ($25 per form); (ii) prepare and file the Real Property Income and Expense (RPIE) form or RPIE-Exception form ($400 per filing, with tax certiorari proceedings retained by and coordinated through the Client's own counsel); (iii) process applications for applicable tax abatement or rebate programs and administer distribution of any rebate; (iv) establish and maintain Client Accounts; and (v) administer Employee payroll, with full reimbursement of payroll service fees where paid by the Agent on the Client's behalf.</p>
+<p class="ind"><b>Client Responsibility for Third-Party Fees.</b> Any bank lockbox, online-payment, or similar fees incurred in connection with the Client's title to the Property shall be paid directly from the Client's operating account, and the Agent shall have no obligation to perform services beyond the Services absent a separate written agreement.</p>
+<p class="ind"><b>Ancillary Fee Sheet.</b> Except as set forth above, the Parties shall be governed by the Ancillary Fee Sheet attached to this Agreement.</p>`);
 
-  const articleXI = article('XI', 'Personnel', `<p class="body">The Agent shall hire, pay, and supervise all Employees necessary to properly maintain and operate the Property. For nine (9) months following termination, the Client shall not solicit or hire any Agent employee without payment of 25% of that person's annual salary.</p>
-<p class="ind"><b>Hiring and Supervision.</b> The Agent shall have sole authority to hire, discharge, and supervise Employees, subject to any applicable Union Contract.</p>`);
+  const articleXI = article('XI', 'Personnel', `
+<p class="ind"><b>Hiring and Supervision.</b> The Agent shall hire, pay, and supervise all Employees necessary to properly maintain and operate the Property, and may discharge Employees with the Client's prior approval. The Agent shall perform these duties consistent with the Client's obligations under any applicable Union Contract. Upon termination of this Agreement, the Agent may reassign Employees to other properties it manages.</p>
+<p class="ind"><b>Non-Solicitation.</b> For nine (9) months following termination of this Agreement, the Client shall not solicit, induce, or hire any person who is or was an Employee of the Agent, unless (i) such person has not been reassigned by the Agent within four (4) weeks of termination, or (ii) the Client pays the Agent 25% of that person's annual salary as a lump sum. Within ten (10) days of termination, the Agent shall furnish the Client a list of Employees covered by this provision.</p>`);
 
-  const articleXII = article('XII', 'Financial Administration', `<p class="body">Invoices for emergency work or project management services remaining unpaid more than thirty (30) days from submission shall accrue interest at 1.5% per month. All commissions shall be made payable to the Agent first, with net proceeds then paid to the Client.</p>`);
+  const articleXII = article('XII', 'Financial Administration', `
+<p class="ind"><b>Late Payment Interest.</b> Invoices for emergency work or project management services remaining unpaid more than thirty (30) days from submission shall accrue interest at 1.5% per month, compounded monthly, until paid in full.</p>
+<p class="ind"><b>Commission Handling.</b> All commissions, including brokerage commissions, shall be made payable to the Agent first. Net proceeds, after deduction of fees or expenses owed the Agent, shall then be paid to the Client in accordance with the Payment Instructions. The Agent's fees for related services shall be separately invoiced under this Agreement.</p>
+<p class="ind"><b>Document Management and Retention.</b> The Agent shall use commercially reasonable efforts to scan and digitally store Client-provided documents and is not obligated to retain physical copies after scanning, absent written instruction otherwise. The Client acknowledges that documents are accepted "as-is," without a duty to verify historical completeness. The Agent shall retain electronic copies for seven (7) years from receipt, after which it may securely dispose of records absent written instruction otherwise. Unless the Client directs otherwise in writing within thirty (30) days of the Agent's receipt of physical documents, the Agent may securely dispose of them following digital archiving.</p>
+<p class="ind"><b>Limitation of Liability for Documents.</b> The Agent's liability for loss, destruction, misplacement, or corruption of documents shall not exceed $10,000 in the aggregate per occurrence, except in cases of willful misconduct or fraud. The Client shall indemnify and hold the Agent harmless from claims arising from the loss or unavailability of any document, unless caused by the Agent's willful misconduct or gross negligence.</p>`);
 
-  const articleXIII = article('XIII', 'Authority', `<p class="body">The Client authorizes the Agent, on its behalf, to perform any act reasonably necessary to render the Services and Additional Services, subject to the limitations herein.</p>`);
+  const articleXIII = article('XIII', 'Authority', `<p class="body">The Client authorizes the Agent, on its behalf, to perform any act reasonably necessary to render the Services and Additional Services, subject to the limitations herein. Obligations and expenses so incurred shall be at the Client's expense, except for the Agent's own overhead expenses. The Agent shall not be obligated to advance funds on the Client's behalf except from funds held or provided for that purpose; if the Agent voluntarily advances such funds, the Client shall reimburse the Agent on demand.</p>`);
 
   const articleXIV = article('XIV', 'Bank Accounts', `
 <ul class="blt">
 <li>The Agent shall establish and maintain Client Accounts as necessary to perform its obligations hereunder.</li>
 <li>Each Client Account shall designate that it is held on the Client's behalf.</li>
 <li>Any transfer of $10,000 or more from a Client Account requires the Client's prior written approval and two authorized signatories.</li>
+<li>Upon request, the Agent shall provide the Client an account agreement covering the Client Accounts, in form reasonably satisfactory to the Client.</li>
+<li>Upon request, the Agent shall inform the Client of the balances held in the Client Accounts.</li>
 <li>The Agent shall maintain a separate security deposit account, used solely to hold and return Tenant security deposits.</li>
 </ul>`);
 
   const articleXV = article('XV', 'Licenses', `<p class="body">The Agent represents that it is duly licensed by the New York Department of State as a real estate broker, sufficient to lawfully perform its duties under this Agreement.</p>`);
 
-  const articleXVI = article('XVI', 'Notices &amp; Miscellaneous', `<p class="body">All notices under this Agreement shall be in writing and effective only if served personally, sent by nationally recognized overnight courier, or sent by certified or registered mail, to the address of the applicable Party set forth herein, or such substitute address by notice given in accordance with this Article; a change of address is effective only upon actual receipt. The Agent affirms it has no relationship with any party to this Agreement other than as expressly set forth herein.</p>`);
+  const articleXVI = article('XVI', 'Notices &amp; Miscellaneous', `<p class="body">All notices under this Agreement shall be in writing and effective only if (i) served personally, (ii) sent by nationally recognized overnight courier, or (iii) sent by certified or registered mail, addressed to the recipient's address first written above. Either Party may designate a substitute address by notice given in accordance with this Article; a change of address is effective only upon actual receipt. The Agent affirms it has no relationship or affiliation with the Client.</p>`);
 
   const articleXVII = article('XVII', 'Governing Law', `<p class="body">This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without regard to conflict-of-law principles.</p>`);
 
   const articleXVIII = article('XVIII', 'Entire Agreement', `<p class="body">This Agreement constitutes the entire agreement between the Parties and may not be amended orally. It shall bind and inure to the benefit of the Parties and their successors, and may not be assigned by either Party without the other's prior written consent.</p>`);
 
-  const articleXIX = article('XIX', 'Independent Contractor', `<p class="body">The Agent's relationship to the Client under this Agreement is that of an independent contractor. Except as set forth herein, the Agent is not authorized to act on the Client's behalf or represent otherwise to any third party. Neither the Agent nor its employees are eligible for benefits the Client makes available to its own employees; the Client will not withhold or contribute to social security, unemployment, or disability insurance on the Agent's behalf; and the Agent is solely responsible for its own tax filings and payments arising from fees paid under this Agreement. Nothing herein shall be construed to create a partnership, joint venture, or employer-employee relationship.</p>`);
+  const articleXIX = article('XIX', 'Independent Contractor', `<p class="body">The Agent's relationship to the Client under this Agreement is that of an independent contractor. Nothing herein shall be construed to create a partnership, joint venture, or employer-employee relationship. Except as set forth herein, the Agent is not authorized to act on the Client's behalf or represent otherwise to any third party. Neither the Agent nor its employees are eligible for benefits the Client makes available to its own employees; the Client will not withhold or contribute to social security, unemployment, or disability insurance on the Agent's behalf; and the Agent is solely responsible for its own tax filings and payments arising from fees paid under this Agreement.</p>`);
 
   const articleXX = input.specialTerms?.trim()
     ? article('XX', 'Special Terms', `<p class="body">${esc(input.specialTerms.trim()).replace(/\n/g, '<br/>')}</p>`)
@@ -221,7 +256,7 @@ ${body}
   // ---- Page shell helper: identical letterhead + gold border + footer on every page ----
   let pageCounter = 0;
   const totalPagesPlaceholder = '__TOTAL_PAGES__';
-  const pageWrap = (bodyHtml: string, opts?: { signature?: boolean; scheduleTitle?: string }) => {
+  const pageWrap = (bodyHtml: string, opts?: { scheduleTitle?: string }) => {
     pageCounter += 1;
     const n = pageCounter;
     return `
@@ -265,14 +300,20 @@ ${extraImages}
 ${intelBlock}
 `);
 
-  // ---- Article pages, grouped so no single page is overloaded ----
-  const articlePage2 = pageWrap(`${articleI}${articleII}${articleIII}`);
-  const articlePage3 = pageWrap(`${articleIV}${articleV}`);
-  const articlePage4 = pageWrap(`${articleVI}${articleVII}${articleVIII}`);
-  const articlePage5 = pageWrap(`${articleIX}${articleX}${articleXI}`);
-  const articlePage6 = pageWrap(`${articleXII}${articleXIII}${articleXIV}`);
-  const articlePage7 = pageWrap(`${articleXV}${articleXVI}${articleXVII}`);
-  const articlePage8 = pageWrap(`${articleXVIII}${articleXIX}${articleXX}`);
+  // ---- Article pages, generously split so no page overflows its own div ----
+  const articlePage2 = pageWrap(`${articleI}`);
+  const articlePage3 = pageWrap(`${articleII}${articleIII}`);
+  const articlePage4 = pageWrap(`${articleIV}`);
+  const articlePage5 = pageWrap(`${articleV}`);
+  const articlePage6 = pageWrap(`${articleVI_a}`);
+  const articlePage7 = pageWrap(`${articleVI_b}`);
+  const articlePage8 = pageWrap(`${articleVII}`);
+  const articlePage9 = pageWrap(`${articleVIII}`);
+  const articlePage10 = pageWrap(`${articleIX}`);
+  const articlePage11 = pageWrap(`${articleX}`);
+  const articlePage12 = pageWrap(`${articleXI}${articleXII}`);
+  const articlePage13 = pageWrap(`${articleXIII}${articleXIV}${articleXV}`);
+  const articlePage14 = pageWrap(`${articleXVI}${articleXVII}${articleXVIII}${articleXIX}${articleXX}`);
 
   // ---- Signature page ----
   const signaturePage = pageWrap(`
@@ -294,7 +335,7 @@ ${intelBlock}
   <div class="sig-field"><b>Title:</b> ____________________________</div>
   <div class="sig-field"><b>Date:</b> ____________________________</div>
 </div>
-`, { signature: true });
+`);
 
   // ---- Schedule A — Fee Schedule ----
   const scheduleAPage = pageWrap(`
@@ -312,9 +353,12 @@ ${intelBlock}
 <tr><td>Pre-Occupation Services</td><td class="fee-amt">$150.00 per hour</td></tr>
 <tr><td>Court Appearance or Deposition</td><td class="fee-amt">$150.00 per hour</td></tr>
 <tr><td>Application Review</td><td class="fee-amt">$200.00 per application</td></tr>
-<tr><td>Alteration Review</td><td class="fee-amt">$500.00, or 10% of alterations over $5,000</td></tr>
+<tr><td>RPIE Filing (Real Property Income &amp; Expense)</td><td class="fee-amt">$400 per filing</td></tr>
+<tr><td>Rent Registration Filing (per building)</td><td class="fee-amt">$500.00 per building, per year</td></tr>
+<tr><td>Boiler Inspection Filing &amp; Administration (DOB/FDNY)</td><td class="fee-amt">Required filing fees at cost</td></tr>
+<tr><td>Elevator Inspection Filing &amp; Administration (DOB)</td><td class="fee-amt">Required filing fees at cost</td></tr>
 </table>
-<p class="sched-note">Rates above apply to Additional Services referenced in Article IX and Article X. All fees are subject to the Payment Instructions in Article V.</p>
+<p class="sched-note">These fees are one-time or occurrence-based, applied as needed by the Client.</p>
 `, { scheduleTitle: 'Schedule A &mdash; Fee Schedule' });
 
   // ---- Schedule B — Ancillary Fee Sheet ----
@@ -326,6 +370,7 @@ ${intelBlock}
 <tr><td>Audit Review and Assistance</td><td class="fee-amt">$150.00 per hour</td></tr>
 <tr><td>Tax Forms 1098 / 1099</td><td class="fee-amt">$25 per form filed</td></tr>
 <tr><td>Monthly Administrative Fee (copies, messenger, mailings, data filings, cloud &amp; physical storage)</td><td class="fee-amt">$200.00 per month</td></tr>
+<tr><td>Alteration Agreement Review and Submittal</td><td class="fee-amt">$500, or 10% of alterations over $5,000</td></tr>
 <tr><td>Sales or Rental Package Review</td><td class="fee-amt">$500 per package</td></tr>
 <tr><td>HPD Filing Fee</td><td class="fee-amt">$50.00 (once per year)</td></tr>
 <tr><td>Emergency Site Plan Creation &amp; Submittal</td><td class="fee-amt">$175.00</td></tr>
@@ -356,6 +401,12 @@ ${intelBlock}
     articlePage6,
     articlePage7,
     articlePage8,
+    articlePage9,
+    articlePage10,
+    articlePage11,
+    articlePage12,
+    articlePage13,
+    articlePage14,
     signaturePage,
     scheduleAPage,
     scheduleBPage,

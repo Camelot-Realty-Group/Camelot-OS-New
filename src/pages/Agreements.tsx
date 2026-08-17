@@ -4,6 +4,7 @@ import { generateAgreement, DEFAULT_INPUT, ASSET_CLASS_LABELS, type AgreementInp
 import { buildMasterReport, type MasterReportData } from '@/lib/camelot-report';
 import { openBrochureForPrint, downloadAsHTML, downloadAsPDF } from '@/lib/pdf-generator';
 import { generateAgreementDocxBlob, downloadBlob } from '@/lib/agreement-docx-export';
+import { generateReceivershipAgreement, DEFAULT_RECEIVERSHIP_INPUT, type ReceivershipAgreementInput } from '@/lib/receivership-agreement';
 import { formatLibraryDate, loadLocalJackieReportLibrary, type SavedJackieReport } from '@/lib/jackie-report-library';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { trackReportWorkflowEvent, buildingFromReportData } from '@/lib/report-crm-tracking';
@@ -17,7 +18,8 @@ type SavedAgreementRecord = {
   clientName: string;
   filename: string;
   html: string;
-  inputSnapshot: AgreementInput;
+  family: 'standard' | 'receivership';
+  inputSnapshot: AgreementInput | ReceivershipAgreementInput;
   linkedJackieReportNumber?: string;
   generatedAt: string;
 };
@@ -30,7 +32,9 @@ const loadAgreementLibrary = (): SavedAgreementRecord[] => {
   if (typeof window === 'undefined') return [];
   try {
     const parsed = JSON.parse(localStorage.getItem(AGREEMENT_LIBRARY_KEY) || '[]');
-    return Array.isArray(parsed) ? parsed : [];
+    // Backward-compat: records saved before the receivership feature existed
+    // have no `family` field — treat them as standard rental-family agreements.
+    return Array.isArray(parsed) ? parsed.map((r: any) => ({ family: 'standard', ...r })) : [];
   } catch {
     localStorage.removeItem(AGREEMENT_LIBRARY_KEY);
     return [];
@@ -103,6 +107,24 @@ const agreementFilename = (input: AgreementInput, extension = 'html') => {
       'Draft',
   );
   const docName = cleanFilenamePart(agreementDocTitle(input.assetClass));
+  return `${[propertyAddress || 'Draft', docName, version, date].join('__')}.${extension}`;
+};
+
+const RECEIVERSHIP_DOC_NAME = 'Camelot Receivership Property Management Agreement';
+
+// Same filename convention as the standard agreements, for the separate
+// receivership-only template.
+const receivershipFilename = (input: ReceivershipAgreementInput, extension = 'html') => {
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const version = `v${now.getFullYear()}.${month}.1`;
+  const propertyAddress = cleanFilenamePart(
+    [input.propertyAddress, input.propertyCity, input.propertyState, input.propertyZip]
+      .filter(Boolean)
+      .join(' ') || 'Draft',
+  );
+  const docName = cleanFilenamePart(RECEIVERSHIP_DOC_NAME);
   return `${[propertyAddress || 'Draft', docName, version, date].join('__')}.${extension}`;
 };
 
@@ -194,6 +216,14 @@ const regexExtractFacts = (text: string) => {
 };
 
 export default function Agreements() {
+  // Which agreement family this page is currently building: the standard
+  // rental/condo/coop/etc. family (existing asset-class-driven form), or the
+  // separate, dedicated Receivership Property Management Agreement template.
+  const [agreementFamily, setAgreementFamily] = useState<'standard' | 'receivership'>('standard');
+  const [recvInput, setRecvInput] = useState<ReceivershipAgreementInput>({ ...DEFAULT_RECEIVERSHIP_INPUT });
+  const [recvGenerated, setRecvGenerated] = useState(false);
+  const recvUpdate = (patch: Partial<ReceivershipAgreementInput>) => setRecvInput(prev => ({ ...prev, ...patch }));
+
   const [input, setInput] = useState<AgreementInput>({ ...DEFAULT_INPUT });
   const [jackieLoading, setJackieLoading] = useState(false);
   const [jackieData, setJackieData] = useState<MasterReportData | null>(null);
@@ -515,6 +545,7 @@ export default function Agreements() {
       clientName: input.clientName || input.clientEntityName || 'Draft',
       filename: agreementFilename(input),
       html,
+      family: 'standard',
       // Photos live inside the saved HTML already — keep them out of the
       // input snapshot so 80 records don't blow the localStorage quota.
       inputSnapshot: { ...input, propertyImages: [] },
@@ -525,6 +556,128 @@ export default function Agreements() {
     setSavedAgreements(next);
     void archiveAgreementToCrm(record);
     return record;
+  };
+
+  // ------------------------------------------------------------------
+  // Receivership Property Management Agreement — separate template,
+  // separate input model, same archive/export pipeline.
+  // ------------------------------------------------------------------
+  const archiveReceivershipToCrm = async (record: SavedAgreementRecord) => {
+    const recipientName = recvInput.ownerNoticeName || recvInput.ownerEntityName || undefined;
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase.from('camelot_generated_documents').insert({
+          building_address: record.propertyAddress || 'Unassigned property',
+          building_name: recvInput.ownerEntityName || null,
+          document_title: RECEIVERSHIP_DOC_NAME,
+          document_number: record.agreementNumber,
+          version_label: versionLabel,
+          recipient_name: recipientName || null,
+          recipient_email: recvInput.ownerNoticeEmail || null,
+          generated_by: 'Excalibur Agreement Engine',
+          generated_payload: {
+            family: 'receivership',
+            ownerEntityName: recvInput.ownerEntityName,
+            specialServicerName: recvInput.specialServicerName,
+            trusteeName: recvInput.trusteeName,
+            commencementDate: recvInput.commencementDate,
+          },
+          status: 'draft',
+        });
+      } catch (e) {
+        console.error('Failed to archive receivership agreement to Supabase:', e);
+      }
+    }
+
+    try {
+      const building = {
+        id: `agreement-${record.agreementNumber.toLowerCase()}`,
+        address: record.propertyAddress || 'Unassigned property',
+        name: recvInput.ownerEntityName || record.propertyAddress || 'Draft Receivership Agreement',
+        type: 'rental' as any,
+        grade: 'C' as const,
+        score: 0,
+        signals: [],
+        contacts: [],
+        enriched_data: { source: 'Excalibur Agreement Engine' },
+        status: 'proposal',
+        tags: ['agreement-generated', 'receivership'],
+        pipeline_stage: 'proposal' as const,
+        violations_count: 0,
+        open_violations_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      void trackReportWorkflowEvent({
+        building,
+        packageType: 'management_agreement',
+        packageLabel: RECEIVERSHIP_DOC_NAME,
+        action: 'generated',
+        filename: record.filename,
+        reportNumber: record.agreementNumber,
+        recipients: [],
+        metadata: { versionLabel, recipientName, ownerEntityName: recvInput.ownerEntityName, trusteeName: recvInput.trusteeName },
+      });
+    } catch (e) {
+      console.error('Failed to queue receivership agreement HubSpot/Pipeline activity:', e);
+    }
+  };
+
+  const archiveReceivershipAgreement = (html: string) => {
+    const generatedAt = new Date().toISOString();
+    const agreementNumber = `RECV-${generatedAt.slice(0, 10).replace(/-/g, '')}-${String(Date.now()).slice(-6)}`;
+    const record: SavedAgreementRecord = {
+      id: agreementNumber,
+      agreementNumber,
+      propertyAddress: [recvInput.propertyAddress, recvInput.propertyCity, recvInput.propertyState].filter(Boolean).join(', '),
+      clientName: recvInput.ownerEntityName || 'Draft',
+      filename: receivershipFilename(recvInput),
+      html,
+      family: 'receivership',
+      inputSnapshot: { ...recvInput, propertyImage: undefined },
+      generatedAt,
+    };
+    const next = writeAgreementLibrary([record, ...loadAgreementLibrary()]);
+    setSavedAgreements(next);
+    void archiveReceivershipToCrm(record);
+    return record;
+  };
+
+  const handleGenerateReceivership = async () => {
+    if (!recvInput.propertyAddress.trim() && !recvInput.ownerEntityName.trim()) {
+      toast.error('Enter at least a property address or owner/receiver entity name');
+      return;
+    }
+    const html = generateReceivershipAgreement(recvInput);
+    const record = archiveReceivershipAgreement(html);
+    setRecvGenerated(true);
+
+    const toastId = toast.loading('Saving Word and PDF copies…');
+    try {
+      const docxFilename = record.filename.replace(/\.html$/i, '.docx');
+      const pdfFilename = record.filename.replace(/\.html$/i, '.pdf');
+      const docxBlob = await generateAgreementDocxBlob(html);
+      await downloadBlob(docxBlob, docxFilename);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await downloadAsPDF(html, pdfFilename);
+      toast.success(`Receivership agreement generated: ${record.agreementNumber} (Word + PDF saved)`, { id: toastId });
+    } catch (e) {
+      console.error('Failed to export Word/PDF copies of receivership agreement:', e);
+      toast.error('Agreement archived, but Word/PDF export failed — see console.', { id: toastId });
+    }
+  };
+
+  const handlePreviewReceivership = () => {
+    const html = generateReceivershipAgreement(recvInput);
+    const record = archiveReceivershipAgreement(html);
+    openBrochureForPrint(html, record.filename.replace(/\.html$/i, '.pdf'));
+  };
+
+  const handleDownloadReceivership = () => {
+    const html = generateReceivershipAgreement(recvInput);
+    const record = archiveReceivershipAgreement(html);
+    downloadAsHTML(html, record.filename);
+    toast.success(`Receivership agreement downloaded and archived: ${record.agreementNumber}`);
   };
 
   // Generate agreement — produces the archived HTML record, then saves a
@@ -578,8 +731,15 @@ export default function Agreements() {
   };
 
   const loadSavedAgreementInputs = (record: SavedAgreementRecord) => {
-    setInput(record.inputSnapshot);
-    setGenerated(true);
+    if (record.family === 'receivership') {
+      setRecvInput(record.inputSnapshot as ReceivershipAgreementInput);
+      setAgreementFamily('receivership');
+      setRecvGenerated(true);
+    } else {
+      setInput(record.inputSnapshot as AgreementInput);
+      setAgreementFamily('standard');
+      setGenerated(true);
+    }
     toast.success(`Loaded editable inputs from ${record.agreementNumber}`);
   };
 
@@ -656,10 +816,10 @@ export default function Agreements() {
             {(Object.entries(ASSET_CLASS_LABELS) as [AssetClass, string][]).map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => update({ assetClass: key })}
+                onClick={() => { setAgreementFamily('standard'); update({ assetClass: key }); }}
                 className={cn(
                   'px-4 py-3 rounded-lg text-sm font-medium transition-all text-left',
-                  input.assetClass === key
+                  agreementFamily === 'standard' && input.assetClass === key
                     ? 'bg-camelot-gold text-white shadow-md'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
                 )}
@@ -667,9 +827,142 @@ export default function Agreements() {
                 {label}
               </button>
             ))}
+            <button
+              onClick={() => setAgreementFamily('receivership')}
+              className={cn(
+                'px-4 py-3 rounded-lg text-sm font-medium transition-all text-left',
+                agreementFamily === 'receivership'
+                  ? 'bg-[#3A4B5B] text-white shadow-md'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200'
+              )}
+            >
+              Receivership (Court-Appointed)
+            </button>
           </div>
+          {agreementFamily === 'receivership' && (
+            <p className="text-xs text-gray-500 mt-3">
+              Separate template for receivership-only engagements — Owner/Receiver, Special Servicer, and Trustee are entered below rather than a single client, and the standard pricing-tier fields don't apply.
+            </p>
+          )}
         </div>
 
+        {agreementFamily === 'receivership' ? (
+        <div className="p-6 space-y-6">
+          {/* Property */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Property</h2>
+            <div className="grid grid-cols-4 gap-3">
+              <input type="text" placeholder="Property address" value={recvInput.propertyAddress} onChange={e => recvUpdate({ propertyAddress: e.target.value })} className="col-span-2 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="City" value={recvInput.propertyCity} onChange={e => recvUpdate({ propertyCity: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="State" value={recvInput.propertyState} onChange={e => recvUpdate({ propertyState: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+            </div>
+            <div className="grid grid-cols-4 gap-3 mt-3">
+              <input type="text" placeholder="Zip" value={recvInput.propertyZip} onChange={e => recvUpdate({ propertyZip: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="Prepared for (optional)" value={recvInput.preparedFor} onChange={e => recvUpdate({ preparedFor: e.target.value })} className="col-span-3 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+            </div>
+          </div>
+
+          {/* Parties */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Parties</h2>
+            <p className="text-xs text-gray-500 mb-3">Who's the receiver/owner, who's the special servicer, who's the trustee, and who's the management company — all editable per building.</p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <input type="text" placeholder="Manager / Management Company" value={recvInput.managerEntityName} onChange={e => recvUpdate({ managerEntityName: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="Manager entity type (e.g., New York corporation)" value={recvInput.managerEntityState} onChange={e => recvUpdate({ managerEntityState: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <input type="text" placeholder="Owner / Receiver entity (e.g., Sylvan Receiver Services, LLC)" value={recvInput.ownerEntityName} onChange={e => recvUpdate({ ownerEntityName: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="Owner entity state (e.g., Maryland)" value={recvInput.ownerEntityState} onChange={e => recvUpdate({ ownerEntityState: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <input type="text" placeholder="Special Servicer" value={recvInput.specialServicerName} onChange={e => recvUpdate({ specialServicerName: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="Trustee" value={recvInput.trusteeName} onChange={e => recvUpdate({ trusteeName: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              <input type="text" placeholder="Certificate series / trust (e.g., COMM 2015-CR1)" value={recvInput.certificateSeries} onChange={e => recvUpdate({ certificateSeries: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+            </div>
+          </div>
+
+          {/* Dates + Compensation */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Dates &amp; Compensation</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Commencement Date</label>
+                <input type="date" value={recvInput.commencementDate} onChange={e => recvUpdate({ commencementDate: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Management Fee</label>
+                <input type="text" placeholder="e.g., 4% of Gross Collected Revenue" value={recvInput.managementFeeText} onChange={e => recvUpdate({ managementFeeText: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+              </div>
+            </div>
+          </div>
+
+          {/* Notices */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Notices</h2>
+            <p className="text-xs text-gray-500 mb-3">Where Article 12 notices go for each party — free text, filled in per building.</p>
+            <div className="grid lg:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-gray-200 p-3">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Owner Notice Address</div>
+                <div className="space-y-2">
+                  <input type="text" placeholder="Name / c/o" value={recvInput.ownerNoticeName} onChange={e => recvUpdate({ ownerNoticeName: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <input type="text" placeholder="Address line 1" value={recvInput.ownerNoticeAddress1} onChange={e => recvUpdate({ ownerNoticeAddress1: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <input type="text" placeholder="Address line 2 (city, state, zip)" value={recvInput.ownerNoticeAddress2} onChange={e => recvUpdate({ ownerNoticeAddress2: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <input type="text" placeholder="Attention" value={recvInput.ownerNoticeAttention} onChange={e => recvUpdate({ ownerNoticeAttention: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Phone" value={recvInput.ownerNoticePhone} onChange={e => recvUpdate({ ownerNoticePhone: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                    <input type="email" placeholder="Email" value={recvInput.ownerNoticeEmail} onChange={e => recvUpdate({ ownerNoticeEmail: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  </div>
+                  <textarea placeholder="With a copy to (optional)" value={recvInput.ownerNoticeCopyTo} onChange={e => recvUpdate({ ownerNoticeCopyTo: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Manager Notice Address</div>
+                <div className="space-y-2">
+                  <input type="text" placeholder="Name" value={recvInput.managerNoticeName} onChange={e => recvUpdate({ managerNoticeName: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <input type="text" placeholder="Address line 1" value={recvInput.managerNoticeAddress1} onChange={e => recvUpdate({ managerNoticeAddress1: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <input type="text" placeholder="Address line 2 (city, state, zip)" value={recvInput.managerNoticeAddress2} onChange={e => recvUpdate({ managerNoticeAddress2: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <input type="text" placeholder="Attention" value={recvInput.managerNoticeAttention} onChange={e => recvUpdate({ managerNoticeAttention: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Phone" value={recvInput.managerNoticePhone} onChange={e => recvUpdate({ managerNoticePhone: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                    <input type="email" placeholder="Email" value={recvInput.managerNoticeEmail} onChange={e => recvUpdate({ managerNoticeEmail: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Wire instructions */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Wire Instructions (Exhibit D)</h2>
+            <textarea placeholder="Bank, ABA/routing, account name and number, reference" value={recvInput.wireInstructionsTo} onChange={e => recvUpdate({ wireInstructionsTo: e.target.value })} rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+          </div>
+
+          <p className="text-xs text-gray-400">
+            Signature pages are generated with blank Name / Title / Date fields for both Owner and Manager, for wet-ink signature after printing.
+          </p>
+
+          {/* ACTION BUTTONS */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={handleGenerateReceivership}
+              className="bg-[#3A4B5B] text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#2d3d4d] transition-all flex items-center gap-2 shadow-lg"
+            >
+              <Sword size={16} /> Generate Receivership Agreement
+            </button>
+            {recvGenerated && (
+              <>
+                <button onClick={handlePreviewReceivership} className="bg-gray-100 text-gray-700 px-5 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center gap-2">
+                  <Eye size={16} /> Preview / Print
+                </button>
+                <button onClick={handleDownloadReceivership} className="bg-gray-100 text-gray-700 px-5 py-3 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center gap-2">
+                  <Download size={16} /> Download HTML
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        ) : (
+        <>
         {/* SECTION: Property Address + Jackie Pull */}
         <div className="p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Property</h2>
@@ -998,10 +1291,12 @@ export default function Agreements() {
             </>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Preview Summary */}
-      {generated && (
+      {agreementFamily === 'standard' && generated && (
         <div className="bg-white rounded-xl border shadow-sm p-6">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Agreement Summary</h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
@@ -1037,7 +1332,12 @@ export default function Agreements() {
               <div key={record.id} className="rounded-lg border border-gray-200 p-4">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.16em] text-camelot-gold font-bold">{record.agreementNumber}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-camelot-gold font-bold">{record.agreementNumber}</div>
+                      {record.family === 'receivership' && (
+                        <span className="text-[9px] uppercase tracking-wider bg-[#3A4B5B] text-white px-1.5 py-0.5 rounded font-bold">Receivership</span>
+                      )}
+                    </div>
                     <div className="text-sm font-bold text-gray-900 mt-1">{record.propertyAddress || 'Draft Agreement'}</div>
                     <div className="text-xs text-gray-500">
                       {record.clientName} · {formatLibraryDate(record.generatedAt)}

@@ -1282,6 +1282,51 @@ app.post('/api/ai/chat', async (req, res) => {
   }
 });
 
+// ============================================================
+// Document text extraction (Agreements page uploads)
+// Accepts a base64 PDF or Word file and returns its plain text so the
+// client can parse PropertyShark exports, rent rolls, offering docs, etc.
+// PDFs run through pdf-parse; .docx runs through pizzip (raw XML → text).
+// ============================================================
+app.post('/api/documents/extract-text', async (req, res) => {
+  const { filename = '', base64 = '' } = req.body || {};
+  if (!base64 || typeof base64 !== 'string') {
+    return res.status(400).json({ error: 'base64 file content required' });
+  }
+  let buffer;
+  try {
+    buffer = Buffer.from(base64.replace(/^data:[^;]+;base64,/, ''), 'base64');
+  } catch {
+    return res.status(400).json({ error: 'Invalid base64 payload' });
+  }
+  if (buffer.length > 20 * 1024 * 1024) {
+    return res.status(413).json({ error: 'File too large (20MB max)' });
+  }
+  const lower = String(filename).toLowerCase();
+  try {
+    if (lower.endsWith('.docx') || lower.endsWith('.docm') || lower.endsWith('.dotx')) {
+      const { default: PizZip } = await import('pizzip');
+      const zip = new PizZip(buffer);
+      const docXml = zip.file('word/document.xml')?.asText() || '';
+      const text = docXml
+        .replace(/<w:p[ >]/g, '\n<w:p ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      return res.json({ text, kind: 'docx' });
+    }
+    // Default: treat as PDF. Import the parser lazily so the server still
+    // boots even if the dependency is missing in an old deploy.
+    const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
+    const parsed = await pdfParse(buffer);
+    return res.json({ text: (parsed.text || '').trim(), kind: 'pdf', pages: parsed.numpages });
+  } catch (err) {
+    console.error('Document extract failed:', err?.message || err);
+    return res.status(422).json({ error: `Could not read ${filename || 'file'}: ${err?.message || 'unsupported or corrupted file'}` });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',

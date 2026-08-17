@@ -1,4 +1,5 @@
 import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
+import { generateRentalAgreementV3 } from './rental-agreement-v3';
 /**
  * @deprecated v2026.05.31 — Excalibur will be replaced by an Edge Function
  * (`agreements-generate`) backed by the same Fact Packet store as Jackie. The
@@ -50,6 +51,12 @@ export interface AgreementInput {
   startupFee: number;  // default 0
   // Special terms
   specialTerms: string;
+  // Property photographs uploaded on the Agreements page (data URIs).
+  // First image is the cover; empty array = no image block in the output.
+  propertyImages?: string[];
+  // Key facts parsed from uploaded supporting documents (PropertyShark
+  // PDFs, rent rolls, Word docs) — rendered as a Property Overview list.
+  propertyIntel?: string[];
   // Jackie data (auto-populated if available)
   jackieData: MasterReportData | null;
   tieredPricing: TieredPricing | null;
@@ -77,6 +84,8 @@ export const DEFAULT_INPUT: AgreementInput = {
   customMonthlyFee: null,
   startupFee: 0,
   specialTerms: '',
+  propertyImages: [],
+  propertyIntel: [],
   jackieData: null,
   tieredPricing: null,
 };
@@ -811,14 +820,17 @@ export function generateSingleUnitAgreement(input: AgreementInput): string {
 
 export function generateAgreement(input: AgreementInput): string {
   switch (input.assetClass) {
-    case 'rental': return generateRentalAgreement(input);
+    // Rental (and individual-unit rentals) use the new generator that
+    // mirrors the Word master template exactly — the Camelot Rental
+    // Management Agreement house design. See src/lib/rental-agreement-v3.ts.
+    case 'rental': return generateRentalAgreementV3(input);
+    case 'single-tenant': return generateRentalAgreementV3(input);
     case 'condo': return generateCondoAgreement(input);
     case 'coop': return generateCoopAgreement(input);
     case 'new-construction': return generateCondoAgreement(input); // new construction uses condo base
     case 'office': return generateOfficeAgreement(input);
     case 'retail': return generateRetailAgreement(input);
-    case 'single-tenant': return generateSingleUnitAgreement(input);
-    default: return generateRentalAgreement(input);
+    default: return generateRentalAgreementV3(input);
   }
 }
 

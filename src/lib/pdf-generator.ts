@@ -114,21 +114,64 @@ export async function downloadAsHTML(html: string, filename: string): Promise<vo
   URL.revokeObjectURL(url);
 }
 
-function buildPdfWrapper(html: string): { wrapper: HTMLDivElement; isSlideDeck: boolean } {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(ensureHtmlBase(html), 'text/html');
-  doc.querySelectorAll('.no-print, .deck-action-bar, .proposal-action-bar').forEach(el => el.remove());
+/**
+ * Renders the report HTML inside a completely isolated <iframe> document
+ * rather than injecting it into the live app's DOM.
+ *
+ * Why: html2canvas doesn't just capture the target element — to correctly
+ * compute stacking context, effective styles, and scroll offsets it clones
+ * from document.documentElement down. On this app that means cloning the
+ * entire dashboard shell (sidebar, nav, every mounted widget) for every PDF
+ * export, regardless of whether the target wrapper is on- or off-screen.
+ * That full-tree clone is what was silently failing/hanging and producing a
+ * structurally valid but blank ~3KB PDF — confirmed by testing a trivial,
+ * fully on-screen div (zero off-screen positioning) which failed identically
+ * to the real off-screen wrapper. Giving the report its own iframe document
+ * means html2canvas only ever has to clone that small, self-contained
+ * document — never the parent app.
+ */
+function buildPdfFrame(html: string): Promise<{ frame: HTMLIFrameElement; target: HTMLElement; isSlideDeck: boolean }> {
+  return new Promise((resolve, reject) => {
+    const isSlideDeck = /class=["'][^"']*\bslide\b/.test(html);
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.left = '-10000px';
+    frame.style.top = '0';
+    frame.style.width = isSlideDeck ? '11in' : '8.5in';
+    frame.style.height = '0px';
+    frame.style.border = '0';
+    frame.setAttribute('aria-hidden', 'true');
 
-  const wrapper = document.createElement('div');
-  const isSlideDeck = Boolean(doc.querySelector('.slide'));
-  wrapper.style.position = 'fixed';
-  wrapper.style.left = '-10000px';
-  wrapper.style.top = '0';
-  wrapper.style.width = isSlideDeck ? '11in' : '8.5in';
-  wrapper.style.background = '#fff';
-  wrapper.innerHTML = `${doc.head.innerHTML}${doc.body.innerHTML}`;
-  document.body.appendChild(wrapper);
-  return { wrapper, isSlideDeck };
+    const timeout = setTimeout(() => reject(new Error('PDF render frame timed out loading')), 15000);
+
+    frame.onload = () => {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc || !doc.body) {
+          clearTimeout(timeout);
+          reject(new Error('PDF render frame failed to load'));
+          return;
+        }
+        doc.querySelectorAll('.no-print, .deck-action-bar, .proposal-action-bar').forEach(el => el.remove());
+        // Give the frame real height so html2canvas captures the full
+        // document rather than the collapsed 0px shell it started at.
+        const fullHeight = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 1);
+        frame.style.height = `${fullHeight}px`;
+        clearTimeout(timeout);
+        resolve({ frame, target: doc.body, isSlideDeck });
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err as Error);
+      }
+    };
+    frame.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error('PDF render frame failed to load'));
+    };
+
+    document.body.appendChild(frame);
+    frame.srcdoc = ensureHtmlBase(html);
+  });
 }
 
 function pdfOptions(filename: string, isSlideDeck: boolean) {
@@ -143,15 +186,13 @@ function pdfOptions(filename: string, isSlideDeck: boolean) {
       logging: false,
       imageTimeout: 12000,
       removeContainer: true,
-      // The wrapper is captured off-screen via position:fixed + a large
-      // negative left offset. html2canvas's default behavior compensates
-      // for the page's current scroll position when it clones the DOM,
-      // which double-counts against a fixed-position element and shifts
-      // the rendered content entirely outside the captured canvas —
-      // producing a structurally valid but visually blank PDF whenever the
-      // page has been scrolled before Generate is clicked (the normal
-      // case, since the button sits below the fold). Pinning scrollX/Y to
-      // 0 here neutralizes that compensation.
+      // Belt-and-suspenders: the real fix for the blank-PDF bug is that the
+      // target now lives in its own isolated iframe document (see
+      // buildPdfFrame) rather than being injected into the live app's DOM,
+      // so html2canvas never has to clone the full dashboard shell. That
+      // iframe document is always freshly created and unscrolled, but
+      // pinning scrollX/Y to 0 costs nothing and guards against any future
+      // regression back toward capturing an element that isn't at (0,0).
       scrollX: 0,
       scrollY: 0,
     },
@@ -163,11 +204,11 @@ function pdfOptions(filename: string, isSlideDeck: boolean) {
 /** Download an HTML report as a PDF using the browser-side renderer. */
 export async function downloadAsPDF(html: string, filename: string): Promise<void> {
   const html2pdf = (await import('html2pdf.js')).default;
-  const { wrapper, isSlideDeck } = buildPdfWrapper(html);
+  const { frame, target, isSlideDeck } = await buildPdfFrame(html);
   try {
-    await html2pdf().from(wrapper).set(pdfOptions(filename, isSlideDeck)).save();
+    await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck)).save();
   } finally {
-    wrapper.remove();
+    frame.remove();
   }
 }
 
@@ -178,15 +219,15 @@ export async function downloadAsPDF(html: string, filename: string): Promise<voi
  */
 export async function generatePdfBase64(html: string, filename: string): Promise<string> {
   const html2pdf = (await import('html2pdf.js')).default;
-  const { wrapper, isSlideDeck } = buildPdfWrapper(html);
+  const { frame, target, isSlideDeck } = await buildPdfFrame(html);
   try {
-    const blob: Blob = await html2pdf().from(wrapper).set(pdfOptions(filename, isSlideDeck)).outputPdf('blob');
+    const blob: Blob = await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck)).outputPdf('blob');
     const dataUrl = await blobToDataUrl(blob);
     // Strip the "data:application/pdf;base64," prefix — Resend wants the raw base64 payload.
     const commaIndex = dataUrl.indexOf(',');
     return commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
   } finally {
-    wrapper.remove();
+    frame.remove();
   }
 }
 

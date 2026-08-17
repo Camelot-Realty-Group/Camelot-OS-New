@@ -543,7 +543,10 @@ export default function Agreements() {
       const docxFilename = record.filename.replace(/\.html$/i, '.docx');
       const pdfFilename = record.filename.replace(/\.html$/i, '.pdf');
       const docxBlob = await generateAgreementDocxBlob(html);
-      downloadBlob(docxBlob, docxFilename);
+      await downloadBlob(docxBlob, docxFilename);
+      // Extra breathing room before the CPU-heavy PDF render (html2canvas)
+      // starts, so the Word download is fully flushed to disk first.
+      await new Promise((resolve) => setTimeout(resolve, 400));
       await downloadAsPDF(html, pdfFilename);
       toast.success(`Agreement generated: ${record.agreementNumber} (Word + PDF saved)`, { id: toastId });
     } catch (e) {

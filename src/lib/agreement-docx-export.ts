@@ -476,8 +476,16 @@ export async function generateAgreementDocxBlob(html: string): Promise<Blob> {
   return Packer.toBlob(doc);
 }
 
-/** Triggers a browser download of a Blob under the given filename. */
-export function downloadBlob(blob: Blob, filename: string): void {
+/**
+ * Triggers a browser download of a Blob under the given filename, then
+ * waits a tick before returning so the browser has a chance to actually
+ * start reading the blob off the renderer before any heavy synchronous
+ * work (e.g. PDF rendering) resumes and starves it. The object URL is
+ * revoked on page unload rather than on a fixed timer — revoking too
+ * early can truncate large downloads (seen as 0-byte / stuck files) if
+ * the main thread gets busy right after the click.
+ */
+export async function downloadBlob(blob: Blob, filename: string): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -485,5 +493,8 @@ export function downloadBlob(blob: Blob, filename: string): void {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  window.addEventListener('unload', () => URL.revokeObjectURL(url), { once: true });
+  // Yield to the browser (a few animation frames) so the download actually
+  // starts before we resume any CPU-heavy work like PDF rendering.
+  await new Promise((resolve) => setTimeout(resolve, 300));
 }

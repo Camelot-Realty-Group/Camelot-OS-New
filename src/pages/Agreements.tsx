@@ -2,7 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { Sword, FileText, Download, Eye, Loader2, Sparkles, ChevronDown, ImagePlus, FileUp, X, Star } from 'lucide-react';
 import { generateAgreement, DEFAULT_INPUT, ASSET_CLASS_LABELS, type AgreementInput, type AssetClass } from '@/lib/excalibur';
 import { buildMasterReport, type MasterReportData } from '@/lib/camelot-report';
-import { openBrochureForPrint, downloadAsHTML } from '@/lib/pdf-generator';
+import { openBrochureForPrint, downloadAsHTML, downloadAsPDF } from '@/lib/pdf-generator';
+import { generateAgreementDocxBlob, downloadBlob } from '@/lib/agreement-docx-export';
 import { formatLibraryDate, loadLocalJackieReportLibrary, type SavedJackieReport } from '@/lib/jackie-report-library';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { trackReportWorkflowEvent, buildingFromReportData } from '@/lib/report-crm-tracking';
@@ -526,8 +527,9 @@ export default function Agreements() {
     return record;
   };
 
-  // Generate agreement
-  const handleGenerate = () => {
+  // Generate agreement — produces the archived HTML record, then saves a
+  // native Word (.docx) copy and a PDF copy to the local drive (two files).
+  const handleGenerate = async () => {
     if (!input.clientName.trim() && !input.propertyAddress.trim()) {
       toast.error('Enter at least a client name or address');
       return;
@@ -535,7 +537,19 @@ export default function Agreements() {
     const html = generateAgreement(input);
     const record = archiveAgreement(html);
     setGenerated(true);
-    toast.success(`Agreement generated and archived: ${record.agreementNumber}`);
+
+    const toastId = toast.loading('Saving Word and PDF copies…');
+    try {
+      const docxFilename = record.filename.replace(/\.html$/i, '.docx');
+      const pdfFilename = record.filename.replace(/\.html$/i, '.pdf');
+      const docxBlob = await generateAgreementDocxBlob(html);
+      downloadBlob(docxBlob, docxFilename);
+      await downloadAsPDF(html, pdfFilename);
+      toast.success(`Agreement generated: ${record.agreementNumber} (Word + PDF saved)`, { id: toastId });
+    } catch (e) {
+      console.error('Failed to export Word/PDF copies of agreement:', e);
+      toast.error('Agreement archived, but Word/PDF export failed — see console.', { id: toastId });
+    }
   };
 
   const handlePreview = () => {

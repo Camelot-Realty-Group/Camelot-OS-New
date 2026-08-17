@@ -7,7 +7,7 @@ services:
     name: camelot-os-v10
     env: node
     plan: free # upgrade to "starter" to avoid cold starts
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     pullRequestPreviewsEnabled: false

@@ -1,10 +1,23 @@
 /**
  * Camelot Rental Management Agreement — HTML generator.
  *
- * Mirrors the Word master template exactly: same letterhead header and
- * contact footer on every page, centered dark-gold article titles,
- * Articles I–XIX (plus optional XX) verbatim, single signature page with
- * both parties, and Schedules A/B/C with real Camelot rates.
+ * Mirrors the Word master template exactly: title cover page (property
+ * address as the headline), same letterhead header and contact footer on
+ * every page, centered dark-gold article titles, Articles I–XIX (plus
+ * optional XX) verbatim, single signature page with both parties, and
+ * Schedules A/B/C with real Camelot rates.
+ *
+ * Typography contract (per house style):
+ *  - Cover title (property address):    HGMaruGothicMPRO, Blue Accent 1
+ *    Darker 25% (#2F5597), 18pt, centered.
+ *  - Cover subtitle (city/state/zip):   same family/color, 16pt.
+ *  - Body text everywhere (Heading 3+): Arial, 9pt, not bold.
+ *  - Article heading ("ARTICLE N"):     Georgia, 12pt, dark gold (#8B6F47),
+ *    centered, border line beneath (Heading 1 equivalent).
+ *  - Section title (e.g. "Definitions"): Georgia, dark gold, centered
+ *    (Heading 2 equivalent), sits directly under the Article border line.
+ *  - Footer (every page):               Arial, 8pt, standard black —
+ *    "{office address+phone}   CONFIDENTIAL — {version} — {date}   Page N of M".
  *
  * IMPORTANT: every logical page is its own `.page` div with NO fixed
  * height / overflow:hidden — that combination silently clips content in
@@ -26,6 +39,16 @@ const CAMELOT_OFFICE = {
   lat: 40.76464,
   lng: -73.98077,
 };
+
+// Cover-title typeface + house colors, shared by HTML and (eventually) the
+// native docx/pdf exporters so all three stay in lockstep.
+export const COVER_TITLE_FONT = "'HGMaruGothicMPRO','HGMaruGothicM PRO',Georgia,serif";
+export const COVER_TITLE_COLOR = '#2F5597'; // Blue, Accent 1, Darker 25%
+export const HEADING_FONT = "Georgia,'Times New Roman',serif";
+export const DARK_GOLD = '#8B6F47';
+export const GOLD_RULE = '#B8960F';
+export const BODY_FONT = "Arial,Helvetica,sans-serif";
+export const BODY_BLACK = '#000000';
 
 const NUM_WORDS: Record<number, string> = {
   0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
@@ -54,6 +77,18 @@ function milesBetween(lat1: number, lng1: number, lat2: number, lng2: number): n
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Rough NYC ZIP-prefix → borough fallback, only used when Jackie/PLUTO data
+// hasn't supplied a real borough for the property.
+function boroughFromZip(zip: string): string {
+  const p3 = (zip || '').trim().slice(0, 3);
+  if (['100', '101', '102'].includes(p3)) return 'Manhattan';
+  if (p3 === '103') return 'Staten Island';
+  if (p3 === '104') return 'Bronx';
+  if (p3 === '112') return 'Brooklyn';
+  if (['110', '111', '113', '114', '116'].includes(p3)) return 'Queens';
+  return '';
+}
+
 export function generateRentalAgreementV3(input: AgreementInput): string {
   const now = new Date();
   const version = `v${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.1`;
@@ -74,6 +109,7 @@ export function generateRentalAgreementV3(input: AgreementInput): string {
   const effDay = effDate.getDate();
   const effMonth = effDate.toLocaleDateString('en-US', { month: 'long' });
   const effYear = effDate.getFullYear();
+  const effDateLong = `${effMonth} ${effDay}, ${effYear}`;
 
   const monthlyFee =
     input.customMonthlyFee ||
@@ -91,9 +127,7 @@ export function generateRentalAgreementV3(input: AgreementInput): string {
     : '';
 
   const images = (input.propertyImages || []).filter(Boolean).slice(0, 5);
-  const coverImage = images[0]
-    ? `<div class="cover-photo"><img src="${images[0]}" alt="${addrDisplay}" /><div class="cover-photo-cap">${addrDisplay}</div></div>`
-    : '';
+  const coverPhotoSrc = images[0] || '';
   const extraImages =
     images.length > 1
       ? `<div class="photo-grid">${images
@@ -127,6 +161,24 @@ export function generateRentalAgreementV3(input: AgreementInput): string {
     : '';
 
   const unitsText = input.units ? `${input.units}` : '[NUMBER OF UNITS]';
+
+  // ---- Cover-page identity strip: Neighborhood / Borough / Block & Lot ----
+  const neighborhoodName = input.jackieData?.neighborhoodName || '';
+  const boroughName = input.jackieData?.borough || boroughFromZip(input.propertyZip) || '';
+  const blockLotText = input.blockLot || '';
+  const metaParts: string[] = [];
+  if (neighborhoodName) metaParts.push(`<span class="meta-item"><b>Neighborhood:</b> ${esc(neighborhoodName)}</span>`);
+  if (boroughName) metaParts.push(`<span class="meta-item"><b>Borough:</b> ${esc(boroughName)}</span>`);
+  if (blockLotText) metaParts.push(`<span class="meta-item"><b>Block &amp; Lot:</b> ${esc(blockLotText)}</span>`);
+  const coverMetaLine = metaParts.length ? `<p class="cover-meta">${metaParts.join('')}</p>` : '';
+
+  // Cover title splits the street line from the city/state/zip line, each
+  // with its own point size per the house style.
+  const coverAddrLine1 = esc(input.propertyAddress || '[PROPERTY ADDRESS]');
+  const coverAddrLine2 = esc(
+    [input.propertyCity, input.propertyState].filter(Boolean).join(', ') +
+      (input.propertyZip ? ` ${input.propertyZip}` : '')
+  );
 
   // ---- Article content, fully detailed (matching approved template language) ----
 
@@ -256,21 +308,21 @@ ${body}
   // ---- Page shell helper: identical letterhead + gold border + footer on every page ----
   let pageCounter = 0;
   const totalPagesPlaceholder = '__TOTAL_PAGES__';
-  const pageWrap = (bodyHtml: string, opts?: { scheduleTitle?: string }) => {
+  const pageWrap = (bodyHtml: string, opts?: { scheduleTitle?: string; noLetterhead?: boolean }) => {
     pageCounter += 1;
     const n = pageCounter;
     return `
 <div class="page">
 <div class="page-content">
 
-<div class="letterhead">
+${opts?.noLetterhead ? '' : `<div class="letterhead">
   <img src="${RENTAL_AGREEMENT_LOGO_B64}" alt="Camelot" />
   <div class="lh-text">
     <div class="lh-name">CAMELOT REALTY GROUP</div>
     <div class="lh-services">REAL ESTATE &middot; PROPERTY MGMT &middot; BROKERAGE &middot; INVESTMENT SERVICES</div>
-    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal;font-size:7px">EST. 2006</span></div>
+    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal;font-size:7pt">EST. 2006</span></div>
   </div>
-</div>
+</div>`}
 
 ${opts?.scheduleTitle ? `<div class="sched-title">${opts.scheduleTitle}</div>` : ''}
 ${bodyHtml}
@@ -278,18 +330,30 @@ ${bodyHtml}
 </div><!-- .page-content -->
 <div class="pf">
   <div class="pf-left">${CAMELOT_OFFICE.address} &middot; ${CAMELOT_OFFICE.phone}</div>
-  <div class="pf-center"><span class="pf-conf">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr}</span></div>
+  <div class="pf-center">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr}</div>
   <div class="pf-right">Page ${n} of ${totalPagesPlaceholder}</div>
 </div>
 </div><!-- .page -->`;
   };
 
-  // ---- Page 1: cover ----
+  // ---- Page 1: title cover page (property photo + address headline) ----
   const coverPage = pageWrap(`
-<h1 class="title">Camelot Rental Management Agreement</h1>
+<div class="cover-wrap">
+  <h1 class="cover-addr">${coverAddrLine1}</h1>
+  <h2 class="cover-citystate">${coverAddrLine2}</h2>
 
-${coverImage}
+  ${coverPhotoSrc ? `<div class="cover-photo-box"><img src="${coverPhotoSrc}" alt="${addrDisplay}" /></div>` : ''}
 
+  ${coverMetaLine}
+
+  <p class="cover-doctype">Residential Rental Property Management Agreement</p>
+  <p class="cover-dateprep">Date: ${effDateLong}&nbsp;&nbsp;&nbsp;Prepared for: ${clientEntity}</p>
+  <p class="cover-version">Version 01.</p>
+</div>
+`);
+
+  // ---- Page 2: legal preamble + map + property overview ----
+  const preamblePage = pageWrap(`
 <p class="body">THIS AGREEMENT (the "Agreement") is made as of this ${effDay} day of ${effMonth}, ${effYear} (the "Effective Date"), by and between <b>${clientEntity}</b>, having its principal office at ${input.clientAddress || '[CLIENT ADDRESS]'} ("Client"), and <b>CAMELOT PROPERTY MANAGEMENT SERVICES CORP.</b>, a New York corporation, having its principal office at ${CAMELOT_OFFICE.address} (the "Agent," and together with the Client, the "Parties," and each a "Party").</p>
 <p class="body">WHEREAS, the Client owns certain real property known as and located at ${addrDisplay} (the "Property"), consisting of one (1) residential rental building and ${unitsText} rental units; and</p>
 <p class="body">WHEREAS, the Client desires to engage the Agent to perform the Services and the Additional Services (as defined herein) in connection with the rental units at the Property, and the Agent desires to be so engaged;</p>
@@ -394,6 +458,7 @@ ${intelBlock}
 
   const allPages = [
     coverPage,
+    preamblePage,
     articlePage2,
     articlePage3,
     articlePage4,
@@ -424,16 +489,16 @@ ${intelBlock}
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
-body{font-family:Georgia,'Times New Roman',serif;color:#221F1A;font-size:12px;line-height:1.6;background:#f5f0e5}
+body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55;background:#f5f0e5}
 @page{size:8.5in 11in;margin:0.75in}
 @media print{body{background:white}}
 @media screen{
   .page{margin:20px auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);background:white}
 }
-.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;border:2px solid #B8960F;page-break-after:always;position:relative;background:white}
+.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;border:2px solid ${GOLD_RULE};page-break-after:always;position:relative;background:white}
 .page-content{position:relative;z-index:1}
 
-/* Letterhead */
+/* Letterhead (unchanged house mark, appears on every page) */
 .letterhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #8a867e}
 .letterhead img{width:44px;height:44px}
 .lh-text{flex:1}
@@ -441,71 +506,77 @@ body{font-family:Georgia,'Times New Roman',serif;color:#221F1A;font-size:12px;li
 .lh-services{font-size:7.5px;color:#6B675F;letter-spacing:1px;margin:1px 0}
 .lh-tag{font-size:9px;color:#A9814A;font-style:italic;margin:2px 0}
 
-/* Title */
-h1.title{font-size:18px;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:8px 0 12px;text-transform:uppercase}
+/* Cover page: address is the headline, HGMaruGothicMPRO / blue accent1 darker25% */
+.cover-wrap{text-align:center;padding-top:18pt}
+h1.cover-addr{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:18pt;font-weight:400;margin:0 0 4pt;line-height:1.25}
+h2.cover-citystate{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:16pt;font-weight:400;margin:0 0 18pt;line-height:1.25}
+.cover-photo-box{margin:0 auto 16pt;width:4.5in;height:3.5in;border:1px solid #000;overflow:hidden}
+.cover-photo-box img{width:100%;height:100%;object-fit:cover;display:block}
+p.cover-meta{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};font-weight:400;margin:0 0 20pt}
+.meta-item{margin:0 10pt}
+.meta-item b{font-weight:700}
+p.cover-doctype{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};font-weight:400;margin:0 0 4pt}
+p.cover-dateprep{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};font-weight:400;margin:0 0 14pt}
+p.cover-version{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};font-weight:400;margin:0}
 
-/* Article headings - CENTERED and DARK GOLD */
-h2.art{font-size:12px;font-weight:700;color:#8B6F47;text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #B8960F;padding:12px 0 8px;margin:20px 0 0;page-break-after:avoid}
-h3.art-sub{font-size:11px;font-weight:700;color:#8B6F47;text-align:center;letter-spacing:0.5px;margin:4px 0 12px;padding:0;page-break-after:avoid}
+/* Article headings — Heading 1 (ARTICLE N): Georgia, 12pt, dark gold, border line beneath.
+   Section title — Heading 2 (e.g. "Definitions"): Georgia, dark gold, centered. */
+h2.art{font-family:${HEADING_FONT};font-size:12pt;font-weight:700;color:${DARK_GOLD};text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5pt solid ${GOLD_RULE};padding:12pt 0 6pt;margin:20pt 0 0;page-break-after:avoid}
+h3.art-sub{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:${DARK_GOLD};text-align:center;letter-spacing:0.5px;margin:6pt 0 10pt;padding:0;page-break-after:avoid}
 
-/* Body text */
-p.body{margin-bottom:8px;text-align:justify}
-p.ind{margin:0 0 7px 18px;text-align:justify}
-p.deflist{margin-bottom:8px;text-align:justify}
-p.deflist b{color:#221F1A}
-ul.blt{margin:0 0 8px 24px}
-ul.blt li{margin-bottom:4px;text-align:justify}
+/* Body text — Arial, 9pt, not bold, everywhere below Heading 2 */
+p.body{font-family:${BODY_FONT};font-size:9pt;font-weight:400;color:${BODY_BLACK};margin-bottom:8pt;text-align:justify}
+p.ind{font-family:${BODY_FONT};font-size:9pt;font-weight:400;color:${BODY_BLACK};margin:0 0 7pt 18pt;text-align:justify}
+p.deflist{font-family:${BODY_FONT};font-size:9pt;font-weight:400;color:${BODY_BLACK};margin-bottom:8pt;text-align:justify}
+p.deflist b{font-weight:700;color:${BODY_BLACK}}
+ul.blt{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};margin:0 0 8pt 24px}
+ul.blt li{margin-bottom:4pt;text-align:justify}
 
-/* Photos */
-.cover-photo{margin:0 0 12px;page-break-inside:avoid}
-.cover-photo img{width:100%;max-height:250px;object-fit:cover;border:1px solid #d8d4cb;border-radius:3px}
-.cover-photo-cap{font-size:8px;color:#6B675F;text-align:center;padding-top:3px}
-.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
-.photo-grid img{width:100%;height:80px;object-fit:cover;border:1px solid #d8d4cb;border-radius:2px}
-
-/* Map */
+/* Map (preamble page) */
 .loc-strip{display:flex;gap:12px;margin:12px 0;align-items:stretch}
 .loc-map{flex:0 0 45%;border:1px solid #d8d4cb;border-radius:3px;overflow:hidden}
 .loc-map iframe{width:100%;height:100%}
 .loc-text{flex:1}
-.loc-title{font-size:10px;font-weight:700;color:#1B2A4A;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px;border-bottom:1px solid #C9A55C;padding-bottom:2px;display:inline-block}
-.loc-text p{font-size:10.5px;text-align:justify;color:#3a372f}
+.loc-title{font-family:${HEADING_FONT};font-size:10pt;font-weight:700;color:#1B2A4A;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4pt;border-bottom:1px solid #C9A55C;padding-bottom:2pt;display:inline-block}
+.loc-text p{font-family:${BODY_FONT};font-size:9pt;text-align:justify;color:${BODY_BLACK}}
 
 /* Property Overview */
 .intel{margin:0 0 12px;page-break-inside:avoid}
 .intel ul{margin:3px 0 5px 20px}
-.intel li{font-size:10.5px;margin-bottom:2px}
-.intel-src{font-size:8px;color:#9b968b;font-style:italic}
+.intel li{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};margin-bottom:2pt}
+.intel-src{font-family:${BODY_FONT};font-size:8pt;color:#9b968b;font-style:italic}
+
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.photo-grid img{width:100%;height:80px;object-fit:cover;border:1px solid #d8d4cb;border-radius:2px}
 
 /* Tables */
-table.fee{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0 5px}
-table.fee th{background:#1B2A4A;color:#fff;text-align:left;padding:6px 8px;font-size:9px;letter-spacing:0.5px;text-transform:uppercase}
-table.fee td{padding:6px 8px;border-bottom:1px solid #e8e5de}
+table.fee{width:100%;border-collapse:collapse;font-family:${BODY_FONT};font-size:9pt;margin:8pt 0 5pt}
+table.fee th{background:#1B2A4A;color:#fff;text-align:left;padding:6pt 8pt;font-size:8.5pt;letter-spacing:0.5px;text-transform:uppercase}
+table.fee td{padding:6pt 8pt;border-bottom:1px solid #e8e5de;font-weight:400}
 table.fee tr:nth-child(odd) td{background:#F7F4EC}
 td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
-.sched-note{font-size:10px;font-style:italic;color:#6B675F;margin:5px 0 0}
+.sched-note{font-family:${BODY_FONT};font-size:8.5pt;font-style:italic;color:#6B675F;margin:5pt 0 0}
 
 /* Signature page */
 .sig-page{padding-top:8px;text-align:center}
-.sig-head{font-size:13px;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
+.sig-head{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin-bottom:8pt;text-transform:uppercase}
 .sig-wit{margin:0 auto 20px;max-width:600px}
-.sig-witness{font-style:italic;font-size:11px}
-.sig-party{font-size:11px;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin:28px 0 20px;text-transform:uppercase}
-.sig-field{margin-bottom:10px;font-size:11px}
-.sig-field b{color:#221F1A;font-weight:700}
+.sig-witness{font-family:${BODY_FONT};font-style:italic;font-size:9pt}
+.sig-party{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin:28px 0 20px;text-transform:uppercase}
+.sig-field{font-family:${BODY_FONT};margin-bottom:10px;font-size:9pt}
+.sig-field b{color:${BODY_BLACK};font-weight:700}
 .sig-rule{width:70%;margin:24px auto;border-bottom:1px solid #C9A55C}
 
 /* Schedules */
-.sched-title{font-size:13px;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:0 0 10px;text-transform:uppercase}
+.sched-title{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:0 0 10pt;text-transform:uppercase}
 .avoid-break{page-break-inside:avoid}
 .article-block{page-break-inside:avoid}
 
-/* Footer */
-.pf{margin-top:16px;padding-top:6px;border-top:1px solid #B8960F;text-align:center;font-size:8px;color:#6B675F;display:flex;justify-content:space-between;align-items:center}
+/* Footer — Arial, 8pt, standard black, on every page */
+.pf{margin-top:16px;padding-top:6px;border-top:1px solid ${GOLD_RULE};text-align:center;font-family:${BODY_FONT};font-size:8pt;color:${BODY_BLACK};display:flex;justify-content:space-between;align-items:center}
 .pf-left{text-align:left;flex:0 0 50%}
 .pf-center{flex:1;text-align:center}
 .pf-right{text-align:right;flex:0 0 auto;white-space:nowrap}
-.pf-conf{font-size:7px;color:#9b968b}
 
 @media print{
   @page{margin:0.75in}

@@ -388,6 +388,10 @@ ${intelBlock}
   </div>
 
   <div class="sig-party">CLIENT</div>
+  <p class="sig-entity">
+    <b>${clientEntity}</b>${input.clientAddress ? `<br/>${esc(input.clientAddress)}` : ''}${input.clientPhone ? `<br/>${esc(input.clientPhone)}` : ''}${input.clientEmail ? `<br/>${esc(input.clientEmail)}` : ''}
+  </p>
+  <div class="sig-field"><b>By (Signature):</b> ____________________________</div>
   <div class="sig-field"><b>Name:</b> ____________________________</div>
   <div class="sig-field"><b>Title:</b> ____________________________</div>
   <div class="sig-field"><b>Date:</b> ____________________________</div>
@@ -395,6 +399,10 @@ ${intelBlock}
   <div class="sig-rule"></div>
 
   <div class="sig-party">AGENT</div>
+  <p class="sig-entity">
+    <b>CAMELOT PROPERTY MANAGEMENT SERVICES CORP.</b>, a New York corporation<br/>${esc(CAMELOT_OFFICE.address)}<br/>${esc(CAMELOT_OFFICE.phone)}
+  </p>
+  <div class="sig-field"><b>By (Signature):</b> ____________________________</div>
   <div class="sig-field"><b>Name:</b> ____________________________</div>
   <div class="sig-field"><b>Title:</b> ____________________________</div>
   <div class="sig-field"><b>Date:</b> ____________________________</div>
@@ -523,6 +531,12 @@ p.cover-version{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};font-
    Section title — Heading 2 (e.g. "Definitions"): Georgia, dark gold, centered. */
 h2.art{font-family:${HEADING_FONT};font-size:12pt;font-weight:700;color:${DARK_GOLD};text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5pt solid ${GOLD_RULE};padding:12pt 0 6pt;margin:20pt 0 0;page-break-after:avoid}
 h3.art-sub{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:${DARK_GOLD};text-align:center;letter-spacing:0.5px;margin:6pt 0 10pt;padding:0;page-break-after:avoid}
+/* The first article heading on a page shouldn't hug the letterhead — give
+   it real breathing room so it reads as centered between header and
+   footer rather than pinned to the top. Only the first article-block on
+   each page gets the extra push; a second/third stacked article on the
+   same page keeps the tighter 20pt spacing above. */
+.page-content > .article-block:first-of-type > h2.art{margin-top:64pt}
 
 /* Body text — Arial, 9pt, not bold, everywhere below Heading 2 */
 p.body{font-family:${BODY_FONT};font-size:9pt;font-weight:400;color:${BODY_BLACK};margin-bottom:8pt;text-align:justify}
@@ -562,7 +576,9 @@ td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
 .sig-head{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin-bottom:8pt;text-transform:uppercase}
 .sig-wit{margin:0 auto 20px;max-width:600px}
 .sig-witness{font-family:${BODY_FONT};font-style:italic;font-size:9pt}
-.sig-party{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin:28px 0 20px;text-transform:uppercase}
+.sig-party{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin:28px 0 10px;text-transform:uppercase}
+.sig-entity{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};max-width:520px;margin:0 auto 16px;text-align:center}
+.sig-entity b{font-weight:700}
 .sig-field{font-family:${BODY_FONT};margin-bottom:10px;font-size:9pt}
 .sig-field b{color:${BODY_BLACK};font-weight:700}
 .sig-rule{width:70%;margin:24px auto;border-bottom:1px solid #C9A55C}

@@ -198,6 +198,14 @@ function signatureBlocks(sigPageEl: Element): Paragraph[] {
           children: [new TextRun({ text: (child.textContent || '').trim(), bold: true, font: HEADING_FONT, size: pt(11), color: NAVY } as any)],
         } as any)
       );
+    } else if (cls.includes('sig-entity')) {
+      out.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 220 },
+          children: runsFrom(child, { font: BODY_FONT, size: pt(9), color: '000000' }),
+        } as any)
+      );
     } else if (cls.includes('sig-field')) {
       out.push(
         new Paragraph({

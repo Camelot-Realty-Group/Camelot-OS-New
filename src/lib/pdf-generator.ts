@@ -143,6 +143,17 @@ function pdfOptions(filename: string, isSlideDeck: boolean) {
       logging: false,
       imageTimeout: 12000,
       removeContainer: true,
+      // The wrapper is captured off-screen via position:fixed + a large
+      // negative left offset. html2canvas's default behavior compensates
+      // for the page's current scroll position when it clones the DOM,
+      // which double-counts against a fixed-position element and shifts
+      // the rendered content entirely outside the captured canvas —
+      // producing a structurally valid but visually blank PDF whenever the
+      // page has been scrolled before Generate is clicked (the normal
+      // case, since the button sits below the fold). Pinning scrollX/Y to
+      // 0 here neutralizes that compensation.
+      scrollX: 0,
+      scrollY: 0,
     },
     jsPDF: { unit: 'in', format: 'letter', orientation: isSlideDeck ? 'landscape' : 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] },

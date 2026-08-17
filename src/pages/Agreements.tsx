@@ -738,10 +738,15 @@ export default function Agreements() {
         {/* SECTION: Client / Parties */}
         <div className="p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Client (Owner)</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-3">
             <input type="text" placeholder="Client name (e.g., Jose Ramon Tur)" value={input.clientName} onChange={e => update({ clientName: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
             <input type="text" placeholder="Entity name (if different)" value={input.clientEntityName} onChange={e => update({ clientEntityName: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
           </div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <input type="text" placeholder="Client address" value={input.clientAddress || ''} onChange={e => update({ clientAddress: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+            <input type="text" placeholder="Client phone" value={input.clientPhone || ''} onChange={e => update({ clientPhone: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
+          </div>
+          <input type="email" placeholder="Client email" value={input.clientEmail || ''} onChange={e => update({ clientEmail: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-camelot-gold/50" />
         </div>
 
         {/* SECTION: Property Photos + Supporting Documents */}

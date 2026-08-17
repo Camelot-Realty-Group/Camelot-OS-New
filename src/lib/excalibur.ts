@@ -29,6 +29,9 @@ export interface AgreementInput {
   // Parties
   clientName: string;
   clientEntityName: string;
+  clientAddress?: string;
+  clientPhone?: string;
+  clientEmail?: string;
   propertyAddress: string;
   propertyCity: string;
   propertyState: string;
@@ -66,6 +69,9 @@ export const DEFAULT_INPUT: AgreementInput = {
   assetClass: 'rental',
   clientName: '',
   clientEntityName: '',
+  clientAddress: '',
+  clientPhone: '',
+  clientEmail: '',
   propertyAddress: '',
   propertyCity: 'New York',
   propertyState: 'NY',

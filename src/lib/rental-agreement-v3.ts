@@ -162,8 +162,8 @@ body{font-family:Georgia,'Times New Roman',serif;color:#221F1A;font-size:12px;li
 h1.title{font-size:18px;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:8px 0 12px;text-transform:uppercase}
 
 /* Article headings - CENTERED and DARK GOLD */
-h2.art{font-size:13px;font-weight:700;color:#4A3728;text-align:center;text-transform:uppercase;letter-spacing:2px;border:none;padding:8px 0 4px;margin:16px 0 2px;page-break-after:avoid}
-h3.art-sub{font-size:12px;font-weight:700;color:#4A3728;text-align:center;letter-spacing:1px;margin:2px 0 8px;padding:0;page-break-after:avoid}
+h2.art{font-size:12px;font-weight:700;color:#8B6F47;text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:2px solid #B8960F;padding:12px 0 8px;margin:20px 0 0;page-break-after:avoid}
+h3.art-sub{font-size:11px;font-weight:700;color:#8B6F47;text-align:center;letter-spacing:0.5px;margin:4px 0 12px;padding:0;page-break-after:avoid}
 
 /* Body text */
 p.body{margin-bottom:8px;text-align:justify}
@@ -292,7 +292,8 @@ ${intelBlock}
 <div class="article-block">
 <h2 class="art">ARTICLE V</h2>
 <h3 class="art-sub">Compensation</h3>
-<p class="body"><b><u>As consideration for the Services, the Client shall pay the Agent a management fee of ${feeText}.</u></b>${annualIncreaseSentence}</p>
+<p class="body">As consideration for the Services, the Client shall pay the Agent the fees set forth herein.</p>
+<p class="body"><b>Management Fee:</b> <u>${feeText}</u>${annualIncreaseSentence}</p>
 <p class="body">${startupFeeSentence}</p>
 </div>
 
@@ -410,16 +411,15 @@ ${specialTermsArticle}
   </div>
 
   <div class="sig-party">CLIENT</div>
-  <div class="sig-line"></div>
-  <div class="sig-field"><b>Name/Title:</b> ${clientDisplay}</div>
+  <div class="sig-field"><b>Name:</b> ____________________________</div>
+  <div class="sig-field"><b>Title:</b> ____________________________</div>
   <div class="sig-field"><b>Date:</b> ____________________________</div>
 
   <div class="sig-rule"></div>
 
   <div class="sig-party">AGENT</div>
-  <div class="sig-line"></div>
-  <div class="sig-field"><b>Name/Title:</b> David A. Goldoff, President</div>
-  <div class="sig-field"><b>By:</b> Camelot Property Management Services Corp.</div>
+  <div class="sig-field"><b>Name:</b> ____________________________</div>
+  <div class="sig-field"><b>Title:</b> ____________________________</div>
   <div class="sig-field"><b>Date:</b> ____________________________</div>
 </div>
 

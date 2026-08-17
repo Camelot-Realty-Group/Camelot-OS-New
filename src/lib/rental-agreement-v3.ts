@@ -147,7 +147,7 @@ body{font-family:Georgia,'Times New Roman',serif;color:#221F1A;font-size:12px;li
 @media screen{
   .page{margin:20px auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);background:white}
 }
-.page{width:8.5in;height:11in;padding:0.75in;margin:0 auto;border:2px solid #C9A55C;page-break-after:always;position:relative;overflow:hidden}
+.page{width:8.5in;height:11in;padding:0.75in 0.75in 1.2in 0.75in;margin:20px auto;border:2px solid #B8960F;page-break-after:always;position:relative;overflow:hidden;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
 .page-content{position:relative;z-index:1}
 
 /* Letterhead */
@@ -220,10 +220,10 @@ td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
 .article-block{page-break-inside:avoid}
 
 /* Footer */
-.pf{position:fixed;bottom:0.5in;left:0;right:0;height:0.5in;padding:6px 0.75in;border-top:1px solid #b7b3aa;text-align:center;font-size:8px;color:#6B675F;display:flex;justify-content:space-between;align-items:center}
-.pf-left{text-align:left}
+.pf{position:absolute;bottom:0.5in;left:0.75in;right:0.75in;height:0.5in;padding:6px 0;border-top:1px solid #B8960F;text-align:center;font-size:8px;color:#6B675F;display:flex;justify-content:space-between;align-items:center}
+.pf-left{text-align:left;flex:0 0 40%}
 .pf-center{flex:1;text-align:center}
-.pf-right{text-align:right}
+.pf-right{text-align:right;flex:0 0 auto}
 .pf-conf{font-size:7px;color:#9b968b}
 
 @media print{
@@ -389,6 +389,11 @@ ${intelBlock}
 ${specialTermsArticle}
 
 </div><!-- .page-content -->
+<div class="pf">
+  <div class="pf-left">${CAMELOT_OFFICE.address} · ${CAMELOT_OFFICE.phone}</div>
+  <div class="pf-center"><span class="pf-conf">CONFIDENTIAL — ${version} — ${dateStr}</span></div>
+  <div class="pf-right">Page 1</div>
+</div>
 </div><!-- .page -->
 
 <!-- SIGNATURE PAGE -->
@@ -424,6 +429,11 @@ ${specialTermsArticle}
 </div>
 
 </div><!-- .page-content -->
+<div class="pf">
+  <div class="pf-left">${CAMELOT_OFFICE.address} · ${CAMELOT_OFFICE.phone}</div>
+  <div class="pf-center"><span class="pf-conf">CONFIDENTIAL — ${version} — ${dateStr}</span></div>
+  <div class="pf-right">Page 2</div>
+</div>
 </div><!-- .page -->
 
 <!-- SCHEDULE A -->
@@ -452,29 +462,14 @@ ${specialTermsArticle}
 </table>
 
 </div><!-- .page-content -->
+<div class="pf">
+  <div class="pf-left">${CAMELOT_OFFICE.address} · ${CAMELOT_OFFICE.phone}</div>
+  <div class="pf-center"><span class="pf-conf">CONFIDENTIAL — ${version} — ${dateStr}</span></div>
+  <div class="pf-right">Page 3</div>
+</div>
 </div><!-- .page -->
 
-<!-- FOOTER ON ALL PAGES -->
-<div class="pf">
-  <div class="pf-left">${CAMELOT_OFFICE.address} · ${CAMELOT_OFFICE.phone} · ${CAMELOT_OFFICE.email}</div>
-  <div class="pf-center"><span class="pf-conf">CONFIDENTIAL — ${version} — ${dateStr}</span></div>
-  <div class="pf-right"><span id="page-num">Page 1</span></div>
-</div>
 
-<script>
-if (typeof window !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    const pages = document.querySelectorAll('.page');
-    pages.forEach((page, idx) => {
-      const footer = page.cloneNode(false);
-      const footerDiv = document.createElement('div');
-      footerDiv.className = 'pf';
-      footerDiv.innerHTML = \`<div class="pf-left">${CAMELOT_OFFICE.address} · ${CAMELOT_OFFICE.phone} · ${CAMELOT_OFFICE.email}</div><div class="pf-center"><span class="pf-conf">CONFIDENTIAL — ${version} — ${dateStr}</span></div><div class="pf-right">Page \${idx + 1}</div>\`;
-      page.appendChild(footerDiv);
-    });
-  });
-}
-</script>
 
 </body>
 </html>`;

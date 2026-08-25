@@ -174,7 +174,7 @@ function buildPdfFrame(html: string): Promise<{ frame: HTMLIFrameElement; target
   });
 }
 
-function pdfOptions(filename: string, isSlideDeck: boolean) {
+function pdfOptions(filename: string, isSlideDeck: boolean, windowWidth: number, windowHeight: number) {
   return ({
     margin: 0,
     filename: filename.endsWith('.pdf') ? filename : `${filename.replace(/\.(html|pdf)$/i, '')}.pdf`,
@@ -186,19 +186,73 @@ function pdfOptions(filename: string, isSlideDeck: boolean) {
       logging: false,
       imageTimeout: 12000,
       removeContainer: true,
-      // Belt-and-suspenders: the real fix for the blank-PDF bug is that the
-      // target now lives in its own isolated iframe document (see
-      // buildPdfFrame) rather than being injected into the live app's DOM,
-      // so html2canvas never has to clone the full dashboard shell. That
-      // iframe document is always freshly created and unscrolled, but
-      // pinning scrollX/Y to 0 costs nothing and guards against any future
-      // regression back toward capturing an element that isn't at (0,0).
+      // Belt-and-suspenders: the target lives in its own isolated iframe
+      // document (see buildPdfFrame) rather than being injected into the
+      // live app's DOM, so html2canvas never has to clone the full
+      // dashboard shell. That iframe document is always freshly created
+      // and unscrolled, but pinning scrollX/Y to 0 costs nothing.
       scrollX: 0,
       scrollY: 0,
+      // Explicitly pin the capture viewport to the iframe's own
+      // contentWindow dimensions. Without this, html2canvas can fall back
+      // to measuring against the OUTER page's window in some browser/
+      // iframe-timing combinations, which produces a well-formed but
+      // empty (~3KB, single stray line-width operator) PDF — no thrown
+      // error, no failed network request, just a silently short-circuited
+      // capture. This was the actual root cause of the recurring
+      // blank-agreement-PDF bug, not the earlier <input>/@import theories.
+      windowWidth,
+      windowHeight,
     },
     jsPDF: { unit: 'in', format: 'letter', orientation: isSlideDeck ? 'landscape' : 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] },
   }) as any;
+}
+
+/**
+ * Waits for the iframe's fonts to finish loading, every <img> to finish
+ * loading, and two animation-frame ticks to elapse so the browser has
+ * actually completed a layout + paint pass before html2canvas measures
+ * and rasterizes the document. Setting frame.style.height synchronously
+ * inside buildPdfFrame's onload handler does not guarantee the browser
+ * has reflowed/painted by the time the very next microtask runs, and
+ * html2canvas capturing mid-reflow is the likely source of the silent
+ * blank-page failures seen in production (no thrown error, no failed
+ * request — just an empty capture).
+ */
+async function waitForFrameSettled(frame: HTMLIFrameElement): Promise<void> {
+  const win = frame.contentWindow;
+  const doc = frame.contentDocument;
+  if (!win || !doc) return;
+
+  try {
+    await (doc as any).fonts?.ready;
+  } catch {
+    // ignore font-loading errors; proceed with best-effort capture
+  }
+
+  const images = Array.from(doc.querySelectorAll('img'));
+  await Promise.all(
+    images.map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+          img.addEventListener('load', () => resolve(), { once: true });
+          img.addEventListener('error', () => resolve(), { once: true });
+          setTimeout(() => resolve(), 8000);
+        })
+    )
+  );
+
+  // Re-measure and re-apply height now that images/fonts have settled —
+  // font swaps and image intrinsic sizes can change scrollHeight after
+  // the initial measurement in buildPdfFrame.
+  const fullHeight = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 1);
+  frame.style.height = `${fullHeight}px`;
+
+  const nextFrame = () => new Promise<void>((resolve) => win.requestAnimationFrame(() => resolve()));
+  await nextFrame();
+  await nextFrame();
 }
 
 /** Download an HTML report as a PDF using the browser-side renderer. */
@@ -206,7 +260,9 @@ export async function downloadAsPDF(html: string, filename: string): Promise<voi
   const html2pdf = (await import('html2pdf.js')).default;
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
   try {
-    await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck)).save();
+    await waitForFrameSettled(frame);
+    const win = frame.contentWindow!;
+    await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).save();
   } finally {
     frame.remove();
   }
@@ -221,7 +277,9 @@ export async function generatePdfBase64(html: string, filename: string): Promise
   const html2pdf = (await import('html2pdf.js')).default;
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
   try {
-    const blob: Blob = await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck)).outputPdf('blob');
+    await waitForFrameSettled(frame);
+    const win = frame.contentWindow!;
+    const blob: Blob = await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob');
     const dataUrl = await blobToDataUrl(blob);
     // Strip the "data:application/pdf;base64," prefix — Resend wants the raw base64 payload.
     const commaIndex = dataUrl.indexOf(',');

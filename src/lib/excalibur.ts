@@ -110,7 +110,7 @@ export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
 // Constants
 // ============================================================
 
-const CAMELOT = {
+export const CAMELOT = {
   name: 'CAMELOT PROPERTY MANAGEMENT SERVICES CORP.',
   shortName: 'Camelot Property Management Services Corp.',
   address: '57 West 57th Street, Suite 410, New York, NY 10019',

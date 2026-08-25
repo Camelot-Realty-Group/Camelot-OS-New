@@ -17,7 +17,13 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Render's own build (render.yaml) uses `npm install`, not `npm ci`,
+        # because package-lock.json fell out of sync with package.json when
+        # the `docx` dependency was added (see 7a5c721e). `npm ci` requires
+        # exact lockfile sync and has been failing on every push since then
+        # (main has been red since 2026-08-17). Matching Render's own install
+        # command keeps CI actually representative of what gets deployed.
+        run: npm install
 
       - name: Typecheck + build (same as Render)
         run: npm run build

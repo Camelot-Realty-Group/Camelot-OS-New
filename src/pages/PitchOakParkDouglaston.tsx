@@ -12,7 +12,7 @@
  * wired into the Scout prospecting/outreach pipeline.
  */
 
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import toast from 'react-hot-toast';
 import {
@@ -40,6 +40,9 @@ import {
   OAK_PARK_COORDS,
   OAK_PARK_QUEENS_PORTFOLIO,
   OAK_PARK_QUEENS_PORTFOLIO_NOTE,
+  OAK_PARK_TESTIMONIALS,
+  OAK_PARK_ANNUAL_CALENDAR,
+  OAK_PARK_ANNUAL_CALENDAR_INTRO,
   CAMELOT_COMPANY_FACTS,
   oakParkAsBuilding,
   oakParkAgreementInputFor,
@@ -79,10 +82,17 @@ const STOCK = {
   valetDriveway: `${STOCK_BASE}/valet-driveway.jpg`,
 };
 
-const GOLD = '#C9A55C';
-const NAVY = '#1B2A4A';
-const IVORY = '#F8F5EF';
-const CHARCOAL = '#2A2621';
+// Palette matches the Camelot — A Journal of Considered Ownership brochure
+// (camelot-whiteglove) design system: cream paper, ink text, brass/gold
+// accent. Names kept for minimal diff even though "NAVY" is now ink-black.
+const GOLD = '#9c7c46';
+const NAVY = '#16140f';
+const IVORY = '#f6f3ec';
+const CHARCOAL = '#16140f';
+const MUTED = '#6e6858';
+const FAINT = '#a39c88';
+const DIVIDER = '#d9d2c2';
+const PAPER = '#faf8f3';
 
 // ============================================================
 // Small shared bits
@@ -140,6 +150,23 @@ function Rule() {
 export default function PitchOakParkDouglaston() {
   const [downloading, setDownloading] = useState<string | null>(null);
 
+  // Load the same Cormorant Garamond (display) + General Sans (body) fonts
+  // used by the Camelot — A Journal of Considered Ownership brochure, scoped
+  // to this page only (does not touch the app-wide Tailwind font config).
+  useEffect(() => {
+    const existing = document.getElementById('oak-park-editorial-fonts');
+    if (existing) return;
+    const link = document.createElement('link');
+    link.id = 'oak-park-editorial-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500;1,600&display=swap';
+    document.head.appendChild(link);
+    const link2 = document.createElement('link');
+    link2.rel = 'stylesheet';
+    link2.href = 'https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap';
+    document.head.appendChild(link2);
+  }, []);
+
   const handleDownloadProposal = useCallback(async () => {
     setDownloading('proposal');
     try {
@@ -162,7 +189,7 @@ export default function PitchOakParkDouglaston() {
       toast.success('Proposal PDF downloaded');
     } catch (err) {
       console.error(err);
-      toast.error('Could not generate the proposal PDF');
+      toast.error(err instanceof Error ? err.message : 'Could not generate the proposal PDF');
     } finally {
       setDownloading(null);
     }
@@ -182,7 +209,7 @@ export default function PitchOakParkDouglaston() {
       toast.success('Transition Plan downloaded');
     } catch (err) {
       console.error(err);
-      toast.error('Could not generate the Transition Plan');
+      toast.error(err instanceof Error ? err.message : 'Could not generate the Transition Plan');
     } finally {
       setDownloading(null);
     }
@@ -204,7 +231,7 @@ export default function PitchOakParkDouglaston() {
       toast.success(`${entity.shortLabel} agreement (${format.toUpperCase()}) downloaded`);
     } catch (err) {
       console.error(err);
-      toast.error('Could not generate the management agreement');
+      toast.error(err instanceof Error && format === 'pdf' ? err.message : 'Could not generate the management agreement');
     } finally {
       setDownloading(null);
     }
@@ -212,9 +239,29 @@ export default function PitchOakParkDouglaston() {
 
   return (
     <div
+      id="oak-park-editorial"
       className="fixed inset-0 z-[60] overflow-y-auto font-sans"
       style={{ backgroundColor: IVORY, color: CHARCOAL }}
     >
+      <style>{`
+        #oak-park-editorial .font-heading {
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-weight: 500;
+        }
+        #oak-park-editorial .font-sans {
+          font-family: 'General Sans', Inter, 'Helvetica Neue', sans-serif;
+        }
+        #oak-park-editorial {
+          font-family: 'General Sans', Inter, 'Helvetica Neue', sans-serif;
+        }
+      `}</style>
+
+      {/* ============ MASTHEAD ============ */}
+      <div className="flex items-center justify-between px-6 md:px-10 py-3 text-[11px] font-sans uppercase tracking-[0.15em] border-b" style={{ borderColor: DIVIDER, color: MUTED }}>
+        <span>Camelot — A Journal of Considered Ownership</span>
+        <span>Private Board Edition · Oak Park at Douglaston · Queens</span>
+      </div>
+
       {/* ============ HERO ============ */}
       <section className="relative min-h-[92vh] flex items-end">
         <img
@@ -224,7 +271,7 @@ export default function PitchOakParkDouglaston() {
         />
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(180deg, rgba(27,42,74,0.15) 0%, rgba(20,18,15,0.88) 100%)' }}
+          style={{ background: 'linear-gradient(180deg, rgba(22,20,15,0.12) 0%, rgba(22,20,15,0.90) 100%)' }}
         />
         <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pb-16 md:pb-24 w-full">
           <p className="font-sans text-xs font-semibold uppercase tracking-[0.25em] mb-4" style={{ color: GOLD }}>
@@ -249,13 +296,13 @@ export default function PitchOakParkDouglaston() {
       <div className="max-w-5xl mx-auto px-6 md:px-10">
 
         {/* ============ WHAT WE HEARD ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>What we heard</SectionLabel>
           <SectionTitle>Before we proposed anything, we listened.</SectionTitle>
           <Rule />
           <div className="md:float-right md:ml-8 md:w-72 mb-6">
             <img src={STOCK.boardMeeting} alt="Board meeting" className="w-full h-48 object-cover" />
-            <p className="text-xs italic mt-2" style={{ color: '#9b958a' }}>Representative image — not the actual Oak Park Board</p>
+            <p className="text-xs italic mt-2" style={{ color: '#a39c88' }}>Representative image — not the actual Oak Park Board</p>
           </div>
           <p className="mb-8 text-lg leading-relaxed" style={{ color: NAVY }}>
             Board members Judy, Tony, and Juil described specific, recurring gaps in day-to-day management —
@@ -271,13 +318,13 @@ export default function PitchOakParkDouglaston() {
               </li>
             ))}
           </ul>
-          <p className="mt-8 text-sm italic" style={{ color: '#6B6560' }}>
+          <p className="mt-8 text-sm italic" style={{ color: '#6e6858' }}>
             {OAK_PARK_BOARD_CONTACTS.openItem}
           </p>
         </section>
 
         {/* ============ THE CAMELOT SOLUTION ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>The Camelot solution</SectionLabel>
           <SectionTitle>A direct answer to each gap above.</SectionTitle>
           <Rule />
@@ -292,14 +339,14 @@ export default function PitchOakParkDouglaston() {
             ].map((item) => (
               <div key={item.t} className="border-l-2 pl-5" style={{ borderColor: GOLD }}>
                 <h3 className="font-heading text-xl mb-2" style={{ color: NAVY }}>{item.t}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#4a4640' }}>{item.d}</p>
+                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{item.d}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* ============ TEAM ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Your dedicated team</SectionLabel>
           <SectionTitle>The people who will actually be here.</SectionTitle>
           <Rule />
@@ -312,12 +359,12 @@ export default function PitchOakParkDouglaston() {
                   src={member.photo}
                   alt={member.person.value}
                   className="w-full aspect-square object-cover rounded-full mb-3 border"
-                  style={{ borderColor: '#EDE8DE' }}
+                  style={{ borderColor: '#e5decc' }}
                 />
                 <p className="font-heading text-base" style={{ color: NAVY }}>{member.person.value}</p>
                 <p className="font-sans text-[11px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: GOLD }}>{member.role}</p>
                 {member.bio && (
-                  <p className="text-xs leading-relaxed mt-2" style={{ color: '#6b665c' }}>{member.bio}</p>
+                  <p className="text-xs leading-relaxed mt-2" style={{ color: '#6e6858' }}>{member.bio}</p>
                 )}
               </div>
             ))}
@@ -325,29 +372,29 @@ export default function PitchOakParkDouglaston() {
 
           <div className="space-y-6">
             {OAK_PARK_TEAM.map((member) => (
-              <div key={member.role} className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-6 py-4 border-b" style={{ borderColor: '#EDE8DE' }}>
+              <div key={member.role} className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-6 py-4 border-b" style={{ borderColor: '#e5decc' }}>
                 <div className="md:w-56 shrink-0">
                   <p className="font-sans text-xs font-semibold uppercase tracking-wider" style={{ color: GOLD }}>{member.role}</p>
                   <p className="font-heading text-lg" style={{ color: NAVY }}>
                     <FactValue fact={member.person} />
                   </p>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: '#4a4640' }}>{member.commitment}</p>
+                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{member.commitment}</p>
               </div>
             ))}
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mt-10 items-center">
             <img src={STOCK.pmSiteVisit} alt="Property manager site visit" className="w-full h-40 object-cover md:col-span-1" />
-            <p className="text-sm leading-relaxed md:col-span-2" style={{ color: '#4a4640' }}>
+            <p className="text-sm leading-relaxed md:col-span-2" style={{ color: '#6e6858' }}>
               Weekly site visits mean someone is actually looking at the mechanical rooms, not just the common areas —
               the same standard Tim Kelly holds across the portfolio.
-              <span className="block text-xs italic mt-1" style={{ color: '#9b958a' }}>Representative image — not an actual Oak Park site visit</span>
+              <span className="block text-xs italic mt-1" style={{ color: '#a39c88' }}>Representative image — not an actual Oak Park site visit</span>
             </p>
           </div>
 
-          <div className="mt-10 pt-6 border-t flex flex-col md:flex-row md:items-center md:justify-between gap-3" style={{ borderColor: '#EDE8DE' }}>
-            <p className="text-sm leading-relaxed" style={{ color: '#4a4640' }}>{OAK_PARK_MARKETING_NOTE}</p>
+          <div className="mt-10 pt-6 border-t flex flex-col md:flex-row md:items-center md:justify-between gap-3" style={{ borderColor: '#e5decc' }}>
+            <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{OAK_PARK_MARKETING_NOTE}</p>
             <a
               href={OAK_PARK_ROSTER_URL}
               target="_blank"
@@ -361,7 +408,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ WEEKLY ON-SITE MANAGEMENT (with amenity photos) ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Weekly on-site management</SectionLabel>
           <SectionTitle>The community, as it actually is today.</SectionTitle>
           <Rule />
@@ -375,20 +422,20 @@ export default function PitchOakParkDouglaston() {
             with a pool and pool house, tennis court, a fenced multi-sport court, a shared fitness center, and a spa/hot tub —
             amenities worth actively maintaining, not just listing on a fact sheet.
           </p>
-          <div className="grid md:grid-cols-3 gap-4 items-center border-t pt-8" style={{ borderColor: '#EDE8DE' }}>
+          <div className="grid md:grid-cols-3 gap-4 items-center border-t pt-8" style={{ borderColor: '#e5decc' }}>
             <img src={STOCK.rooftopLandscape} alt="Grounds and landscape maintenance" className="w-full h-40 object-cover" />
             <div className="md:col-span-2">
-              <p className="text-sm leading-relaxed" style={{ color: '#4a4640' }}>
+              <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>
                 Grounds and landscape care get the same active-maintenance standard we apply everywhere —
                 seasonal upkeep, not a call to the super only after a complaint.
               </p>
-              <p className="text-xs italic mt-2" style={{ color: '#9b958a' }}>Representative image — not the actual Oak Park grounds crew</p>
+              <p className="text-xs italic mt-2" style={{ color: '#a39c88' }}>Representative image — not the actual Oak Park grounds crew</p>
             </div>
           </div>
         </section>
 
         {/* ============ FINANCIAL REPORTING ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Financial reporting</SectionLabel>
           <SectionTitle>One accountable lead, three clean closes.</SectionTitle>
           <Rule />
@@ -399,23 +446,32 @@ export default function PitchOakParkDouglaston() {
             narrative with an action list. Contractual delivery by the 20th calendar day after month-end; internal target
             the 15th.
           </p>
-          <p className="text-xs italic" style={{ color: '#6B6560' }}>
+          <p className="text-xs italic" style={{ color: '#6e6858' }}>
             Sample dashboard figures shown to Boards during onboarding are illustrative only and are never Oak Park's
             actual financial data unless explicitly labeled as such.
           </p>
         </section>
 
         {/* ============ ACCOUNTING, TECHNOLOGY & SOFTWARE PROVIDERS ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Accounting, technology &amp; software providers</SectionLabel>
           <SectionTitle>The systems behind the management.</SectionTitle>
           <Rule />
           <div className="grid md:grid-cols-2 gap-5 mb-10">
             {OAK_PARK_SOFTWARE_PROVIDERS.map((p) => (
-              <div key={p.name} className="p-5 border" style={{ borderColor: '#DDD8D0' }}>
+              <div key={p.name} className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+                <div className="h-9 flex items-center mb-3">
+                  {p.logo ? (
+                    <img src={p.logo} alt={`${p.name} logo`} className="max-h-full max-w-[150px] object-contain" />
+                  ) : p.logoIsWordmark ? (
+                    <span className="font-heading text-xl tracking-wide" style={{ color: NAVY }}>
+                      CAMELOT <span style={{ color: GOLD }}>OS</span>
+                    </span>
+                  ) : null}
+                </div>
                 <p className="font-heading text-lg mb-0.5" style={{ color: NAVY }}>{p.name}</p>
                 <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{p.role}</p>
-                <p className="text-sm leading-relaxed" style={{ color: '#4a4640' }}>{p.description}</p>
+                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{p.description}</p>
               </div>
             ))}
           </div>
@@ -423,27 +479,30 @@ export default function PitchOakParkDouglaston() {
           <div className="grid md:grid-cols-2 gap-6 mb-10 items-center">
             <img src={STOCK.packageRoom} alt="Package handling" className="w-full h-56 object-cover" />
             <div>
+              <div className="h-7 flex items-center mb-3">
+                <span className="font-heading text-2xl italic tracking-wide lowercase" style={{ color: GOLD }}>select</span>
+              </div>
               <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>
                 A month of {OAK_PARK_SELECT_PARTNERSHIP.partnerName}, on us.
               </p>
-              <p className="text-sm leading-relaxed mb-2" style={{ color: '#4a4640' }}>{OAK_PARK_SELECT_PARTNERSHIP.whatTheyDo}</p>
-              <p className="text-sm leading-relaxed mb-2" style={{ color: '#4a4640' }}>{OAK_PARK_SELECT_PARTNERSHIP.offer}</p>
-              <p className="text-xs italic" style={{ color: '#6B6560' }}>{OAK_PARK_SELECT_PARTNERSHIP.disclosure}</p>
+              <p className="text-sm leading-relaxed mb-2" style={{ color: '#6e6858' }}>{OAK_PARK_SELECT_PARTNERSHIP.whatTheyDo}</p>
+              <p className="text-sm leading-relaxed mb-2" style={{ color: '#6e6858' }}>{OAK_PARK_SELECT_PARTNERSHIP.offer}</p>
+              <p className="text-xs italic" style={{ color: '#6e6858' }}>{OAK_PARK_SELECT_PARTNERSHIP.disclosure}</p>
               <a href={OAK_PARK_SELECT_PARTNERSHIP.partnerUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold uppercase tracking-wider" style={{ color: GOLD }}>
                 {OAK_PARK_SELECT_PARTNERSHIP.partnerUrl.replace('https://www.', '')} →
               </a>
             </div>
           </div>
 
-          <div className="border-t pt-8" style={{ borderColor: '#EDE8DE' }}>
+          <div className="border-t pt-8" style={{ borderColor: '#e5decc' }}>
             <p className="font-heading text-lg mb-4" style={{ color: NAVY }}>Front-desk equipment &amp; training we’d ask the Board to approve</p>
             <div className="grid md:grid-cols-2 gap-3">
               {OAK_PARK_EQUIPMENT_REQUESTS.map((eq) => (
-                <div key={eq.item} className="flex gap-3 py-2 border-b" style={{ borderColor: '#EDE8DE' }}>
+                <div key={eq.item} className="flex gap-3 py-2 border-b" style={{ borderColor: '#e5decc' }}>
                   <span style={{ color: GOLD }}>—</span>
                   <div>
                     <p className="text-sm font-semibold" style={{ color: NAVY }}>{eq.item}</p>
-                    <p className="text-xs leading-relaxed" style={{ color: '#6b665c' }}>{eq.purpose}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: '#6e6858' }}>{eq.purpose}</p>
                   </div>
                 </div>
               ))}
@@ -451,12 +510,12 @@ export default function PitchOakParkDouglaston() {
           </div>
 
           {OAK_PARK_TECH_NOTES.map((n, i) => (
-            <p key={i} className="text-sm italic mt-6" style={{ color: '#6B6560' }}>{n}</p>
+            <p key={i} className="text-sm italic mt-6" style={{ color: '#6e6858' }}>{n}</p>
           ))}
         </section>
 
         {/* ============ RESIDENT EXPERIENCE ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Resident experience</SectionLabel>
           <SectionTitle>Life inside the community.</SectionTitle>
           <Rule />
@@ -471,7 +530,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ COST OPTIMIZATION ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Cost optimization</SectionLabel>
           <SectionTitle>Benchmarked, not guessed.</SectionTitle>
           <Rule />
@@ -479,7 +538,7 @@ export default function PitchOakParkDouglaston() {
             Vendor contracts are benchmarked against Camelot's {CAMELOT_COMPANY_FACTS.buildings}-building portfolio.
             Where a credible savings case exists, we rebid — we don't manufacture savings to justify a fee.
           </p>
-          <p className="text-sm leading-relaxed p-4 border" style={{ borderColor: GOLD, color: '#4a4640' }}>
+          <p className="text-sm leading-relaxed p-4 border" style={{ borderColor: GOLD, color: '#6e6858' }}>
             An optional shared-savings program is available at 30% of verified first-year realized net hard-dollar
             savings — but only under a separate written agreement with a documented baseline and measurement period.
             It is never assumed or bundled into the base proposal below.
@@ -487,7 +546,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ QUEENS PORTFOLIO PRESENCE ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Our presence in Queens</SectionLabel>
           <SectionTitle>We already operate in this borough.</SectionTitle>
           <Rule />
@@ -513,24 +572,24 @@ export default function PitchOakParkDouglaston() {
               </thead>
               <tbody>
                 {OAK_PARK_QUEENS_PORTFOLIO.map((b) => (
-                  <tr key={b.entity + b.address} className="border-b" style={{ borderColor: '#EDE8DE' }}>
+                  <tr key={b.entity + b.address} className="border-b" style={{ borderColor: '#e5decc' }}>
                     <td className="py-2 pr-4">{b.entity}</td>
-                    <td className="py-2 pr-4" style={{ color: '#4a4640' }}>{b.address}</td>
-                    <td className="py-2 text-right" style={{ color: '#4a4640' }}>{b.units}</td>
-                    <td className="py-2 text-right whitespace-nowrap" style={{ color: '#4a4640' }}>{b.distanceMiles} mi</td>
+                    <td className="py-2 pr-4" style={{ color: '#6e6858' }}>{b.address}</td>
+                    <td className="py-2 text-right" style={{ color: '#6e6858' }}>{b.units}</td>
+                    <td className="py-2 text-right whitespace-nowrap" style={{ color: '#6e6858' }}>{b.distanceMiles} mi</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-xs" style={{ color: '#9b958a' }}>
+          <p className="mt-4 text-xs" style={{ color: '#a39c88' }}>
             Source: Camelot Realty Group managed-buildings roster (internal, Aug 2026). Distances are straight-line,
             geocoded via OpenStreetMap — not drive time.
           </p>
         </section>
 
         {/* ============ TRANSITION ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Transition</SectionLabel>
           <SectionTitle>A 60–90 day plan, not a name change on an invoice.</SectionTitle>
           <Rule />
@@ -543,7 +602,7 @@ export default function PitchOakParkDouglaston() {
                 </div>
                 <ul className="space-y-1.5 pl-1">
                   {phase.actions.map((a, i) => (
-                    <li key={i} className="text-sm leading-relaxed flex gap-2" style={{ color: '#4a4640' }}>
+                    <li key={i} className="text-sm leading-relaxed flex gap-2" style={{ color: '#6e6858' }}>
                       <span style={{ color: GOLD }}>—</span> {a}
                     </li>
                   ))}
@@ -553,22 +612,47 @@ export default function PitchOakParkDouglaston() {
           </div>
         </section>
 
+        {/* ============ ANNUAL OPERATING CALENDAR ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Annual operating calendar</SectionLabel>
+          <SectionTitle>The dates that matter, tracked before they become urgent.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            {OAK_PARK_ANNUAL_CALENDAR_INTRO}
+          </p>
+          <div className="grid md:grid-cols-2 gap-6">
+            {OAK_PARK_ANNUAL_CALENDAR.map((t) => (
+              <div key={t.track} className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+                <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{t.track}</p>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: '#6e6858' }}>{t.description}</p>
+                <ul className="space-y-1">
+                  {t.examples.map((ex, i) => (
+                    <li key={i} className="text-xs leading-relaxed flex gap-2" style={{ color: '#6e6858' }}>
+                      <span style={{ color: GOLD }}>—</span> {ex}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ============ MANAGEMENT PROPOSAL ============ */}
-        <section id="proposal" className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section id="proposal" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Management proposal</SectionLabel>
           <SectionTitle>The fee, by entity.</SectionTitle>
           <Rule />
           <div className="grid md:grid-cols-3 gap-4 mb-8">
             {OAK_PARK_ENTITIES.map((entity) => (
-              <div key={entity.key} className="p-5 border" style={{ borderColor: '#DDD8D0' }}>
+              <div key={entity.key} className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
                 <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{entity.shortLabel}</p>
-                <p className="text-sm mb-3" style={{ color: '#6B6560' }}>
+                <p className="text-sm mb-3" style={{ color: '#6e6858' }}>
                   <FactValue fact={entity.units} format={(v) => `${v} units`} />
                 </p>
                 <p className="font-heading text-2xl" style={{ color: GOLD }}>
                   ${entity.monthlyFeePerUnit}<span className="text-sm font-sans">/unit/mo</span>
                 </p>
-                <p className="text-sm mt-1" style={{ color: '#4a4640' }}>
+                <p className="text-sm mt-1" style={{ color: '#6e6858' }}>
                   <FactValue fact={entity.monthlyFeeTotal} format={(v) => `${formatCurrency(v as number)}/mo total`} />
                 </p>
               </div>
@@ -592,16 +676,16 @@ export default function PitchOakParkDouglaston() {
               </thead>
               <tbody>
                 {OAK_PARK_ANCILLARY_FEES.map((row) => (
-                  <tr key={row.service} className="border-b" style={{ borderColor: '#EDE8DE' }}>
+                  <tr key={row.service} className="border-b" style={{ borderColor: '#e5decc' }}>
                     <td className="py-2 pr-4">{row.service}</td>
-                    <td className="py-2 text-right whitespace-nowrap" style={{ color: '#4a4640' }}>{row.fee}</td>
+                    <td className="py-2 text-right whitespace-nowrap" style={{ color: '#6e6858' }}>{row.fee}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <p className="text-xs mb-6" style={{ color: '#6B6560' }}>
+          <p className="text-xs mb-6" style={{ color: '#6e6858' }}>
             Owner-paid HOA/common charge (third-party data, from a public MLS listing for a unit in the community) —
             ${OAK_PARK_MARKET_COMP.hoaMonthlyCommonCharge}/month, covering {OAK_PARK_MARKET_COMP.hoaCommonChargeIncludes.join(', ').toLowerCase()}.
             This is separate from, and unrelated to, the Camelot management fee above.
@@ -618,7 +702,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ MANAGEMENT AGREEMENT ============ */}
-        <section id="agreement" className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section id="agreement" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Management agreement</SectionLabel>
           <SectionTitle>One agreement per legal entity.</SectionTitle>
           <Rule />
@@ -629,10 +713,10 @@ export default function PitchOakParkDouglaston() {
           </p>
           <div className="space-y-4">
             {OAK_PARK_ENTITIES.map((entity) => (
-              <div key={entity.key} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-5 border" style={{ borderColor: '#DDD8D0' }}>
+              <div key={entity.key} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-5 border" style={{ borderColor: '#d9d2c2' }}>
                 <div>
                   <p className="font-heading text-lg" style={{ color: NAVY }}>{entity.legalName}</p>
-                  <p className="text-xs" style={{ color: '#6B6560' }}>
+                  <p className="text-xs" style={{ color: '#6e6858' }}>
                     <FactValue fact={entity.units} format={(v) => `${v} units (working count)`} />
                   </p>
                 </div>
@@ -657,22 +741,43 @@ export default function PitchOakParkDouglaston() {
               </div>
             ))}
           </div>
-          <p className="mt-6 text-xs italic" style={{ color: '#6B6560' }}>
+          <p className="mt-6 text-xs italic" style={{ color: '#6e6858' }}>
             E-signature is not yet wired into this page. These downloads are for Board review; a signature workflow
             (DocuSign, Dropbox Sign, or Adobe Acrobat Sign) can be added once Camelot selects a provider — the
             document itself does not represent electronic acceptance as legally binding until that is in place.
           </p>
         </section>
 
+        {/* ============ TESTIMONIALS ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>What our clients say</SectionLabel>
+          <SectionTitle>Boards and owners who have made this transition.</SectionTitle>
+          <Rule />
+          <div className="grid md:grid-cols-3 gap-8">
+            {OAK_PARK_TESTIMONIALS.map((t) => (
+              <div key={t.name} className="flex flex-col">
+                <span className="font-heading text-4xl leading-none mb-2" style={{ color: GOLD }}>“</span>
+                <blockquote className="font-heading text-lg italic leading-snug mb-4 flex-1" style={{ color: NAVY }}>
+                  {t.quote}
+                </blockquote>
+                <cite className="not-italic">
+                  <span className="block font-sans text-sm font-semibold" style={{ color: NAVY }}>{t.name}</span>
+                  <span className="block font-sans text-xs" style={{ color: '#a39c88' }}>{t.description}</span>
+                </cite>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ============ SUPPORTING DOCUMENTS ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Supporting documents</SectionLabel>
           <SectionTitle>What the Board can review now — and what stays behind the portal.</SectionTitle>
           <Rule />
 
           <div className="mb-10">
             <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>Sample MDS monthly report package</p>
-            <p className="text-sm leading-relaxed mb-4" style={{ color: '#4a4640' }}>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: '#6e6858' }}>
               An illustrative sample of the monthly board reporting package MDS produces — cash flow, bank
               reconciliations, check register, and paid-invoice images — for a fictional coop (“999 Owner’s Corp”),
               not Oak Park’s actual financials. Flip through it below, or download the full PDF.
@@ -695,9 +800,9 @@ export default function PitchOakParkDouglaston() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-10">
-            <div className="p-5 border" style={{ borderColor: '#DDD8D0' }}>
+            <div className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
               <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>Transition Plan</p>
-              <p className="text-sm leading-relaxed mb-4" style={{ color: '#4a4640' }}>
+              <p className="text-sm leading-relaxed mb-4" style={{ color: '#6e6858' }}>
                 Camelot’s records-and-files checklist and 60–90 day phasing, ready for the Board to review alongside
                 the Management Proposal.
               </p>
@@ -710,9 +815,9 @@ export default function PitchOakParkDouglaston() {
                 {downloading === 'transition-plan' ? 'Generating…' : 'Download Transition Plan (PDF)'}
               </button>
             </div>
-            <div className="p-5 border" style={{ borderColor: '#DDD8D0' }}>
-              <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>Testimonials &amp; references</p>
-              <p className="text-sm leading-relaxed" style={{ color: '#4a4640' }}>{OAK_PARK_REFERENCES_NOTE}</p>
+            <div className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+              <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>References</p>
+              <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{OAK_PARK_REFERENCES_NOTE}</p>
             </div>
           </div>
 
@@ -724,13 +829,13 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ DO-NOT-GUESS / TO BE CONFIRMED ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#DDD8D0' }}>
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Open items</SectionLabel>
           <SectionTitle>What still needs to be confirmed.</SectionTitle>
           <Rule />
           <ul className="space-y-3">
             {OAK_PARK_TO_BE_CONFIRMED.map((item, i) => (
-              <li key={i} className="flex gap-3 text-sm leading-relaxed" style={{ color: '#4a4640' }}>
+              <li key={i} className="flex gap-3 text-sm leading-relaxed" style={{ color: '#6e6858' }}>
                 <span style={{ color: GOLD }}>—</span> {item}
               </li>
             ))}
@@ -743,7 +848,7 @@ export default function PitchOakParkDouglaston() {
           <h2 className="font-heading text-3xl md:text-4xl mb-6" style={{ color: NAVY }}>
             Let's find twenty minutes for the Board.
           </h2>
-          <p className="max-w-xl mx-auto mb-8 text-base leading-relaxed" style={{ color: '#4a4640' }}>
+          <p className="max-w-xl mx-auto mb-8 text-base leading-relaxed" style={{ color: '#6e6858' }}>
             A short call or on-site meet-and-greet is the fastest way to answer questions and refine this proposal
             around Oak Park's actual financials, service needs, and transition timing.
           </p>
@@ -754,7 +859,7 @@ export default function PitchOakParkDouglaston() {
           >
             Contact David Goldoff
           </a>
-          <p className="mt-6 text-xs" style={{ color: '#6B6560' }}>
+          <p className="mt-6 text-xs" style={{ color: '#6e6858' }}>
             {CAMELOT_COMPANY_FACTS.officeAddress} · {CAMELOT_COMPANY_FACTS.officePhone}
           </p>
         </section>

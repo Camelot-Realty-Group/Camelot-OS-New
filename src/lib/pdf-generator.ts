@@ -220,27 +220,40 @@ function pdfOptions(filename: string, isSlideDeck: boolean, windowWidth: number,
  * blank-page failures seen in production (no thrown error, no failed
  * request — just an empty capture).
  */
-async function waitForFrameSettled(frame: HTMLIFrameElement): Promise<void> {
-  const win = frame.contentWindow;
-  const doc = frame.contentDocument;
-  if (!win || !doc) return;
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      }
+    );
+  });
+}
 
-  try {
-    await (doc as any).fonts?.ready;
-  } catch {
-    // ignore font-loading errors; proceed with best-effort capture
-  }
+async function waitForFrameSettledInner(frame: HTMLIFrameElement): Promise<void> {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+
+  await withTimeout(Promise.resolve((doc as any).fonts?.ready), 4000);
 
   const images = Array.from(doc.querySelectorAll('img'));
   await Promise.all(
     images.map((img) =>
       img.complete
         ? Promise.resolve()
-        : new Promise<void>((resolve) => {
-          img.addEventListener('load', () => resolve(), { once: true });
-          img.addEventListener('error', () => resolve(), { once: true });
-          setTimeout(() => resolve(), 8000);
-        })
+        : withTimeout(
+          new Promise<void>((resolve) => {
+            img.addEventListener('load', () => resolve(), { once: true });
+            img.addEventListener('error', () => resolve(), { once: true });
+          }),
+          4000
+        )
     )
   );
 
@@ -250,9 +263,58 @@ async function waitForFrameSettled(frame: HTMLIFrameElement): Promise<void> {
   const fullHeight = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 1);
   frame.style.height = `${fullHeight}px`;
 
-  const nextFrame = () => new Promise<void>((resolve) => win.requestAnimationFrame(() => resolve()));
+  // Use the TOP-LEVEL page's requestAnimationFrame, not the off-screen
+  // iframe's own contentWindow.requestAnimationFrame. Chromium throttles
+  // rAF (and can suspend it near-indefinitely) inside iframes it judges
+  // to be non-visible/off-screen — exactly the case here, since the
+  // capture iframe is deliberately positioned at left:-10000px. Ticking
+  // the outer visible window's rAF still gives the browser a real paint
+  // opportunity without risking an effectively-infinite wait.
+  const nextFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
   await nextFrame();
   await nextFrame();
+}
+
+/**
+ * Wraps waitForFrameSettledInner in a hard overall timeout so a capture
+ * can never hang indefinitely, regardless of which sub-step misbehaves.
+ * Falls back to proceeding with best-effort (possibly not fully settled)
+ * content rather than hanging the whole download forever.
+ */
+async function waitForFrameSettled(frame: HTMLIFrameElement): Promise<void> {
+  await withTimeout(waitForFrameSettledInner(frame), 6000);
+}
+
+class PdfRenderTimeoutError extends Error {
+  constructor() {
+    super('PDF render timed out');
+    this.name = 'PdfRenderTimeoutError';
+  }
+}
+
+/**
+ * Races a promise against a hard deadline and throws a distinguishable
+ * error on timeout, instead of leaving the caller (and the user-facing
+ * button) hanging forever with no feedback. html2canvas/html2pdf.js has
+ * no built-in timeout of its own for the actual capture+encode step, so
+ * without this a slow or stuck render (e.g. a very tall multi-page
+ * agreement, or a constrained/software-rendering browser context) shows
+ * no error at all — just an infinite disabled-button spinner.
+ */
+function raceTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new PdfRenderTimeoutError()), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
 }
 
 /** Download an HTML report as a PDF using the browser-side renderer. */
@@ -262,7 +324,17 @@ export async function downloadAsPDF(html: string, filename: string): Promise<voi
   try {
     await waitForFrameSettled(frame);
     const win = frame.contentWindow!;
-    await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).save();
+    try {
+      await raceTimeout(
+        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).save(),
+        45000
+      );
+    } catch (err) {
+      if (err instanceof PdfRenderTimeoutError) {
+        throw new Error('PDF generation timed out. Please use the Word (.docx) download instead — it contains the same content and is not affected by this issue.');
+      }
+      throw err;
+    }
   } finally {
     frame.remove();
   }
@@ -279,7 +351,18 @@ export async function generatePdfBase64(html: string, filename: string): Promise
   try {
     await waitForFrameSettled(frame);
     const win = frame.contentWindow!;
-    const blob: Blob = await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob');
+    let blob: Blob;
+    try {
+      blob = await raceTimeout(
+        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob'),
+        45000
+      );
+    } catch (err) {
+      if (err instanceof PdfRenderTimeoutError) {
+        throw new Error('PDF generation timed out while preparing the email attachment.');
+      }
+      throw err;
+    }
     const dataUrl = await blobToDataUrl(blob);
     // Strip the "data:application/pdf;base64," prefix — Resend wants the raw base64 payload.
     const commaIndex = dataUrl.indexOf(',');

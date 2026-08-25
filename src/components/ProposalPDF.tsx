@@ -551,22 +551,30 @@ function CoverLetterPage({ data }: { data: ProposalData }) {
       </View>
 
       <Text style={s.body}>Dear {data.preparedFor},</Text>
-      <Text style={s.body}>
-        Thank you for considering Camelot Property Management for {buildingLabel}. This
-        proposal is intended to outline our management scope, recommended Intelligence
-        package, transition process, fee structure, and Schedule A / ancillary fee menu.
-      </Text>
-      <Text style={s.body}>
-        Our role is to give the property a practical operating partner: clean accounting,
-        responsive maintenance coordination, disciplined vendor oversight, compliance
-        tracking, board reporting, and a transition process that reduces confusion rather
-        than creating more of it.
-      </Text>
-      <Text style={s.body}>
-        We would welcome the opportunity to review the latest financials, budget,
-        insurance summary, vendor list, and current management materials so the final
-        management agreement can be priced around actual service needs and not guesswork.
-      </Text>
+      {data.coverLetterParagraphs && data.coverLetterParagraphs.length > 0 ? (
+        data.coverLetterParagraphs.map((para, i) => (
+          <Text key={i} style={s.body}>{para}</Text>
+        ))
+      ) : (
+        <>
+          <Text style={s.body}>
+            Thank you for considering Camelot Property Management for {buildingLabel}. This
+            proposal is intended to outline our management scope, recommended Intelligence
+            package, transition process, fee structure, and Schedule A / ancillary fee menu.
+          </Text>
+          <Text style={s.body}>
+            Our role is to give the property a practical operating partner: clean accounting,
+            responsive maintenance coordination, disciplined vendor oversight, compliance
+            tracking, board reporting, and a transition process that reduces confusion rather
+            than creating more of it.
+          </Text>
+          <Text style={s.body}>
+            We would welcome the opportunity to review the latest financials, budget,
+            insurance summary, vendor list, and current management materials so the final
+            management agreement can be priced around actual service needs and not guesswork.
+          </Text>
+        </>
+      )}
 
       <DavidSignatureBlock />
       <PageFooter data={data} pageNum={2} />

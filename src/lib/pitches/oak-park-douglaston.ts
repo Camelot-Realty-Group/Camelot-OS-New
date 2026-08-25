@@ -150,7 +150,7 @@ export const OAK_PARK_PAIN_POINTS: string[] = [
 
 export const OAK_PARK_BOARD_CONTACTS = {
   namedContacts: ['Judy', 'Tony', 'Juil'],
-  openItem: 'Juil specifically asked for the assigned property manager\'s name, current portfolio/unit load, and backup coverage — do not present a final package without this confirmed.',
+  openItem: 'Resolved — Juil asked for the assigned property manager\'s name; Nicholas Shapiro is confirmed as the Oak Park property manager (see Team, below).',
 };
 
 // ============================================================
@@ -161,27 +161,37 @@ export interface PitchTeamMember {
   role: string;
   person: Fact<string>;
   commitment: string;
+  photo?: string;
+  bio?: string;
 }
 
 export const OAK_PARK_TEAM: PitchTeamMember[] = [
   {
     role: 'Property Manager',
-    person: unconfirmed('To be assigned', 'Confirm whether Dominic Martorana is the account lead, property manager, or executive advisor for this account before any board-facing document is finalized'),
+    person: confirmed('Nicholas Shapiro'),
+    photo: '/pitch/oak-park-douglaston/team/nicholas-shapiro.jpg',
+    bio: 'Nicholas is Oak Park\u2019s assigned, day-to-day property manager \u2014 the direct point of contact for the Board, the superintendent, and residents.',
     commitment: 'On site at least weekly, ~2-hour minimum visit, superintendent/staff check-in, common-area walk, written site report',
   },
   {
-    role: 'Senior Director, Condo & Co-op Services',
-    person: confirmed('Valerie Ann Fiume'),
+    role: 'Director of Condo & Co-Op Management',
+    person: confirmed('Valerie Fiume'),
+    photo: '/pitch/oak-park-douglaston/team/valerie-fiume.jpg',
+    bio: 'Valerie oversees Camelot\u2019s condo and co-op portfolio and steps in directly on escalations, management standards, and transition oversight.',
     commitment: 'Executive board support, escalation, management standards, transition oversight',
   },
   {
-    role: 'Facilities Manager',
+    role: 'Director of Facilities Management & Staff Training',
     person: confirmed('Tim Kelly'),
+    photo: '/pitch/oak-park-douglaston/team/tim-kelly.jpg',
+    bio: 'Tim leads facilities standards and staff training across the portfolio \u2014 mechanical systems review, preventive-maintenance scheduling, and building real SOPs with on-site staff.',
     commitment: 'Monthly facilities review during the first 60 days, quarterly thereafter, plus issue-driven visits; staff coaching, SOP buildout, preventive-maintenance schedules',
   },
   {
-    role: 'Accounting Manager',
-    person: unconfirmed('To be assigned'),
+    role: 'Controller',
+    person: confirmed('Vincent Melilo'),
+    photo: '/pitch/oak-park-douglaston/team/vincent-melilo.jpg',
+    bio: 'Vincent oversees accounting operations firm-wide \u2014 the accountable lead for three separate monthly closes, books, and budgets across all three Oak Park entities.',
     commitment: 'Three separate monthly closes, books, and budgets across all three entities under one accountable lead',
   },
   {
@@ -195,11 +205,17 @@ export const OAK_PARK_TEAM: PitchTeamMember[] = [
     commitment: 'Issue-spotting and coordination with Oak Park\'s existing counsel; separate representation if required',
   },
   {
-    role: 'Executive Oversight',
-    person: confirmed('David A. Goldoff, Founder & President'),
+    role: 'President',
+    person: confirmed('David A. Goldoff'),
+    photo: '/pitch/oak-park-douglaston/team/david-goldoff.jpg',
+    bio: 'David founded Camelot and personally participates in transitions, budget review, and early-stage cost analysis on every new account.',
     commitment: 'Personally participates in transition, budget review, and early-stage cost analysis',
   },
 ];
+
+export const OAK_PARK_ROSTER_URL = 'https://www.camelot.nyc/company-roster/';
+export const OAK_PARK_MARKETING_NOTE =
+  'Camelot\u2019s in-house marketing team is also available to help Oak Park refresh and maintain the Association\u2019s own website \u2014 a service we\u2019re glad to extend beyond the core management scope.';
 
 // ============================================================
 // Transition plan (60–90 days)
@@ -260,7 +276,6 @@ export const OAK_PARK_TECH_STACK = [
 
 export const OAK_PARK_TECH_NOTES = [
   'BuildingLink may continue temporarily during a controlled transition only — running two resident platforms indefinitely is not the plan.',
-  'SELECT (meetselect.com) is an optional resident lifestyle add-on. Not to be promised as included until a community-level commercial arrangement is confirmed.',
 ];
 
 // ============================================================
@@ -300,9 +315,179 @@ export const OAK_PARK_PRICING = {
 // Do-not-guess checklist
 // ============================================================
 
+// ============================================================
+// Live compliance snapshot (Camelot OS Building Intelligence
+// Report, generated 2026-08-25, report ID B0684016 — NYC Open Data
+// pulled live via HPD/DOB/ACRIS/OATH/DHCR). This supersedes the
+// earlier PropertyShark-derived violation counts noted elsewhere as
+// the more current, Camelot-generated source. The two disagree
+// (PropertyShark: 5 DOB + 2 HPD; this live pull: 3 HPD total / 2 open,
+// 0 DOB permits on file, 0 ECB) — flagged, not silently reconciled.
+// ============================================================
+
+export const OAK_PARK_COMPLIANCE_SNAPSHOT = {
+  reportDate: 'August 25, 2026',
+  reportId: 'B0684016',
+  hpdViolationsTotal: 3,
+  hpdViolationsOpen: 2,
+  hpdClassC: 2,
+  lastInspection: 'Oct 1, 2025',
+  ecbViolations: 0,
+  dobPermitsOnFile: 0,
+  housingLitigationCases: 0,
+  rentStabilized: false,
+  acrisTransactions: 0,
+  annualViolationTrend: [
+    { year: 2022, count: 0 },
+    { year: 2023, count: 0 },
+    { year: 2024, count: 0 },
+    { year: 2025, count: 3 },
+    { year: 2026, count: 0 },
+  ],
+  recentViolations: [
+    { date: 'Oct 1, 2025', cls: 'I', status: 'Info NOV sent out', apt: '—', description: 'Owner failed to file a valid registration statement with HPD as required by Adm. Code §27-2107' },
+    { date: 'Sep 30, 2025', cls: 'C', status: 'NOV sent out', apt: 'B', description: 'Provide an adequate supply of gas to the fixtures at range in the entire apartment' },
+    { date: 'Sep 30, 2025', cls: 'C', status: 'Violation closed', apt: 'B', description: 'Provide hot water at all hot water fixtures in the entire apartment, 2nd story' },
+  ],
+  riskFactor: '2 open Class C (Immediately Hazardous) violations require urgent attention — 24-hour cure period.',
+  disclaimer: 'Generated from publicly available NYC Open Data sources (HPD, DOF, DOB, ACRIS, OATH) for informational purposes only. Camelot Realty Group does not guarantee completeness or accuracy. Not legal, financial, or professional advice — verify critical data points independently.',
+};
+
+// ============================================================
+// Cover letter — board meeting + property walk-through held today
+// ============================================================
+
+export const OAK_PARK_COVER_LETTER_PARAGRAPHS: string[] = [
+  "Thank you to the Oak Park Board for the time today, and for walking the property with us. Seeing the grounds, the pool and clubhouse, the sport court, and the buildings firsthand — alongside the conversation about where things stand — sharpened this proposal in ways a phone call never could.",
+  "What follows reflects that visit: our management scope, recommended Intelligence package, transition process, fee structure, and Schedule A / ancillary fee menu, built around what we saw and what the Board described, not a generic template.",
+  "Our role is to give the property a practical operating partner: clean accounting across all three entities, responsive maintenance coordination, disciplined vendor oversight, compliance tracking, board reporting, and a transition process that reduces confusion rather than creating more of it.",
+  "We would welcome the opportunity to review the latest financials, budget, insurance summary, vendor list, and current management materials so the final management agreement can be priced around actual service needs and not guesswork.",
+];
+
+// ============================================================
+// Accounting, technology & software providers
+// ============================================================
+
+export interface SoftwareProvider {
+  name: string;
+  role: string;
+  description: string;
+}
+
+export const OAK_PARK_SOFTWARE_PROVIDERS: SoftwareProvider[] = [
+  {
+    name: 'MDS (Multi-Data Services)',
+    role: 'Accounting system of record',
+    description: 'Full general ledger, accounts payable/receivable, budgeting, and the monthly board reporting package (cash flow, bank reconciliations, check register, unpaid invoices, paid-invoice images) for all three Oak Park entities, kept separately reconciled.',
+  },
+  {
+    name: 'Concierge Plus',
+    role: 'Resident & Board experience portal',
+    description: 'Branded resident and Board portal — announcements, package tracking, amenity/common-area communication, and document access. Included in the base management fee, no separate license cost to the community.',
+  },
+  {
+    name: 'BuildingLink',
+    role: 'Resident/maintenance operations (existing)',
+    description: 'If Oak Park already runs BuildingLink, Camelot will review the current license/version, consolidate to a single active instance rather than running parallel systems, and confirm the community is on the latest supported version before deciding whether to continue it long-term alongside Concierge Plus or transition off it.',
+  },
+  {
+    name: 'Domecile (BoardPackager)',
+    role: 'Digital board-application platform',
+    description: 'A secure, paperless platform for sale, refinance, transfer, lease, and sublease applications — applicants, brokers, and the Board all work from the same digital package instead of paper. Used for the sale/lease-sublet application processing and lender questionnaire items on the ancillary fee schedule.',
+  },
+  {
+    name: 'Camelot OS',
+    role: 'Automation & compliance-monitoring layer',
+    description: 'Camelot\'s own intelligence layer — live NYC Open Data monitoring (HPD/DOB/ACRIS/OATH), cost benchmarking against Camelot\'s portfolio, and reporting-QA tooling. The Building Intelligence Report referenced in the Compliance Snapshot below is generated by this system.',
+  },
+];
+
+export const OAK_PARK_SELECT_PARTNERSHIP = {
+  partnerName: 'SELECT',
+  partnerUrl: 'https://www.meetselect.com',
+  whatTheyDo: 'SELECT is a resident lifestyle and concierge-perks platform — curated local discounts, event access, and everyday convenience services (dry cleaning, fitness, dining, travel) delivered through a members-only app for the building\'s residents.',
+  offer: 'One month of SELECT complimentary for Oak Park residents as a value-added welcome benefit through Camelot\'s strategic partnership — introduced during the transition period, at no cost to the community or unit owners for that first month.',
+  disclosure: 'This is a value-added resident perk, not a promised permanent inclusion — continuing SELECT beyond the complimentary month would be a separate, clearly disclosed commercial arrangement between the community and SELECT, not a Camelot management fee.',
+};
+
+export interface EquipmentRequest {
+  item: string;
+  purpose: string;
+}
+
+export const OAK_PARK_EQUIPMENT_REQUESTS: EquipmentRequest[] = [
+  { item: 'Lockbox at the clubhouse', purpose: 'Secure drop point for keys, packages, and physical documents at the amenity building.' },
+  { item: 'Check scanner at the front desk', purpose: 'Same-day remote deposit of resident checks instead of manual bank runs — faster posting, fewer lost/delayed payments.' },
+  { item: 'Printer at the front desk', purpose: 'On-site printing of compliance signage, Board notices, and resident correspondence without routing through the management office for every page.' },
+  { item: 'Dedicated computer at the front desk', purpose: 'Runs Concierge Plus and the check-scanner software so front-desk staff can assist the management office directly — posting deposits, printing notices — without needing office-side access.' },
+  { item: 'Front-desk staff training', purpose: 'Camelot trains front-desk staff on compliance signage/notice procedures and check deposit handling so routine tasks do not bottleneck through the property manager.' },
+];
+
+// ============================================================
+// Transition plan — records/files checklist (from Camelot's internal
+// Transitional Procedures categories; rendered under the current
+// office letterhead — the source internal PDF still shows a retired
+// office address and should be corrected company-wide separately)
+// ============================================================
+
+export const OAK_PARK_TRANSITION_CHECKLIST: { category: string; items: string[] }[] = [
+  { category: 'Mortgage', items: ['Payment book / monthly payments', 'Name and address of lender', 'Closing binder'] },
+  { category: 'Insurance', items: ['Original policies / schedule', 'Insurance broker contact', 'Pending claims'] },
+  { category: 'Legal', items: ['Corporate / certiorari records', 'Pending legal matters', 'Corporate stock book / seal / certificate of incorporation', 'Engineering survey / deed / title policy', 'Board minutes', 'By-laws / house rules / offering plans & amendments'] },
+  { category: 'Accounting', items: ['Name/address form', 'Federal/state/sales tax returns', 'Audited annual reports / budget', '1098 information', 'RPIE/RPT filings', 'Block/lot/assessed valuation', 'Real estate tax / water bill', 'NYC real property tax abatement filings'] },
+  { category: 'Payroll', items: ['Employee earnings records', 'Union wage contract, Forms 940 & 941', 'Unemployment insurance returns'] },
+  { category: 'Unit Owners', items: ['Rent roll (maintenance/common charges)', 'Collections/arrears report', 'Payment history / delinquent owners', 'Alternate address listing', 'Unit owner files', 'List of mortgages/lenders for each unit'] },
+];
+
+// ============================================================
+// Testimonials & references — handled as a request-access statement.
+// Camelot's on-file developer/brokerage reference list contains named
+// individuals' personal contact information and is brokerage-context,
+// not condo/co-op management references — not appropriate to publish
+// on a public board-facing page. Direct management references are
+// available on request through David directly.
+// ============================================================
+
+export const OAK_PARK_REFERENCES_NOTE =
+  'Direct references from current condo and co-op boards Camelot manages are available on request — contact David Goldoff directly and we will connect you with Board leadership at comparable communities.';
+
+// ============================================================
+// Queens portfolio presence — sourced from "Camelot Realty Group
+// — Managed Buildings (1).xlsx" (Google Drive, modified 2026-08-11).
+// Coordinates geocoded via OpenStreetMap Nominatim; distances are
+// straight-line (haversine) miles from Oak Park at Douglaston, not
+// drive time. Two entities share one address (43-33 48th Street) —
+// likely co-located/phased ownership at the same site, listed
+// separately here because they are separate managed entities on the
+// roster.
+// ============================================================
+
+export interface QueensPortfolioBuilding {
+  entity: string;
+  address: string;
+  units: number;
+  type: string;
+  lat: number;
+  lon: number;
+  distanceMiles: number;
+}
+
+export const OAK_PARK_COORDS = { lat: 40.7463877, lon: -73.7346726 };
+
+export const OAK_PARK_QUEENS_PORTFOLIO: QueensPortfolioBuilding[] = [
+  { entity: '83-55 Austin Property Associates', address: '83-55 Austin Street, Kew Gardens, NY 11415', units: 45, type: 'Rental — Residential', lat: 40.7113897, lon: -73.8316761, distanceMiles: 5.6 },
+  { entity: '61st 39th Avenue, LLC', address: '61-05 to 61-09 39th Avenue, Woodside, NY 11377', units: 39, type: 'Condo — Residential', lat: 40.7472411, lon: -73.9023935, distanceMiles: 8.8 },
+  { entity: 'Vrachnos Associates', address: '41-28 55th Street, Woodside, NY 11377', units: 26, type: 'Rental — Residential', lat: 40.7445835, lon: -73.9099417, distanceMiles: 9.2 },
+  { entity: '48th Woodside Associates', address: '43-33 48th Street, Woodside, NY 11377', units: 20, type: 'Rental — Residential', lat: 40.7436479, lon: -73.9163596, distanceMiles: 9.5 },
+  { entity: 'The Sunnyside Bliss Condominium', address: '43-33 48th Street, Woodside, NY 11377', units: 60, type: 'Condo — Residential (85 parking spaces)', lat: 40.7436479, lon: -73.9163596, distanceMiles: 9.5 },
+  { entity: 'East of East Condo Corp', address: '13-10 Jackson Avenue, Long Island City, NY 11101', units: 13, type: 'Condo — Residential', lat: 40.7478865, lon: -73.9404366, distanceMiles: 10.8 },
+];
+
+export const OAK_PARK_QUEENS_PORTFOLIO_NOTE =
+  'Camelot manages six properties across Queens today \u2014 190 units spanning Kew Gardens, Woodside, and Long Island City \u2014 alongside an active Manhattan and Brooklyn portfolio. These are straight-line distances, not a claim of hyper-local coverage in Douglaston specifically; we\u2019re showing where we actually operate in the borough today.';
+
 export const OAK_PARK_TO_BE_CONFIRMED: string[] = [
   'Official unit counts — Condominium I, Condominium II, and total community (currently working figures of 121 / 92 / 213)',
-  'Assigned property manager\'s name, current portfolio/unit load, and backup coverage',
   'Fidelity/E&O insurance certificates and verified coverage limits',
   'Three direct Board references, ideally from multi-board/garden-style management experience',
   'Latest approved budgets and monthly management reports from the Boards or outgoing management',

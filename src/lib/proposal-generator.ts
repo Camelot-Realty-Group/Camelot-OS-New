@@ -323,6 +323,9 @@ export interface ProposalData {
   sentTo?: string;
   preparedFor: string;
   archiveFolder: string;
+  // Optional custom cover-letter body paragraphs, in order. When omitted,
+  // ProposalPDF renders its standard boilerplate cover letter instead.
+  coverLetterParagraphs?: string[];
 
   // Building
   buildingAddress: string;
@@ -389,6 +392,7 @@ export interface ProposalOptions {
   customPricingPerUnit?: number;
   generatedBy?: string;
   attachments?: ProposalAttachmentRecord[];
+  coverLetterParagraphs?: string[];
 }
 
 // ============================================================
@@ -476,6 +480,7 @@ export function generateProposalData(
     sentTo: contactEmail || contactName || 'To be confirmed',
     preparedFor,
     archiveFolder,
+    coverLetterParagraphs: options?.coverLetterParagraphs,
 
     buildingAddress: building.address,
     buildingName: building.name,

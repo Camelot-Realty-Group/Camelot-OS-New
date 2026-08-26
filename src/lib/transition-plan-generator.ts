@@ -159,7 +159,7 @@ body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55
 .lh-services{font-size:7.5px;color:#6B675F;letter-spacing:1px;margin:1px 0}
 .lh-tag{font-size:9px;color:#A9814A;font-style:italic;margin:2px 0}
 
-.cover-wrap{text-align:center;padding-top:96pt}
+.cover-wrap{text-align:center;padding-top:120pt}
 h1.cover-title{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:24pt;font-weight:400;margin:0 0 10pt}
 h2.cover-client{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:15pt;font-weight:400;margin:0 0 6pt}
 p.cover-addr{font-family:${BODY_FONT};font-size:10pt;color:${BODY_BLACK};margin:0 0 24pt}
@@ -167,7 +167,7 @@ p.cover-meta{font-family:${BODY_FONT};font-size:9pt;color:#6B675F;margin:0}
 
 h2.art{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:${DARK_GOLD};text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5pt solid ${GOLD_RULE};padding:12pt 0 6pt;margin:20pt 0 12pt;page-break-after:avoid}
 h3.art-sub{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:${DARK_GOLD};text-align:center;letter-spacing:0.5px;margin:14pt 0 8pt;page-break-after:avoid}
-.page-content > .article-block:first-of-type > h2.art{margin-top:64pt}
+.page-content > .article-block:first-of-type > h2.art{margin-top:120pt}
 
 p.body{font-family:${BODY_FONT};font-size:9.5pt;font-weight:400;color:${BODY_BLACK};margin-bottom:10pt;text-align:justify}
 ul.blt{font-family:${BODY_FONT};font-size:9.5pt;color:${BODY_BLACK};margin:0 0 10pt 22px}

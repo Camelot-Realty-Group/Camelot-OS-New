@@ -492,10 +492,43 @@ export interface EquipmentRequest {
 export const OAK_PARK_EQUIPMENT_REQUESTS: EquipmentRequest[] = [
   { item: 'Lockbox at the clubhouse', purpose: 'Secure drop point for keys, packages, and physical documents at the amenity building.' },
   { item: 'Check scanner at the front desk', purpose: 'Same-day remote deposit of resident checks instead of manual bank runs — faster posting, fewer lost/delayed payments.' },
-  { item: 'Printer at the front desk', purpose: 'On-site printing of compliance signage, Board notices, and resident correspondence without routing through the management office for every page.' },
-  { item: 'Dedicated computer at the front desk', purpose: 'Runs Concierge Plus and the check-scanner software so front-desk staff can assist the management office directly — posting deposits, printing notices — without needing office-side access.' },
-  { item: 'Front-desk staff training', purpose: 'Camelot trains front-desk staff on compliance signage/notice procedures and check deposit handling so routine tasks do not bottleneck through the property manager.' },
+  { item: 'Printer & scanner at the front desk', purpose: 'On-site printing and scanning of compliance signage, Board notices, proxies, and resident correspondence — handled on the spot instead of routing through the management office for every page.' },
+  { item: 'Dedicated computer with direct office access', purpose: 'Runs Concierge Plus and the check-scanner software, connected directly into Camelot\'s office systems — so front-desk staff can post deposits, print notices, and flag issues to the property manager in real time, not by playing phone tag.' },
+  { item: 'Package delivery workflow', purpose: 'Resident deliveries are already routed through the front desk today — Concierge Plus adds package logging and resident notifications on top of that existing routine, so nothing changes for residents except fewer missed pickups.' },
+  { item: 'Front-desk staff training', purpose: 'Camelot trains front-desk staff on compliance signage/notice procedures, check deposit handling, and the new software tools so routine tasks do not bottleneck through the property manager.' },
 ];
+
+// ============================================================
+// Vendor network — the licensed, bonded bench Camelot brings on
+// day one, versus building one vendor at a time from scratch.
+// ============================================================
+
+export interface VendorCategory {
+  category: string;
+  description: string;
+}
+
+export const OAK_PARK_VENDOR_NETWORK: VendorCategory[] = [
+  {
+    category: 'Security',
+    description: 'Licensed guard and patrol services, camera/access-control installers, and monitoring providers already vetted and under contract across Camelot\'s portfolio.',
+  },
+  {
+    category: 'Landscaping & grounds',
+    description: 'Seasonal grounds crews, snow removal, and exterior maintenance vendors who already work Camelot properties in Queens and the surrounding boroughs.',
+  },
+  {
+    category: 'Pool service',
+    description: 'Licensed pool maintenance and seasonal opening/closing crews, with the certifications a gated community\'s pool and pool house require.',
+  },
+  {
+    category: 'Tennis & sport court maintenance',
+    description: 'Resurfacing, net and fencing repair, and seasonal upkeep for the tennis court and multi-sport court — vendors who already know what these surfaces need.',
+  },
+];
+
+export const OAK_PARK_VENDOR_NETWORK_NOTE =
+  'Every vendor in Camelot\'s network is licensed and bonded — not a name pulled from a listing the week a contract expires. The point is a deeper bench than Oak Park has had: when a vendor underperforms, there is already a vetted alternative to call, not a scramble to find one.';
 
 // ============================================================
 // Transition plan — records/files checklist (from Camelot's internal
@@ -674,6 +707,7 @@ export const CAMELOT_COMPANY_FACTS = {
   affiliations: ['REBNY', 'IREM', 'SPONY', 'NYAA', 'NYARM', 'BOMA', 'CNYC'],
   officeAddress: '57 West 57th Street, Suite 410, New York, NY 10019',
   officePhone: '(212) 206-9939',
+  officeCoords: { lat: 40.76438, lon: -73.97654 },
 };
 
 // ============================================================

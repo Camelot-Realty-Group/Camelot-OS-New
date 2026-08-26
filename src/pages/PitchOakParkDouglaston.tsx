@@ -33,6 +33,8 @@ import {
   OAK_PARK_SOFTWARE_PROVIDERS,
   OAK_PARK_SELECT_PARTNERSHIP,
   OAK_PARK_EQUIPMENT_REQUESTS,
+  OAK_PARK_REVENUE_PLAN,
+  OAK_PARK_DOMECILE_REVENUE,
   OAK_PARK_TRANSITION_CHECKLIST,
   OAK_PARK_REFERENCES_NOTE,
   OAK_PARK_ROSTER_URL,
@@ -40,7 +42,6 @@ import {
   OAK_PARK_COORDS,
   OAK_PARK_QUEENS_PORTFOLIO,
   OAK_PARK_QUEENS_PORTFOLIO_NOTE,
-  OAK_PARK_TESTIMONIALS,
   OAK_PARK_ANNUAL_CALENDAR,
   OAK_PARK_ANNUAL_CALENDAR_INTRO,
   CAMELOT_COMPANY_FACTS,
@@ -131,39 +132,6 @@ function SectionLabel({ children }: { children: ReactNode }) {
     >
       {children}
     </p>
-  );
-}
-
-/**
- * A single, full-bleed magazine-style pull quote from a Camelot client.
- * Meant to be dropped between sections — not clustered together — so
- * testimonials read as editorial punctuation throughout the piece rather
- * than a single "reviews" block at the end.
- */
-function PullQuote({ quote, name, description }: { quote: string; name: string; description: string }) {
-  return (
-    <section className="relative py-20 md:py-28 border-b overflow-hidden" style={{ borderColor: DIVIDER, backgroundColor: CHARCOAL }}>
-      <img
-        src={LOGO_CREAM}
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none select-none absolute -right-10 -bottom-10 w-[420px] opacity-[0.05]"
-      />
-      <div className="relative z-10 max-w-3xl mx-auto px-6 md:px-10 text-center">
-        <span className="font-heading text-6xl md:text-7xl leading-none block mb-4" style={{ color: GOLD }}>
-          &ldquo;
-        </span>
-        <p className="font-heading text-2xl md:text-3xl leading-snug mb-8" style={{ color: PAPER }}>
-          {quote}
-        </p>
-        <p className="font-sans text-xs uppercase tracking-[0.2em]" style={{ color: GOLD }}>
-          {name}
-        </p>
-        <p className="font-sans text-xs mt-1" style={{ color: FAINT }}>
-          {description}
-        </p>
-      </div>
-    </section>
   );
 }
 
@@ -358,6 +326,28 @@ export default function PitchOakParkDouglaston() {
 
       <div className="max-w-5xl mx-auto px-6 md:px-10">
 
+        {/* ============ COVER LETTER ============ */}
+        <section className="relative py-20 md:py-28 border-b overflow-hidden" style={{ borderColor: DIVIDER }}>
+          <img
+            src={LOGO_BLACK}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute -right-16 -bottom-16 w-[420px] opacity-[0.04] hidden md:block"
+          />
+          <div className="relative z-10 max-w-2xl">
+            <SectionLabel>To the Oak Park Boards</SectionLabel>
+            <SectionTitle>Thank you for today.</SectionTitle>
+            <Rule />
+            {OAK_PARK_COVER_LETTER_PARAGRAPHS.map((p, i) => (
+              <p key={i} className="mb-5 text-base leading-relaxed last:mb-0" style={{ color: NAVY }}>
+                {p}
+              </p>
+            ))}
+            <p className="mt-10 font-heading text-lg" style={{ color: NAVY }}>David A. Goldoff</p>
+            <p className="font-sans text-xs font-semibold uppercase tracking-wider" style={{ color: GOLD }}>President, Camelot Realty Group</p>
+          </div>
+        </section>
+
         {/* ============ WHAT WE HEARD ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>What we heard</SectionLabel>
@@ -385,8 +375,6 @@ export default function PitchOakParkDouglaston() {
             {OAK_PARK_BOARD_CONTACTS.openItem}
           </p>
         </section>
-
-        <PullQuote {...OAK_PARK_TESTIMONIALS[0]} />
 
         {/* ============ THE CAMELOT SOLUTION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -472,8 +460,6 @@ export default function PitchOakParkDouglaston() {
           </div>
         </section>
 
-        <PullQuote {...OAK_PARK_TESTIMONIALS[1]} />
-
         {/* ============ WEEKLY ON-SITE MANAGEMENT (with amenity photos) ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Weekly on-site management</SectionLabel>
@@ -518,8 +504,6 @@ export default function PitchOakParkDouglaston() {
             actual financial data unless explicitly labeled as such.
           </p>
         </section>
-
-        <PullQuote {...OAK_PARK_TESTIMONIALS[2]} />
 
         {/* ============ ACCOUNTING, TECHNOLOGY & SOFTWARE PROVIDERS ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -583,8 +567,6 @@ export default function PitchOakParkDouglaston() {
           ))}
         </section>
 
-        <PullQuote {...OAK_PARK_TESTIMONIALS[3]} />
-
         {/* ============ RESIDENT EXPERIENCE ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Resident experience</SectionLabel>
@@ -606,14 +588,64 @@ export default function PitchOakParkDouglaston() {
           <SectionTitle>Benchmarked, not guessed.</SectionTitle>
           <Rule />
           <p className="mb-4 text-base leading-relaxed" style={{ color: NAVY }}>
-            Vendor contracts are benchmarked against Camelot's {CAMELOT_COMPANY_FACTS.buildings}-building portfolio.
-            Where a credible savings case exists, we rebid — we don't manufacture savings to justify a fee.
+            Within the first 90 days, Camelot runs Oak Park's operating expenses through the same cost-cutting
+            system we use internally and across other clients: every contract is compared line-by-line against
+            what Camelot's {CAMELOT_COMPANY_FACTS.buildings}-building portfolio actually pays for the same
+            service, then renegotiated — with Oak Park's existing vendors and, where it makes sense, with vendors
+            already under contract with Camelot elsewhere. We show the Board the comparison before recommending
+            any change; we don't manufacture savings to justify a fee.
+          </p>
+          <p className="mb-4 text-base leading-relaxed" style={{ color: NAVY }}>
+            The intent is straightforward: the value Camelot adds should be visible in the numbers, not just
+            promised. Done well, the savings this process finds are designed to offset the cost of bringing
+            Camelot on — so the management fee is not a new expense the community absorbs on top of everything
+            else, but one that pays for itself out of what we find.
           </p>
           <p className="text-sm leading-relaxed p-4 border" style={{ borderColor: GOLD, color: '#6e6858' }}>
             An optional shared-savings program is available at 30% of verified first-year realized net hard-dollar
             savings — but only under a separate written agreement with a documented baseline and measurement period.
             It is never assumed or bundled into the base proposal below.
           </p>
+        </section>
+
+        {/* ============ REVENUE GROWTH ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Revenue growth</SectionLabel>
+          <SectionTitle>A revenue plan, not just a cost plan.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            Cutting expenses is only half of the financial picture. Camelot works this in three phases —
+            transition, then expense review, then new income — so the community's finances get stronger from
+            both directions at once.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6 mb-14">
+            {OAK_PARK_REVENUE_PLAN.map((phase) => (
+              <div key={phase.phase} className="border-l-2 pl-5" style={{ borderColor: GOLD }}>
+                <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>
+                  {phase.phase} &middot; {phase.dayRange}
+                </p>
+                <h3 className="font-heading text-xl mb-2" style={{ color: NAVY }}>{phase.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{phase.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t pt-10" style={{ borderColor: '#e5decc' }}>
+            <p className="font-heading text-lg mb-3" style={{ color: NAVY }}>Phase 3, in detail: what Domecile can add to the community's income</p>
+            <p className="mb-6 text-sm leading-relaxed max-w-3xl" style={{ color: '#6e6858' }}>{OAK_PARK_DOMECILE_REVENUE.intro}</p>
+            <div className="grid md:grid-cols-2 gap-5">
+              {OAK_PARK_DOMECILE_REVENUE.streams.map((s) => (
+                <div key={s.title} className="flex gap-3">
+                  <span className="font-heading text-2xl leading-none" style={{ color: GOLD }}>&middot;</span>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: NAVY }}>{s.title}</p>
+                    <p className="text-sm leading-relaxed mt-1" style={{ color: '#6e6858' }}>{s.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-6 text-xs" style={{ color: '#a39c88' }}>{OAK_PARK_DOMECILE_REVENUE.source}</p>
+          </div>
         </section>
 
         {/* ============ QUEENS PORTFOLIO PRESENCE ============ */}
@@ -658,8 +690,6 @@ export default function PitchOakParkDouglaston() {
             geocoded via OpenStreetMap — not drive time.
           </p>
         </section>
-
-        <PullQuote {...OAK_PARK_TESTIMONIALS[4]} />
 
         {/* ============ TRANSITION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -709,8 +739,6 @@ export default function PitchOakParkDouglaston() {
             ))}
           </div>
         </section>
-
-        <PullQuote {...OAK_PARK_TESTIMONIALS[5]} />
 
         {/* ============ MANAGEMENT PROPOSAL ============ */}
         <section id="proposal" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -821,22 +849,6 @@ export default function PitchOakParkDouglaston() {
             (DocuSign, Dropbox Sign, or Adobe Acrobat Sign) can be added once Camelot selects a provider — the
             document itself does not represent electronic acceptance as legally binding until that is in place.
           </p>
-        </section>
-
-        <PullQuote {...OAK_PARK_TESTIMONIALS[6]} />
-
-        {/* ============ CLIENT INDEX (full quotes appear as pull-quotes throughout this page) ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
-          <SectionLabel>What our clients say</SectionLabel>
-          <SectionTitle>Boards and owners who have made this transition.</SectionTitle>
-          <Rule />
-          <div className="flex flex-wrap gap-x-10 gap-y-3">
-            {OAK_PARK_TESTIMONIALS.map((t) => (
-              <span key={t.name} className="font-sans text-sm" style={{ color: MUTED }}>
-                <span className="font-semibold" style={{ color: NAVY }}>{t.name}</span> &middot; {t.description}
-              </span>
-            ))}
-          </div>
         </section>
 
         {/* ============ SUPPORTING DOCUMENTS ============ */}

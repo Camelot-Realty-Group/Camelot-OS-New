@@ -53,9 +53,10 @@ interface QueensPresenceMapProps {
   buildings: QueensPortfolioBuilding[];
   goldHex: string;
   navyHex: string;
+  headquarters?: { lat: number; lon: number; label: string };
 }
 
-export default function QueensPresenceMap({ center, centerLabel, buildings, goldHex, navyHex }: QueensPresenceMapProps) {
+export default function QueensPresenceMap({ center, centerLabel, buildings, goldHex, navyHex, headquarters }: QueensPresenceMapProps) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
@@ -107,14 +108,30 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
       iconAnchor: [5, 5],
     });
 
+    const hqIcon = L.divIcon({
+      html: `<div style="background:${navyHex};color:${goldHex};border:1.5px solid ${goldHex};width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:11px;font-weight:700;line-height:1;">C</div>`,
+      className: '',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+
     const bounds: [number, number][] = [[center.lat, center.lon]];
 
     L.marker([center.lat, center.lon], { icon: subjectIcon })
       .addTo(map)
       .bindPopup(`<strong>${centerLabel}</strong><br/>Subject property`);
 
+    // Faint dotted lines from the subject property to each Camelot-managed building —
+    // a quiet visual cue for the depth of resources already backing this community,
+    // not a navigational element.
     buildings.forEach((b) => {
       bounds.push([b.lat, b.lon]);
+      L.polyline([[center.lat, center.lon], [b.lat, b.lon]], {
+        color: goldHex,
+        weight: 1,
+        opacity: 0.4,
+        dashArray: '2,6',
+      }).addTo(map);
       L.marker([b.lat, b.lon], { icon: buildingIcon })
         .addTo(map)
         .bindPopup(
@@ -122,13 +139,26 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
         );
     });
 
+    if (headquarters) {
+      bounds.push([headquarters.lat, headquarters.lon]);
+      L.polyline([[center.lat, center.lon], [headquarters.lat, headquarters.lon]], {
+        color: navyHex,
+        weight: 1,
+        opacity: 0.3,
+        dashArray: '2,6',
+      }).addTo(map);
+      L.marker([headquarters.lat, headquarters.lon], { icon: hqIcon })
+        .addTo(map)
+        .bindPopup(`<strong>Camelot HQ</strong><br/>${headquarters.label}`);
+    }
+
     map.fitBounds(bounds, { padding: [56, 56] });
 
     return () => {
       map.remove();
       mapInstanceRef.current = null;
     };
-  }, [ready, center, centerLabel, buildings, goldHex, navyHex]);
+  }, [ready, center, centerLabel, buildings, goldHex, navyHex, headquarters]);
 
   if (failed) {
     return (
@@ -153,6 +183,17 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
           <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: goldHex, border: '1.5px solid #fff', boxShadow: `0 0 0 1px ${goldHex}55` }} />
           Camelot-managed building
         </span>
+        {headquarters && (
+          <span className="flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider" style={{ color: navyHex }}>
+            <span
+              className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full shrink-0 font-heading"
+              style={{ background: navyHex, color: goldHex, border: `1.5px solid ${goldHex}`, fontSize: '9px' }}
+            >
+              C
+            </span>
+            Camelot headquarters
+          </span>
+        )}
       </div>
     </div>
   );

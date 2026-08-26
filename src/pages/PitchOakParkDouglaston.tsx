@@ -33,6 +33,8 @@ import {
   OAK_PARK_SOFTWARE_PROVIDERS,
   OAK_PARK_SELECT_PARTNERSHIP,
   OAK_PARK_EQUIPMENT_REQUESTS,
+  OAK_PARK_VENDOR_NETWORK,
+  OAK_PARK_VENDOR_NETWORK_NOTE,
   OAK_PARK_REVENUE_PLAN,
   OAK_PARK_DOMECILE_REVENUE,
   OAK_PARK_TRANSITION_CHECKLIST,
@@ -383,11 +385,7 @@ export default function PitchOakParkDouglaston() {
           <SectionLabel>What we heard</SectionLabel>
           <SectionTitle>Before we proposed anything, we listened.</SectionTitle>
           <Rule />
-          <div className="md:float-right md:ml-8 md:w-72 mb-6">
-            <img src={STOCK.boardMeeting} alt="Board meeting" className="w-full h-48 object-cover" />
-            <p className="text-xs italic mt-2" style={{ color: '#a39c88' }}>Representative image — not the actual Oak Park Board</p>
-          </div>
-          <p className="mb-8 text-lg leading-relaxed" style={{ color: NAVY }}>
+          <p className="mb-8 text-lg leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             Board members Judy, Tony, and Juil described specific, recurring gaps in day-to-day management —
             not vague dissatisfaction, but concrete things a well-run community needs and isn't consistently getting.
           </p>
@@ -452,10 +450,10 @@ export default function PitchOakParkDouglaston() {
             {OAK_PARK_TEAM.map((member) => (
               <div
                 key={member.role}
-                className="grid md:grid-cols-[110px_1fr] gap-4 md:gap-8 py-8 border-b items-start"
+                className="grid md:grid-cols-[135px_1fr] gap-4 md:gap-8 py-8 border-b items-start"
                 style={{ borderColor: '#e5decc' }}
               >
-                <div className="w-20 h-20 md:w-[90px] md:h-[90px] shrink-0">
+                <div className="w-[100px] h-[100px] md:w-[113px] md:h-[113px] shrink-0">
                   {member.photo ? (
                     <img
                       src={member.photo}
@@ -614,7 +612,12 @@ export default function PitchOakParkDouglaston() {
           </div>
 
           <div className="border-t pt-8" style={{ borderColor: '#e5decc' }}>
-            <p className="font-heading text-lg mb-4" style={{ color: NAVY }}>Front-desk equipment &amp; training we’d ask the Board to approve</p>
+            <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>Front-desk equipment &amp; training we’d ask the Board to approve</p>
+            <p className="text-sm leading-relaxed mb-4 max-w-2xl" style={{ color: '#6e6858' }}>
+              The goal is a front desk that is actually wired into how Camelot works — not a phone number that
+              rings into a general mailbox. That means the right hardware, direct software access into our office
+              systems, and staff trained to use both.
+            </p>
             <div className="grid md:grid-cols-2 gap-3">
               {OAK_PARK_EQUIPMENT_REQUESTS.map((eq) => (
                 <div key={eq.item} className="flex gap-3 py-2 border-b" style={{ borderColor: '#e5decc' }}>
@@ -674,6 +677,27 @@ export default function PitchOakParkDouglaston() {
           </p>
         </section>
 
+        {/* ============ VENDOR NETWORK ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Vendor network</SectionLabel>
+          <SectionTitle>The deeper bench Oak Park has never had.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            Camelot's vendor benchmarking (above) only works because there is already a real bench to benchmark
+            against — security, grounds, pool, and court maintenance vendors Camelot already works with across
+            the portfolio, not a single incumbent with no real alternative.
+          </p>
+          <div className="grid md:grid-cols-2 gap-x-12 gap-y-10 mb-10">
+            {OAK_PARK_VENDOR_NETWORK.map((v) => (
+              <div key={v.category} className="border-l-2 pl-5" style={{ borderColor: GOLD }}>
+                <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{v.category}</p>
+                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{v.description}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{OAK_PARK_VENDOR_NETWORK_NOTE}</p>
+        </section>
+
         {/* ============ REVENUE GROWTH ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Revenue growth</SectionLabel>
@@ -728,6 +752,11 @@ export default function PitchOakParkDouglaston() {
             buildings={OAK_PARK_QUEENS_PORTFOLIO}
             goldHex={GOLD}
             navyHex={NAVY}
+            headquarters={{
+              lat: CAMELOT_COMPANY_FACTS.officeCoords.lat,
+              lon: CAMELOT_COMPANY_FACTS.officeCoords.lon,
+              label: CAMELOT_COMPANY_FACTS.officeAddress,
+            }}
           />
           <div className="mt-8 overflow-x-auto">
             <table className="w-full text-sm">

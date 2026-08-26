@@ -374,6 +374,7 @@ export interface SoftwareProvider {
   description: string;
   logo?: string;
   logoIsWordmark?: boolean;
+  url?: string;
 }
 
 const LOGO_BASE = '/pitch/oak-park-douglaston/partner-logos';
@@ -384,24 +385,28 @@ export const OAK_PARK_SOFTWARE_PROVIDERS: SoftwareProvider[] = [
     role: 'Accounting system of record',
     description: 'Full general ledger, accounts payable/receivable, budgeting, and the monthly board reporting package (cash flow, bank reconciliations, check register, unpaid invoices, paid-invoice images) for all three Oak Park entities, kept separately reconciled.',
     logo: `${LOGO_BASE}/mds-logo.svg`,
+    url: 'https://multidataservices.com',
   },
   {
     name: 'Concierge Plus',
     role: 'Resident & Board experience portal',
     description: 'Branded resident and Board portal — announcements, package tracking, amenity/common-area communication, and document access. Included in the base management fee, no separate license cost to the community, with full front-desk and Board training provided directly by Camelot as part of the launch.',
     logo: `${LOGO_BASE}/conciergeplus-mark.png`,
+    url: 'https://conciergeplus.com',
   },
   {
     name: 'BuildingLink',
     role: 'Resident/maintenance operations (existing)',
     description: 'If Oak Park already runs BuildingLink, Camelot will review the current license/version, consolidate to a single active instance rather than running parallel systems, and confirm the community is on the latest supported version before deciding whether to continue it long-term alongside Concierge Plus or transition off it.',
     logo: `${LOGO_BASE}/buildinglink-logo.png`,
+    url: 'https://www.buildinglink.com',
   },
   {
     name: 'Domecile (BoardPackager)',
     role: 'Digital board-application platform',
     description: 'A secure, paperless platform for sale, refinance, transfer, lease, and sublease applications — applicants, brokers, and the Board all work from the same digital package instead of paper. Used for the sale/lease-sublet application processing and lender questionnaire items on the ancillary fee schedule.',
     logo: `${LOGO_BASE}/domecile-logo.svg`,
+    url: 'https://www.domecile.com',
   },
   {
     name: 'Camelot OS',

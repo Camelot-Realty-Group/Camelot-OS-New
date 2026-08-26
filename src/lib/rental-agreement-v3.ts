@@ -329,6 +329,7 @@ ${bodyHtml}
 
 </div><!-- .page-content -->
 <div class="pf">
+  <img class="pf-logo" src="${RENTAL_AGREEMENT_LOGO_B64}" alt="" />
   <div class="pf-left">${CAMELOT_OFFICE.address} &middot; ${CAMELOT_OFFICE.phone}</div>
   <div class="pf-center">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr}</div>
   <div class="pf-right">Page ${n} of ${totalPagesPlaceholder}</div>
@@ -504,7 +505,7 @@ body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55
   .page{margin:20px auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);background:white}
 }
 .page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;border:2px solid ${GOLD_RULE};page-break-after:always;position:relative;background:white}
-.page-content{position:relative;z-index:1}
+.page-content{position:relative;z-index:1;padding-top:6pt}
 
 /* Letterhead (unchanged house mark, appears on every page) */
 .letterhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #8a867e}
@@ -515,7 +516,7 @@ body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55
 .lh-tag{font-size:9px;color:#A9814A;font-style:italic;margin:2px 0}
 
 /* Cover page: address is the headline, HGMaruGothicMPRO / blue accent1 darker25% */
-.cover-wrap{text-align:center;padding-top:18pt}
+.cover-wrap{text-align:center;padding-top:56pt}
 h1.cover-addr{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:18pt;font-weight:400;margin:0 0 4pt;line-height:1.25}
 h2.cover-citystate{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:16pt;font-weight:400;margin:0 0 18pt;line-height:1.25}
 .cover-photo-box{margin:0 auto 16pt;width:4.5in;height:3.5in;border:1px solid #000;overflow:hidden}
@@ -572,7 +573,7 @@ td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
 .sched-note{font-family:${BODY_FONT};font-size:8.5pt;font-style:italic;color:#6B675F;margin:5pt 0 0}
 
 /* Signature page */
-.sig-page{padding-top:8px;text-align:center}
+.sig-page{padding-top:48pt;text-align:center}
 .sig-head{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin-bottom:8pt;text-transform:uppercase}
 .sig-wit{margin:0 auto 20px;max-width:600px}
 .sig-witness{font-family:${BODY_FONT};font-style:italic;font-size:9pt}
@@ -584,13 +585,14 @@ td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
 .sig-rule{width:70%;margin:24px auto;border-bottom:1px solid #C9A55C}
 
 /* Schedules */
-.sched-title{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:0 0 10pt;text-transform:uppercase}
+.sched-title{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:48pt 0 10pt;text-transform:uppercase}
 .avoid-break{page-break-inside:avoid}
 .article-block{page-break-inside:avoid}
 
 /* Footer — Arial, 8pt, standard black, on every page */
 .pf{margin-top:16px;padding-top:6px;border-top:1px solid ${GOLD_RULE};text-align:center;font-family:${BODY_FONT};font-size:8pt;color:${BODY_BLACK};display:flex;justify-content:space-between;align-items:center}
-.pf-left{text-align:left;flex:0 0 50%}
+.pf-logo{width:16px;height:16px;margin-right:8px;flex:0 0 auto}
+.pf-left{text-align:left;flex:0 0 42%}
 .pf-center{flex:1;text-align:center}
 .pf-right{text-align:right;flex:0 0 auto;white-space:nowrap}
 

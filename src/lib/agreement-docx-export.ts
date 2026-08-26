@@ -114,10 +114,14 @@ function bodyParagraph(el: Element, opts: { indent?: boolean } = {}): Paragraph 
   } as any);
 }
 
-function articleHeading(el: Element): Paragraph {
+// `boost` mirrors the HTML/PDF house rule (`.page-content >
+// .article-block:first-of-type > h2.art{margin-top:64pt}`): the first
+// Article heading on a page needs real breathing room below the running
+// header, or it reads as crowded against it. 1280 twips ≈ 64pt.
+function articleHeading(el: Element, boost = false): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { before: 280, after: 60 },
+    spacing: { before: boost ? 1280 : 280, after: 60 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: GOLD_RULE, space: 4 } },
     children: [
       new TextRun({ text: (el.textContent || '').trim(), bold: true, font: HEADING_FONT, size: pt(12), color: DARK_GOLD, allCaps: true } as any),
@@ -133,10 +137,10 @@ function sectionHeading(el: Element): Paragraph {
   } as any);
 }
 
-function navyHeading(text: string, size = 13): Paragraph {
+function navyHeading(text: string, size = 13, boost = false): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { before: 160, after: 140 },
+    spacing: { before: boost ? 1280 : 160, after: 140 },
     children: [new TextRun({ text, bold: true, font: HEADING_FONT, size: pt(size), color: NAVY } as any)],
   } as any);
 }
@@ -178,7 +182,7 @@ function signatureBlocks(sigPageEl: Element): Paragraph[] {
   Array.from(sigPageEl.children).forEach((child) => {
     const cls = child.className || '';
     if (cls.includes('sig-head')) {
-      out.push(navyHeading((child.textContent || '').trim(), 13));
+      out.push(navyHeading((child.textContent || '').trim(), 13, true));
     } else if (cls.includes('sig-wit')) {
       const p = child.querySelector('p');
       if (p) {
@@ -266,7 +270,7 @@ async function coverBlocks(coverWrapEl: Element): Promise<Block[]> {
     out.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 80 },
+        spacing: { before: 1120, after: 80 },
         children: [new TextRun({ text: addr.textContent || '', font: COVER_FONT, size: pt(18), color: TITLE_BLUE } as any)],
       } as any)
     );
@@ -336,22 +340,25 @@ async function coverBlocks(coverWrapEl: Element): Promise<Block[]> {
   return out;
 }
 
-async function elementToBlocks(el: Element): Promise<Block[]> {
+async function elementToBlocks(el: Element, opts: { boostHeading?: boolean } = {}): Promise<Block[]> {
   const tag = el.tagName.toLowerCase();
   const cls = el.className || '';
 
   if (cls.includes('cover-wrap')) return coverBlocks(el);
-  if (cls.includes('sched-title')) return [navyHeading((el.textContent || '').trim(), 13)];
+  if (cls.includes('sched-title')) return [navyHeading((el.textContent || '').trim(), 13, true)];
   if (cls.includes('sig-page')) return signatureBlocks(el);
   if (cls.includes('loc-strip')) return locTextBlocks(el);
   if (cls.includes('intel')) return intelBlocks(el);
   if (cls.includes('photo-grid')) return []; // secondary photos: HTML/PDF only
   if (cls.includes('article-block')) {
     const out: Block[] = [];
+    let boosted = false;
     for (const gc of Array.from(el.children)) {
       const gtag = gc.tagName.toLowerCase();
-      if (gtag === 'h2') out.push(articleHeading(gc));
-      else if (gtag === 'h3') out.push(sectionHeading(gc));
+      if (gtag === 'h2') {
+        out.push(articleHeading(gc, !!opts.boostHeading && !boosted));
+        boosted = true;
+      } else if (gtag === 'h3') out.push(sectionHeading(gc));
       else out.push(...(await elementToBlocks(gc)));
     }
     return out;
@@ -372,18 +379,24 @@ async function elementToBlocks(el: Element): Promise<Block[]> {
   }
   if (tag === 'div' || tag === 'h1' || tag === 'h2' || tag === 'h3') {
     const out: Block[] = [];
-    for (const c of Array.from(el.children)) out.push(...(await elementToBlocks(c)));
+    for (const c of Array.from(el.children)) out.push(...(await elementToBlocks(c, opts)));
     return out;
   }
   return [];
 }
 
+// The FIRST non-letterhead child on a page gets `boostHeading: true` so an
+// article-leading page reads with real breathing room below the running
+// header, mirroring the `.page-content > .article-block:first-of-type >
+// h2.art{margin-top:64pt}` house rule in the HTML/PDF renderer.
 async function pageContentToBlocks(pageContentEl: Element): Promise<Block[]> {
   const out: Block[] = [];
+  let first = true;
   for (const child of Array.from(pageContentEl.children)) {
     const cls = child.className || '';
     if (cls.includes('letterhead')) continue; // rebuilt once as the Word header
-    out.push(...(await elementToBlocks(child)));
+    out.push(...(await elementToBlocks(child, { boostHeading: first })));
+    first = false;
   }
   return out;
 }
@@ -437,12 +450,27 @@ export async function generateAgreementDocxBlob(html: string): Promise<Blob> {
 
   // --- Footer, Arial 8pt standard black, with live Word page numbers ---
   const pf = pages[0].querySelector('.pf');
+  const pfLogoImg = pf?.querySelector('img.pf-logo') as HTMLImageElement | null;
   const pfLeft = pf?.querySelector('.pf-left')?.textContent || '';
   const pfCenter = pf?.querySelector('.pf-center')?.textContent || '';
 
+  const footerParagraphs: Paragraph[] = [];
+  if (pfLogoImg?.src) {
+    const img = await dataUriToImage(pfLogoImg.src);
+    if (img) {
+      footerParagraphs.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          border: { top: { style: BorderStyle.SINGLE, size: 4, color: GOLD_RULE } },
+          spacing: { before: 120, after: 20 },
+          children: [new ImageRun({ type: img.type, data: img.data, transformation: { width: 16, height: 16 } } as any)],
+        } as any)
+      );
+    }
+  }
   const footerParagraph = new Paragraph({
-    border: { top: { style: BorderStyle.SINGLE, size: 4, color: GOLD_RULE } },
-    spacing: { before: 120 },
+    border: footerParagraphs.length ? undefined : { top: { style: BorderStyle.SINGLE, size: 4, color: GOLD_RULE } },
+    spacing: { before: footerParagraphs.length ? 0 : 120 },
     tabStops: [
       { type: TabStopType.CENTER, position: 4680 },
       { type: TabStopType.RIGHT, position: 9360 },
@@ -456,6 +484,7 @@ export async function generateAgreementDocxBlob(html: string): Promise<Blob> {
       new TextRun({ children: [PageNumber.TOTAL_PAGES], font: BODY_FONT, size: pt(8), color: '000000' } as any),
     ],
   } as any);
+  footerParagraphs.push(footerParagraph);
 
   // --- Body: every page's content, in order, separated by real page breaks ---
   const bodyChildren: Block[] = [];
@@ -475,7 +504,7 @@ export async function generateAgreementDocxBlob(html: string): Promise<Blob> {
           },
         },
         headers: { default: new Header({ children: headerChildren } as any) },
-        footers: { default: new Footer({ children: [footerParagraph] } as any) },
+        footers: { default: new Footer({ children: footerParagraphs } as any) },
         children: bodyChildren as any,
       },
     ],

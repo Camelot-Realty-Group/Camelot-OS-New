@@ -1096,7 +1096,7 @@ export default function PitchOakParkDouglaston() {
             around Oak Park's actual financials, service needs, and transition timing.
           </p>
           <a
-            href={`mailto:dgoldoff@camelot.nyc?subject=${encodeURIComponent('Oak Park at Douglaston — next step')}`}
+            href={`mailto:info@camelot.nyc?subject=${encodeURIComponent('Oak Park at Douglaston — next step')}`}
             className="inline-flex items-center gap-2 px-8 py-4 font-sans text-sm font-semibold uppercase tracking-wider"
             style={{ backgroundColor: NAVY, color: 'white' }}
           >

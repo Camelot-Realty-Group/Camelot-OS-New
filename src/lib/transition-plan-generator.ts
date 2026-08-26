@@ -2,6 +2,12 @@
  * Transition Plan document generator — branded HTML for a specific pitch,
  * exported via the same downloadAsPDF() pipeline used elsewhere in the app.
  *
+ * Rebuilt to match the same house design as the Management Agreement and
+ * Proposal (see agreement-v3-general.ts / rental-agreement-v3.ts): a
+ * repeating letterhead + gold-bordered page + footer on every physical
+ * page, centered dark-gold Georgia serif headings pushed clear of the
+ * header, and running "Page N of M" numbering.
+ *
  * Deliberately avoids <input> elements (see excalibur.ts fix history: native
  * form controls are not reliably rasterized by html2canvas and can produce a
  * blank capture) and does not @import external fonts inside the PDF-render
@@ -9,13 +15,20 @@
  *
  * Content follows Camelot's own internal Transitional Procedures checklist
  * categories (Mortgage, Insurance, Legal, Accounting, Payroll, Shareholder/
- * Unit Owner records) but is rendered under the CURRENT office letterhead —
- * the source internal document still shows a retired address (477 Madison
- * Avenue) and should be updated company-wide; this generator intentionally
- * does not reproduce that address.
+ * Unit Owner records) under the current office letterhead.
  */
 
 import { CAMELOT } from '@/lib/excalibur';
+import { RENTAL_AGREEMENT_LOGO_B64 } from '@/lib/agreement-brand';
+
+const HEADING_FONT = "Georgia,'Times New Roman',serif";
+const DARK_GOLD = '#8B6F47';
+const GOLD_RULE = '#B8960F';
+const BODY_FONT = 'Arial,Helvetica,sans-serif';
+const BODY_BLACK = '#000000';
+const NAVY = '#1B2A4A';
+const COVER_TITLE_FONT = "'HGMaruGothicMPRO','HGMaruGothicM PRO',Georgia,serif";
+const COVER_TITLE_COLOR = '#2F5597';
 
 export interface TransitionPlanInput {
   clientName: string;
@@ -25,98 +38,165 @@ export interface TransitionPlanInput {
   checklistCategories: { category: string; items: string[] }[];
 }
 
+const esc = (v: unknown) =>
+  String(v ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
 export function generateTransitionPlanHtml(input: TransitionPlanInput): string {
-  const timestamp = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const version = `v${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.1`;
+  const dateStr = now.toISOString().slice(0, 10);
+  const dateLong = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  const article = (title: string, body: string) => `
+<div class="article-block">
+<h2 class="art">${esc(title)}</h2>
+${body}
+</div>`;
+
+  let pageCounter = 0;
+  const totalPagesPlaceholder = '__TOTAL_PAGES__';
+  const pageWrap = (bodyHtml: string, opts?: { noLetterhead?: boolean }) => {
+    pageCounter += 1;
+    const n = pageCounter;
+    return `
+<div class="page">
+<div class="page-content">
+
+${opts?.noLetterhead ? '' : `<div class="letterhead">
+  <img src="${RENTAL_AGREEMENT_LOGO_B64}" alt="Camelot" />
+  <div class="lh-text">
+    <div class="lh-name">CAMELOT REALTY GROUP</div>
+    <div class="lh-services">REAL ESTATE &middot; PROPERTY MGMT &middot; BROKERAGE &middot; INVESTMENT SERVICES</div>
+    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal;font-size:7pt">EST. 2006</span></div>
+  </div>
+</div>`}
+
+${bodyHtml}
+
+</div><!-- .page-content -->
+<div class="pf">
+  <img class="pf-logo" src="${RENTAL_AGREEMENT_LOGO_B64}" alt="" />
+  <div class="pf-left">${esc(CAMELOT.address)} &middot; ${esc(CAMELOT.phone)}</div>
+  <div class="pf-center">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr}</div>
+  <div class="pf-right">Page ${n} of ${totalPagesPlaceholder}</div>
+</div>
+</div><!-- .page -->`;
+  };
+
+  const coverPage = pageWrap(`
+<div class="cover-wrap">
+  <h1 class="cover-title">Transition Plan</h1>
+  <h2 class="cover-client">${esc(input.clientName)}</h2>
+  <p class="cover-addr">${esc(input.propertyAddress)}</p>
+  <p class="cover-meta">Prepared ${dateLong}</p>
+</div>
+`);
+
+  const howThisWorksPage = pageWrap(article('How This Works', `
+<p class="body">Camelot Property Management Services Corp. uses this Transition Guide to move a property between management companies without losing records, continuity, or institutional knowledge. Both the outgoing and incoming firms name one contact person to serve as liaison for the duration of the transition.</p>
+<h3 class="art-sub">Timeframes</h3>
+<ul class="blt">
+<li><b>Immediately upon receipt of the termination/engagement letter:</b> items marked time-sensitive below, plus a transfer letter to the payroll agent authorizing the transfer of accounts and payroll records.</li>
+<li><b>Five to ten days before the actual transition:</b> the balance of documents and records, plus available cash balances (cash in the account less outstanding checks, payroll reserve, authorized mortgage payment, and an appropriate reserve fund).</li>
+<li><b>Within 45 days:</b> final bank reconciliation, final cash balance, final month's management statement, and any outstanding payments. Camelot prepares a report to the Board on any documents still missing, attached to the transition minutes.</li>
+</ul>
+`));
+
+  const phasePages = input.phases
+    .map((phase) =>
+      pageWrap(
+        article(
+          `${phase.label} (${phase.dayRange})`,
+          `<ul class="blt">${phase.actions.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>`
+        )
+      )
+    )
+    .join('\n');
+
+  const checklistBody = `
+<p class="body">Files are kept in and turned over in good order, labeled by category. This checklist reflects Camelot's standard transitional-records categories.</p>
+<div class="checklist-grid">
+${input.checklistCategories
+  .map(
+    (cat) => `
+<div class="checklist-box">
+  <div class="checklist-title">${esc(cat.category)}</div>
+  <ul>${cat.items.map((item) => `<li>${esc(item)}</li>`).join('')}</ul>
+</div>`
+  )
+  .join('')}
+</div>`;
+  const checklistPage = pageWrap(article('Records &amp; Files Checklist', checklistBody));
+
+  const allPages = [coverPage, howThisWorksPage, phasePages, checklistPage].join('\n');
+  const finalHtml = allPages.replace(new RegExp(totalPagesPlaceholder, 'g'), String(pageCounter));
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Transition Plan — ${input.clientName}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transition Plan — ${esc(input.clientName)}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',Helvetica,Arial,sans-serif;color:#2C3240;font-size:12px;line-height:1.7;background:#fff}
-@media print{@page{margin:0.6in 0.75in;size:letter}body{font-size:11px}}
-.page{max-width:750px;margin:0 auto;padding:40px 0}
-.letterhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #A89035;padding-bottom:12px;margin-bottom:24px}
-.letterhead .brand{font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;font-size:20px;font-weight:800;color:#3A4B5B;letter-spacing:1px}
-.letterhead .contact{text-align:right;font-size:9px;color:#888;line-height:1.5}
-.cover{text-align:center;padding:60px 0 40px}
-.cover h1{font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;font-size:26px;color:#3A4B5B;margin-bottom:8px}
-.cover .gold{color:#A89035;font-weight:700}
-.cover .sub{font-size:13px;color:#666;margin-top:6px}
-.article{margin-bottom:22px;page-break-inside:avoid}
-.article-title{font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;font-size:15px;color:#A89035;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #A89035}
-.article-sub{font-size:12px;font-weight:700;color:#3A4B5B;margin:10px 0 4px}
-.article ul{margin:0 0 8px 20px}
-.article li{margin-bottom:4px}
-.checklist-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
-.checklist-box{background:#F7F5EF;border:1px solid #E5E0D2;border-radius:6px;padding:14px 16px}
-.checklist-box h4{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#A89035;font-weight:700;margin-bottom:8px}
-.checklist-box ul{margin:0 0 0 16px;font-size:11px}
-.checklist-box li{margin-bottom:3px}
-.footer{text-align:center;font-size:9px;color:#999;padding-top:10px;border-top:1px solid #E5E3DE;margin-top:24px}
+html,body{height:100%}
+body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55;background:#f5f0e5}
+@page{size:8.5in 11in;margin:0.75in}
+@media print{body{background:white}}
+@media screen{
+  .page{margin:20px auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);background:white}
+}
+.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;border:2px solid ${GOLD_RULE};page-break-after:always;position:relative;background:white}
+.page-content{position:relative;z-index:1}
+
+.letterhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #8a867e}
+.letterhead img{width:44px;height:44px}
+.lh-text{flex:1}
+.lh-name{font-size:14px;font-weight:700;color:${NAVY};letter-spacing:0.5px;margin:0}
+.lh-services{font-size:7.5px;color:#6B675F;letter-spacing:1px;margin:1px 0}
+.lh-tag{font-size:9px;color:#A9814A;font-style:italic;margin:2px 0}
+
+.cover-wrap{text-align:center;padding-top:96pt}
+h1.cover-title{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:24pt;font-weight:400;margin:0 0 10pt}
+h2.cover-client{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:15pt;font-weight:400;margin:0 0 6pt}
+p.cover-addr{font-family:${BODY_FONT};font-size:10pt;color:${BODY_BLACK};margin:0 0 24pt}
+p.cover-meta{font-family:${BODY_FONT};font-size:9pt;color:#6B675F;margin:0}
+
+h2.art{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:${DARK_GOLD};text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5pt solid ${GOLD_RULE};padding:12pt 0 6pt;margin:20pt 0 12pt;page-break-after:avoid}
+h3.art-sub{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:${DARK_GOLD};text-align:center;letter-spacing:0.5px;margin:14pt 0 8pt;page-break-after:avoid}
+.page-content > .article-block:first-of-type > h2.art{margin-top:64pt}
+
+p.body{font-family:${BODY_FONT};font-size:9.5pt;font-weight:400;color:${BODY_BLACK};margin-bottom:10pt;text-align:justify}
+ul.blt{font-family:${BODY_FONT};font-size:9.5pt;color:${BODY_BLACK};margin:0 0 10pt 22px}
+ul.blt li{margin-bottom:6pt;text-align:justify;line-height:1.5}
+ul.blt b{color:${NAVY}}
+
+.checklist-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12pt}
+.checklist-box{border-left:2px solid ${GOLD_RULE};padding-left:12px}
+.checklist-title{font-family:${HEADING_FONT};font-size:9.5pt;font-weight:700;color:${NAVY};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6pt}
+.checklist-box ul{margin:0 0 0 14px;font-size:8.5pt;color:${BODY_BLACK}}
+.checklist-box li{margin-bottom:4pt;line-height:1.4}
+
+.article-block{page-break-inside:avoid}
+
+.pf{margin-top:16px;padding-top:6px;border-top:1px solid ${GOLD_RULE};text-align:center;font-family:${BODY_FONT};font-size:8pt;color:${BODY_BLACK};display:flex;align-items:center;justify-content:space-between}
+.pf-logo{width:16px;height:16px;margin-right:8px;flex:0 0 auto}
+.pf-left{text-align:left;flex:1}
+.pf-center{flex:1;text-align:center}
+.pf-right{text-align:right;flex:0 0 auto;white-space:nowrap}
+
+@media print{
+  @page{margin:0.75in}
+  body{margin:0;padding:0}
+  .page{margin:0;box-shadow:none}
+}
 </style>
 </head>
 <body>
-<div class="page">
-
-<div class="letterhead">
-<div>
-<div class="brand">CAMELOT</div>
-<div style="font-size:9px;color:#888;letter-spacing:2px;text-transform:uppercase">Realty Group</div>
-</div>
-<div class="contact">
-${CAMELOT.address}<br>
-${CAMELOT.phone} · ${CAMELOT.web}
-</div>
-</div>
-
-<div class="cover">
-<h1>Transition Plan</h1>
-<div class="gold">${input.clientName}</div>
-<div class="sub">${input.propertyAddress}</div>
-<div class="sub" style="margin-top:16px;color:#999">Prepared ${timestamp}</div>
-</div>
-
-<div class="article">
-<div class="article-title">How This Works</div>
-<p>Camelot Property Management Services Corp. uses this Transition Guide to move a property between management companies without losing records, continuity, or institutional knowledge. Both the outgoing and incoming firms name one contact person to serve as liaison for the duration of the transition.</p>
-<div class="article-sub">Timeframes</div>
-<ul>
-<li><strong>Immediately upon receipt of the termination/engagement letter:</strong> items marked time-sensitive below, plus a transfer letter to the payroll agent authorizing the transfer of accounts and payroll records.</li>
-<li><strong>Five to ten days before the actual transition:</strong> the balance of documents and records, plus available cash balances (cash in the account less outstanding checks, payroll reserve, authorized mortgage payment, and an appropriate reserve fund).</li>
-<li><strong>Within 45 days:</strong> final bank reconciliation, final cash balance, final month's management statement, and any outstanding payments. Camelot prepares a report to the Board on any documents still missing, attached to the transition minutes.</li>
-</ul>
-</div>
-
-${input.phases.map((phase) => `
-<div class="article">
-<div class="article-title">${phase.label} <span style="color:#3A4B5B;font-weight:400;font-size:12px">(${phase.dayRange})</span></div>
-<ul>
-${phase.actions.map((a) => `<li>${a}</li>`).join('\n')}
-</ul>
-</div>
-`).join('\n')}
-
-<div class="article">
-<div class="article-title">Records &amp; Files Checklist</div>
-<p>Files are kept in and turned over in good order, labeled by category. This checklist reflects Camelot's standard transitional-records categories.</p>
-<div class="checklist-grid">
-${input.checklistCategories.map((cat) => `
-<div class="checklist-box">
-<h4>${cat.category}</h4>
-<ul>${cat.items.map((item) => `<li>${item}</li>`).join('')}</ul>
-</div>
-`).join('\n')}
-</div>
-</div>
-
-<div class="footer">
-${CAMELOT.name} · ${CAMELOT.address} · ${CAMELOT.phone} · Confidential — Prepared for ${input.propertyAddress}
-</div>
-
-</div>
+${finalHtml}
 </body>
 </html>`;
 }

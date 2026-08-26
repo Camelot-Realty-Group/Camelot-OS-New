@@ -444,35 +444,43 @@ export default function PitchOakParkDouglaston() {
             a rotating account number.
           </p>
 
-          {/* Photo cards for the named principals */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            {OAK_PARK_TEAM.filter((m) => m.photo).map((member) => (
-              <div key={member.role} className="text-center">
-                <img
-                  src={member.photo}
-                  alt={member.person.value}
-                  className="w-full aspect-square object-cover rounded-full mb-3 border"
-                  style={{ borderColor: '#e5decc' }}
-                />
-                <p className="font-heading text-base" style={{ color: NAVY }}>{member.person.value}</p>
-                <p className="font-sans text-[11px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: GOLD }}>{member.role}</p>
-                {member.bio && (
-                  <p className="text-xs leading-relaxed mt-2" style={{ color: '#6e6858' }}>{member.bio}</p>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-6">
+          {/* Masthead-style roster — one editorial list, photo + name + role + a single merged
+              bio/commitment paragraph per person, instead of a photo grid duplicated by a
+              separate text list. */}
+          <div>
             {OAK_PARK_TEAM.map((member) => (
-              <div key={member.role} className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-6 py-4 border-b" style={{ borderColor: '#e5decc' }}>
-                <div className="md:w-56 shrink-0">
+              <div
+                key={member.role}
+                className="grid md:grid-cols-[88px_1fr] gap-4 md:gap-8 py-8 border-b items-start"
+                style={{ borderColor: '#e5decc' }}
+              >
+                <div className="w-16 h-16 md:w-[72px] md:h-[72px] shrink-0">
+                  {member.photo ? (
+                    <img
+                      src={member.photo}
+                      alt={member.person.value}
+                      className="w-full h-full object-cover rounded-full border"
+                      style={{ borderColor: '#e5decc' }}
+                    />
+                  ) : (
+                    <div
+                      className="w-full h-full rounded-full border flex items-center justify-center font-heading text-lg"
+                      style={{ borderColor: '#e5decc', color: FAINT }}
+                    >
+                      {member.role.charAt(0)}
+                    </div>
+                  )}
+                </div>
+                <div>
                   <p className="font-sans text-xs font-semibold uppercase tracking-wider" style={{ color: GOLD }}>{member.role}</p>
-                  <p className="font-heading text-lg" style={{ color: NAVY }}>
+                  <p className="font-heading text-xl mb-2" style={{ color: NAVY }}>
                     <FactValue fact={member.person} />
                   </p>
+                  {member.bio && (
+                    <p className="text-sm leading-relaxed mb-2 max-w-2xl" style={{ color: NAVY }}>{member.bio}</p>
+                  )}
+                  <p className="text-sm leading-relaxed max-w-2xl" style={{ color: '#6e6858' }}>{member.commitment}</p>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{member.commitment}</p>
               </div>
             ))}
           </div>
@@ -550,32 +558,38 @@ export default function PitchOakParkDouglaston() {
           <SectionLabel>Accounting, technology &amp; software providers</SectionLabel>
           <SectionTitle>The systems behind the management.</SectionTitle>
           <Rule />
-          <div className="grid md:grid-cols-2 gap-5 mb-10">
+          <div className="mb-14">
             {OAK_PARK_SOFTWARE_PROVIDERS.map((p) => (
-              <div key={p.name} className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
-                <div className="h-9 flex items-center mb-3">
+              <div
+                key={p.name}
+                className="grid md:grid-cols-[160px_1fr] gap-4 md:gap-10 py-8 border-b items-start"
+                style={{ borderColor: '#e5decc' }}
+              >
+                <div className="h-9 flex items-center md:justify-start">
                   {p.logo ? (
-                    <img src={p.logo} alt={`${p.name} logo`} className="max-h-full max-w-[150px] object-contain" />
+                    <img src={p.logo} alt={`${p.name} logo`} className="max-h-full max-w-[150px] object-contain object-left" />
                   ) : p.logoIsWordmark ? (
                     <span className="font-heading text-xl tracking-wide" style={{ color: NAVY }}>
                       CAMELOT <span style={{ color: GOLD }}>OS</span>
                     </span>
                   ) : null}
                 </div>
-                <p className="font-heading text-lg mb-0.5" style={{ color: NAVY }}>{p.name}</p>
-                <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{p.role}</p>
-                <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{p.description}</p>
-                {p.url && (
-                  <a
-                    href={p.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block mt-3 font-sans text-xs font-semibold uppercase tracking-wider"
-                    style={{ color: GOLD }}
-                  >
-                    Learn more &rarr;
-                  </a>
-                )}
+                <div>
+                  <p className="font-heading text-lg mb-0.5" style={{ color: NAVY }}>{p.name}</p>
+                  <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{p.role}</p>
+                  <p className="text-sm leading-relaxed max-w-2xl" style={{ color: '#6e6858' }}>{p.description}</p>
+                  {p.url && (
+                    <a
+                      href={p.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-3 font-sans text-xs font-semibold uppercase tracking-wider"
+                      style={{ color: GOLD }}
+                    >
+                      Learn more &rarr;
+                    </a>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -774,9 +788,9 @@ export default function PitchOakParkDouglaston() {
           <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             {OAK_PARK_ANNUAL_CALENDAR_INTRO}
           </p>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-x-12 gap-y-10">
             {OAK_PARK_ANNUAL_CALENDAR.map((t) => (
-              <div key={t.track} className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+              <div key={t.track} className="border-l-2 pl-5" style={{ borderColor: GOLD }}>
                 <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{t.track}</p>
                 <p className="text-sm leading-relaxed mb-3" style={{ color: '#6e6858' }}>{t.description}</p>
                 <ul className="space-y-1">
@@ -796,9 +810,9 @@ export default function PitchOakParkDouglaston() {
           <SectionLabel>Management proposal</SectionLabel>
           <SectionTitle>The fee, by entity.</SectionTitle>
           <Rule />
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-10">
             {OAK_PARK_ENTITIES.map((entity) => (
-              <div key={entity.key} className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+              <div key={entity.key} className="border-t-2 pt-4" style={{ borderColor: GOLD }}>
                 <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{entity.shortLabel}</p>
                 <p className="text-sm mb-3" style={{ color: '#6e6858' }}>
                   <FactValue fact={entity.units} format={(v) => `${v} units`} />
@@ -865,9 +879,9 @@ export default function PitchOakParkDouglaston() {
             Management Agreements — one each for Condominium I, Condominium II, and the Unit Owners Association —
             built from the same terms and the same working unit counts shown above.
           </p>
-          <div className="space-y-4">
+          <div>
             {OAK_PARK_ENTITIES.map((entity) => (
-              <div key={entity.key} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-5 border" style={{ borderColor: '#d9d2c2' }}>
+              <div key={entity.key} className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-6 border-b" style={{ borderColor: '#e5decc' }}>
                 <div>
                   <p className="font-heading text-lg" style={{ color: NAVY }}>{entity.legalName}</p>
                   <p className="text-xs" style={{ color: '#6e6858' }}>
@@ -932,8 +946,8 @@ export default function PitchOakParkDouglaston() {
             </a>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-10">
-            <div className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+          <div className="grid md:grid-cols-2 gap-10 mb-10 pt-8 border-t" style={{ borderColor: '#e5decc' }}>
+            <div>
               <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>Transition Plan</p>
               <p className="text-sm leading-relaxed mb-4" style={{ color: '#6e6858' }}>
                 Camelot’s records-and-files checklist and 60–90 day phasing, ready for the Board to review alongside
@@ -948,7 +962,7 @@ export default function PitchOakParkDouglaston() {
                 {downloading === 'transition-plan' ? 'Generating…' : 'Download Transition Plan (PDF)'}
               </button>
             </div>
-            <div className="p-5 border" style={{ borderColor: '#d9d2c2' }}>
+            <div>
               <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>References</p>
               <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{OAK_PARK_REFERENCES_NOTE}</p>
             </div>

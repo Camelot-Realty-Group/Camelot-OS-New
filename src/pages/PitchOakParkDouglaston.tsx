@@ -314,13 +314,14 @@ export default function PitchOakParkDouglaston() {
           <p className="text-white/80 text-lg max-w-2xl mb-8">
             A management proposal for {OAK_PARK_PROPERTY.name}, {OAK_PARK_PROPERTY.fullAddress}.
           </p>
-          <a
-            href="#proposal"
-            className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider"
+          <button
+            onClick={handleDownloadProposal}
+            disabled={downloading === 'proposal'}
+            className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider disabled:opacity-50"
             style={{ backgroundColor: GOLD, color: NAVY }}
           >
-            Review the Proposal
-          </a>
+            {downloading === 'proposal' ? 'Preparing PDF…' : 'Review the Proposal (PDF)'}
+          </button>
         </div>
       </section>
 
@@ -1011,7 +1012,7 @@ export default function PitchOakParkDouglaston() {
             className="inline-flex items-center gap-2 px-8 py-4 font-sans text-sm font-semibold uppercase tracking-wider"
             style={{ backgroundColor: NAVY, color: 'white' }}
           >
-            Contact David Goldoff
+            Get in Touch with Camelot
           </a>
           <p className="mt-6 text-xs" style={{ color: '#6e6858' }}>
             {CAMELOT_COMPANY_FACTS.officeAddress} · {CAMELOT_COMPANY_FACTS.officePhone}

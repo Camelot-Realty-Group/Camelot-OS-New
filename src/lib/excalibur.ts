@@ -1,5 +1,6 @@
 import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 import { generateRentalAgreementV3 } from './rental-agreement-v3';
+import { generateAgreementV3General } from './agreement-v3-general';
 /**
  * @deprecated v2026.05.31 — Excalibur will be replaced by an Edge Function
  * (`agreements-generate`) backed by the same Fact Packet store as Jackie. The
@@ -833,16 +834,19 @@ export function generateSingleUnitAgreement(input: AgreementInput): string {
 
 export function generateAgreement(input: AgreementInput): string {
   switch (input.assetClass) {
-    // Rental (and individual-unit rentals) use the new generator that
-    // mirrors the Word master template exactly — the Camelot Rental
-    // Management Agreement house design. See src/lib/rental-agreement-v3.ts.
+    // Rental (and individual-unit rentals) use the branded house design
+    // that mirrors the Word master template exactly. See
+    // src/lib/rental-agreement-v3.ts.
     case 'rental': return generateRentalAgreementV3(input);
     case 'single-tenant': return generateRentalAgreementV3(input);
-    case 'condo': return generateCondoAgreement(input);
-    case 'coop': return generateCoopAgreement(input);
-    case 'new-construction': return generateCondoAgreement(input); // new construction uses condo base
-    case 'office': return generateOfficeAgreement(input);
-    case 'retail': return generateRetailAgreement(input);
+    // Condo, co-op, office, retail, and new-construction use the same
+    // branded house design with asset-class-specific legal content. See
+    // src/lib/agreement-v3-general.ts.
+    case 'condo': return generateAgreementV3General(input);
+    case 'coop': return generateAgreementV3General(input);
+    case 'new-construction': return generateAgreementV3General(input);
+    case 'office': return generateAgreementV3General(input);
+    case 'retail': return generateAgreementV3General(input);
     default: return generateRentalAgreementV3(input);
   }
 }

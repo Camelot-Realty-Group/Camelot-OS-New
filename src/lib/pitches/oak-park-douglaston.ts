@@ -171,7 +171,7 @@ export const OAK_PARK_TEAM: PitchTeamMember[] = [
     person: confirmed('Nicholas Shapiro'),
     photo: '/pitch/oak-park-douglaston/team/nicholas-shapiro.jpg',
     bio: 'Nicholas is Oak Park\u2019s assigned, day-to-day property manager \u2014 the direct point of contact for the Board, the superintendent, and residents.',
-    commitment: 'On site at least weekly, ~2-hour minimum visit, superintendent/staff check-in, common-area walk, written site report',
+    commitment: 'On site at least weekly, ~2-hour minimum visit, superintendent/staff check-in, common-area walk, written site report — with real time in the first weeks set aside to get to know the staff, the Board, and residents by name, not just by unit number.',
   },
   {
     role: 'Director of Condo & Co-Op Management',
@@ -185,7 +185,7 @@ export const OAK_PARK_TEAM: PitchTeamMember[] = [
     person: confirmed('Tim Kelly'),
     photo: '/pitch/oak-park-douglaston/team/tim-kelly.jpg',
     bio: 'Tim leads facilities standards and staff training across the portfolio \u2014 mechanical systems review, preventive-maintenance scheduling, and building real SOPs with on-site staff.',
-    commitment: 'Monthly facilities review during the first 60 days, quarterly thereafter, plus issue-driven visits; staff coaching, SOP buildout, preventive-maintenance schedules',
+    commitment: 'In writing: Tim visits the property periodically, more frequently in the first 60 days, to get to know the staff, the Board, and the community in person — monthly facilities review during that window, then quarterly, plus issue-driven visits. He also serves as a direct liaison between the on-site property manager and Camelot\'s office, so facilities issues do not stall waiting on a single point of contact; staff coaching, SOP buildout, and preventive-maintenance schedules throughout.',
   },
   {
     role: 'Controller',
@@ -358,10 +358,10 @@ export const OAK_PARK_COMPLIANCE_SNAPSHOT = {
 // ============================================================
 
 export const OAK_PARK_COVER_LETTER_PARAGRAPHS: string[] = [
-  "Thank you to the Oak Park Board for the time today, and for walking the property with us. Seeing the grounds, the pool and clubhouse, the sport court, and the buildings firsthand — alongside the conversation about where things stand — sharpened this proposal in ways a phone call never could.",
-  "What follows reflects that visit: our management scope, recommended Intelligence package, transition process, fee structure, and Schedule A / ancillary fee menu, built around what we saw and what the Board described, not a generic template.",
-  "Our role is to give the property a practical operating partner: clean accounting across all three entities, responsive maintenance coordination, disciplined vendor oversight, compliance tracking, board reporting, and a transition process that reduces confusion rather than creating more of it.",
-  "We would welcome the opportunity to review the latest financials, budget, insurance summary, vendor list, and current management materials so the final management agreement can be priced around actual service needs and not guesswork.",
+  "Dear Members of the Oak Park Board, thank you for the time today, and for the walking tour of the property. We listened, and we heard you — the specific, day-to-day things this community needs and isn't consistently getting. We appreciated the chance to get to know you, and we would welcome the opportunity to earn your business.",
+  "That is why we've built this as a virtual pitch deck rather than a static handout: a single site the Board can review together, come back to, and share amongst yourselves, alongside the downloadable proposal, agreements, and transition documents referenced throughout. It's also, frankly, meant to show you something about how we work — the speed and reliability that comes from pairing real property-management experience with the technology and software described on the pages that follow.",
+  "What follows reflects today's visit: our management scope, recommended Intelligence package, transition process, fee structure, and Schedule A / ancillary fee menu, built around what we saw and what the Board described, not a generic template.",
+  "To finish pricing this around Oak Park's actual needs rather than guesswork, we'd ask for copies of the Association's offering plan, the latest approved budget, and the most recent management report — along with the current financials, insurance summary, and vendor list referenced below.",
 ];
 
 // ============================================================
@@ -388,7 +388,7 @@ export const OAK_PARK_SOFTWARE_PROVIDERS: SoftwareProvider[] = [
   {
     name: 'Concierge Plus',
     role: 'Resident & Board experience portal',
-    description: 'Branded resident and Board portal — announcements, package tracking, amenity/common-area communication, and document access. Included in the base management fee, no separate license cost to the community.',
+    description: 'Branded resident and Board portal — announcements, package tracking, amenity/common-area communication, and document access. Included in the base management fee, no separate license cost to the community, with full front-desk and Board training provided directly by Camelot as part of the launch.',
     logo: `${LOGO_BASE}/conciergeplus-mark.png`,
   },
   {
@@ -414,9 +414,69 @@ export const OAK_PARK_SOFTWARE_PROVIDERS: SoftwareProvider[] = [
 export const OAK_PARK_SELECT_PARTNERSHIP = {
   partnerName: 'SELECT',
   partnerUrl: 'https://www.meetselect.com',
-  whatTheyDo: 'SELECT is a resident lifestyle and concierge-perks platform — curated local discounts, event access, and everyday convenience services (dry cleaning, fitness, dining, travel) delivered through a members-only app for the building\'s residents.',
+  whatTheyDo: 'SELECT is a private membership and concierge platform, not a credit card — it layers exclusive savings on top of however a resident already pays, by app, by website, or with a physical membership card. Members get 15–40% off (or complimentary drinks) at premier restaurants, up to 60% off hotel rates at properties worldwide, and preferred pricing with brands like Caraway, Brooks Brothers, and Tumi, plus a live concierge for bookings and reservations.',
   offer: 'One month of SELECT complimentary for Oak Park residents as a value-added welcome benefit through Camelot\'s strategic partnership — introduced during the transition period, at no cost to the community or unit owners for that first month.',
   disclosure: 'This is a value-added resident perk, not a promised permanent inclusion — continuing SELECT beyond the complimentary month would be a separate, clearly disclosed commercial arrangement between the community and SELECT, not a Camelot management fee.',
+};
+
+// ============================================================
+// Revenue growth — the three-phase plan (transition, then expense
+// review, then new income streams), plus the Domecile-specific detail
+// on fees the community already controls but may not be fully
+// capturing today. Fee figures are Domecile's own published examples
+// (domecile.com building fee schedules; boardpackager.freshdesk.com) —
+// illustrative ranges, not an Oak Park-specific quote.
+// ============================================================
+
+export interface RevenuePhase {
+  phase: string;
+  dayRange: string;
+  title: string;
+  description: string;
+}
+
+export const OAK_PARK_REVENUE_PLAN: RevenuePhase[] = [
+  {
+    phase: 'Phase 1',
+    dayRange: 'Transition',
+    title: 'Capture everything in the handoff',
+    description: 'Before anything is renegotiated or added, the transition itself protects revenue that is already the community\'s — open application and sublet fees, pending closings, and in-progress packages are inventoried so nothing is lost or double-charged between the outgoing and incoming managing agent.',
+  },
+  {
+    phase: 'Phase 2',
+    dayRange: 'Days 31–60',
+    title: 'Review operating expenses, then cut',
+    description: 'Every vendor contract is benchmarked against Camelot\'s portfolio (see Cost Optimization, above); where a credible savings case exists, we rebid — the expense side is tightened before we talk about new income, not instead of it.',
+  },
+  {
+    phase: 'Phase 3',
+    dayRange: 'Day 60+',
+    title: 'Turn on income the community already controls',
+    description: 'Once the books and vendor base are clean, we turn to revenue the governing documents already allow but that often goes uncollected or under-collected — starting with Domecile, below.',
+  },
+];
+
+export const OAK_PARK_DOMECILE_REVENUE = {
+  intro: 'Domecile is listed above as the digital board-application platform — but every purchase, sale, refinance, sublease, or transfer package that runs through it is also a fee-collection point the Board already controls. Camelot\'s job in Phase 3 is making sure those fees are actually set at a fair market level and actually collected, not lost to a manual, paper-based process.',
+  streams: [
+    {
+      title: 'Application & processing fees',
+      description: 'Buyer, tenant, and shareholder application/processing fees on Domecile-listed buildings commonly run $350–$800+ per package, set by the Board and remitted directly to the building or its management — not to Domecile.',
+    },
+    {
+      title: 'Sublet fees',
+      description: 'Where the governing documents permit subletting, sublet fees are commonly structured as 15–25% of the unit\'s annual maintenance or rent — sometimes escalating in later years — a recurring revenue line many boards under-price or under-enforce today.',
+    },
+    {
+      title: 'Building admin & transfer fees',
+      description: 'Boards can layer a separate building application/admin fee on top of standard processing fees — and flip-tax / transfer-fee schedules — for every closing, distinct from Domecile\'s own digital submission charge.',
+    },
+    {
+      title: 'Digital enforcement, not manual chasing',
+      description: 'Because fees are authorized and collected inside the platform before a package can move forward, the community stops chasing a buyer\'s attorney for a check that never arrives.',
+    },
+  ],
+  source: 'Domecile published building fee schedules (domecile.com) and BoardPackager fee documentation (boardpackager.freshdesk.com); figures are illustrative industry ranges, not an Oak Park-specific quote — actual fees are set by the Board.',
 };
 
 export interface EquipmentRequest {

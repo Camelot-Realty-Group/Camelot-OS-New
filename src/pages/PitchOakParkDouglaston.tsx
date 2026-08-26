@@ -565,6 +565,17 @@ export default function PitchOakParkDouglaston() {
                 <p className="font-heading text-lg mb-0.5" style={{ color: NAVY }}>{p.name}</p>
                 <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{p.role}</p>
                 <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{p.description}</p>
+                {p.url && (
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-3 font-sans text-xs font-semibold uppercase tracking-wider"
+                    style={{ color: GOLD }}
+                  >
+                    Learn more &rarr;
+                  </a>
+                )}
               </div>
             ))}
           </div>

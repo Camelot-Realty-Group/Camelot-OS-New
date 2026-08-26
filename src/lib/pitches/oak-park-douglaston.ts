@@ -737,6 +737,38 @@ export const OAK_PARK_COMPLIANCE_PARTNERS: CompliancePartner[] = [
 ];
 
 // ============================================================
+// Board education & governance support — direct, senior-led
+// governance help instead of a generic self-serve course library.
+// ============================================================
+
+export interface BoardEducationItem {
+  title: string;
+  description: string;
+}
+
+export const OAK_PARK_BOARD_EDUCATION_INTRO =
+  'Every new Board member inherits fiduciary duties, governing documents, and a set of decisions they didn\'t make — usually with no formal orientation. Camelot\'s governance support is built to close that gap directly, through senior staff and Camelot\'s in-house legal resource, not a generic video library.';
+
+export const OAK_PARK_BOARD_EDUCATION: BoardEducationItem[] = [
+  {
+    title: 'New Board member orientation',
+    description: 'A working session — not a slide deck — covering fiduciary duty, the governing documents specific to Oak Park\'s three entities, meeting procedure, and how decisions actually move from the Board to Camelot to execution.',
+  },
+  {
+    title: 'Direct access to in-house legal resource',
+    description: 'Governance questions — conflicts of interest, proxy rules, quorum, executive session practice — go to Camelot\'s in-house attorney resource directly, not a call center or a support ticket queue.',
+  },
+  {
+    title: 'Annual governance refresh',
+    description: 'Ahead of each budget cycle, a short session walks the Board through the year\'s financials, reserve position, and any governance or compliance changes — timed so the Board is informed before it has to vote, not after.',
+  },
+  {
+    title: 'Written reference materials',
+    description: 'A plain-language summary of Oak Park\'s bylaws and house rules, a meeting-procedure one-pager, and a compliance calendar (see Annual Operating Calendar, above) the Board can hand to a new member without waiting on Camelot to explain it live.',
+  },
+];
+
+// ============================================================
 // Helpers: build inputs for the existing Proposal + Agreement engines
 // ============================================================
 

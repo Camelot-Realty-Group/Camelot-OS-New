@@ -71,6 +71,9 @@ const PHOTOS = {
 const MDS_SAMPLE_PAGE_COUNT = 20;
 const mdsSamplePageSrc = (n: number) => `${PHOTO_BASE}/mds-sample-report/page-${String(n).padStart(2, '0')}.jpg`;
 const MDS_SAMPLE_PDF_URL = `${PHOTO_BASE}/documents/Camelot-MDS-Sample-Monthly-Report-Package.pdf`;
+const BRAND_BASE = `${PHOTO_BASE}/brand`;
+const LOGO_BLACK = `${BRAND_BASE}/camelot-logo-black.png`;
+const LOGO_CREAM = `${BRAND_BASE}/camelot-logo-cream.png`;
 const STOCK_BASE = `${PHOTO_BASE}/stock`;
 const STOCK = {
   boardMeeting: `${STOCK_BASE}/board-meeting.jpg`,
@@ -128,6 +131,54 @@ function SectionLabel({ children }: { children: ReactNode }) {
     >
       {children}
     </p>
+  );
+}
+
+/**
+ * A single, full-bleed magazine-style pull quote from a Camelot client.
+ * Meant to be dropped between sections — not clustered together — so
+ * testimonials read as editorial punctuation throughout the piece rather
+ * than a single "reviews" block at the end.
+ */
+function PullQuote({ quote, name, description }: { quote: string; name: string; description: string }) {
+  return (
+    <section className="relative py-20 md:py-28 border-b overflow-hidden" style={{ borderColor: DIVIDER, backgroundColor: CHARCOAL }}>
+      <img
+        src={LOGO_CREAM}
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none select-none absolute -right-10 -bottom-10 w-[420px] opacity-[0.05]"
+      />
+      <div className="relative z-10 max-w-3xl mx-auto px-6 md:px-10 text-center">
+        <span className="font-heading text-6xl md:text-7xl leading-none block mb-4" style={{ color: GOLD }}>
+          &ldquo;
+        </span>
+        <p className="font-heading text-2xl md:text-3xl leading-snug mb-8" style={{ color: PAPER }}>
+          {quote}
+        </p>
+        <p className="font-sans text-xs uppercase tracking-[0.2em]" style={{ color: GOLD }}>
+          {name}
+        </p>
+        <p className="font-sans text-xs mt-1" style={{ color: FAINT }}>
+          {description}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Faint monogram watermark for overlaying Camelot's mark on top of
+ * photographic or data-heavy sections without competing with content.
+ */
+function BrandWatermark({ side = 'right', tone = 'dark' }: { side?: 'left' | 'right'; tone?: 'dark' | 'light' }) {
+  return (
+    <img
+      src={tone === 'light' ? LOGO_CREAM : LOGO_BLACK}
+      alt=""
+      aria-hidden="true"
+      className={`pointer-events-none select-none absolute top-1/2 -translate-y-1/2 ${side === 'right' ? '-right-16' : '-left-16'} w-[360px] opacity-[0.04] hidden lg:block`}
+    />
   );
 }
 
@@ -266,13 +317,13 @@ export default function PitchOakParkDouglaston() {
       `}</style>
 
       {/* ============ MASTHEAD ============ */}
-      <div className="flex items-center justify-between px-6 md:px-10 py-3 text-[11px] font-sans uppercase tracking-[0.15em] border-b" style={{ borderColor: DIVIDER, color: MUTED }}>
-        <span>Camelot — A Journal of Considered Ownership</span>
-        <span>Private Board Edition · Oak Park at Douglaston · Queens</span>
+      <div className="flex items-center justify-between gap-4 px-6 md:px-10 py-3 text-[11px] font-sans uppercase tracking-[0.15em] border-b" style={{ borderColor: DIVIDER, color: MUTED }}>
+        <img src={LOGO_BLACK} alt="Camelot Realty Group" className="h-4 md:h-5 w-auto shrink-0" />
+        <span className="text-right">Private Board Edition &middot; Oak Park at Douglaston &middot; Queens</span>
       </div>
 
       {/* ============ HERO ============ */}
-      <section className="relative min-h-[92vh] flex items-end">
+      <section className="relative min-h-[92vh] flex flex-col">
         <img
           src={PHOTOS.aerial}
           alt="Aerial view of Oak Park at Douglaston"
@@ -280,9 +331,12 @@ export default function PitchOakParkDouglaston() {
         />
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(180deg, rgba(22,20,15,0.12) 0%, rgba(22,20,15,0.90) 100%)' }}
+          style={{ background: 'linear-gradient(180deg, rgba(22,20,15,0.35) 0%, rgba(22,20,15,0.18) 30%, rgba(22,20,15,0.90) 100%)' }}
         />
-        <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pb-16 md:pb-24 w-full">
+        <div className="relative z-10 px-6 md:px-10 pt-10">
+          <img src={LOGO_CREAM} alt="Camelot Realty Group" className="h-8 md:h-10 w-auto" />
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pb-16 md:pb-24 mt-auto w-full">
           <p className="font-sans text-xs font-semibold uppercase tracking-[0.25em] mb-4" style={{ color: GOLD }}>
             Prepared exclusively for the Oak Park Boards
           </p>
@@ -331,6 +385,8 @@ export default function PitchOakParkDouglaston() {
             {OAK_PARK_BOARD_CONTACTS.openItem}
           </p>
         </section>
+
+        <PullQuote {...OAK_PARK_TESTIMONIALS[0]} />
 
         {/* ============ THE CAMELOT SOLUTION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -416,6 +472,8 @@ export default function PitchOakParkDouglaston() {
           </div>
         </section>
 
+        <PullQuote {...OAK_PARK_TESTIMONIALS[1]} />
+
         {/* ============ WEEKLY ON-SITE MANAGEMENT (with amenity photos) ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Weekly on-site management</SectionLabel>
@@ -460,6 +518,8 @@ export default function PitchOakParkDouglaston() {
             actual financial data unless explicitly labeled as such.
           </p>
         </section>
+
+        <PullQuote {...OAK_PARK_TESTIMONIALS[2]} />
 
         {/* ============ ACCOUNTING, TECHNOLOGY & SOFTWARE PROVIDERS ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -522,6 +582,8 @@ export default function PitchOakParkDouglaston() {
             <p key={i} className="text-sm italic mt-6" style={{ color: '#6e6858' }}>{n}</p>
           ))}
         </section>
+
+        <PullQuote {...OAK_PARK_TESTIMONIALS[3]} />
 
         {/* ============ RESIDENT EXPERIENCE ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -597,6 +659,8 @@ export default function PitchOakParkDouglaston() {
           </p>
         </section>
 
+        <PullQuote {...OAK_PARK_TESTIMONIALS[4]} />
+
         {/* ============ TRANSITION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Transition</SectionLabel>
@@ -645,6 +709,8 @@ export default function PitchOakParkDouglaston() {
             ))}
           </div>
         </section>
+
+        <PullQuote {...OAK_PARK_TESTIMONIALS[5]} />
 
         {/* ============ MANAGEMENT PROPOSAL ============ */}
         <section id="proposal" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
@@ -757,23 +823,18 @@ export default function PitchOakParkDouglaston() {
           </p>
         </section>
 
-        {/* ============ TESTIMONIALS ============ */}
+        <PullQuote {...OAK_PARK_TESTIMONIALS[6]} />
+
+        {/* ============ CLIENT INDEX (full quotes appear as pull-quotes throughout this page) ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>What our clients say</SectionLabel>
           <SectionTitle>Boards and owners who have made this transition.</SectionTitle>
           <Rule />
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="flex flex-wrap gap-x-10 gap-y-3">
             {OAK_PARK_TESTIMONIALS.map((t) => (
-              <div key={t.name} className="flex flex-col">
-                <span className="font-heading text-4xl leading-none mb-2" style={{ color: GOLD }}>“</span>
-                <blockquote className="font-heading text-lg italic leading-snug mb-4 flex-1" style={{ color: NAVY }}>
-                  {t.quote}
-                </blockquote>
-                <cite className="not-italic">
-                  <span className="block font-sans text-sm font-semibold" style={{ color: NAVY }}>{t.name}</span>
-                  <span className="block font-sans text-xs" style={{ color: '#a39c88' }}>{t.description}</span>
-                </cite>
-              </div>
+              <span key={t.name} className="font-sans text-sm" style={{ color: MUTED }}>
+                <span className="font-semibold" style={{ color: NAVY }}>{t.name}</span> &middot; {t.description}
+              </span>
             ))}
           </div>
         </section>
@@ -852,7 +913,14 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ NEXT STEP ============ */}
-        <section className="py-24 text-center">
+        <section className="relative py-24 text-center overflow-hidden">
+          <img
+            src={LOGO_BLACK}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] max-w-none opacity-[0.035]"
+          />
+          <div className="relative z-10">
           <SectionLabel>Next step</SectionLabel>
           <h2 className="font-heading text-3xl md:text-4xl mb-6" style={{ color: NAVY }}>
             Let's find twenty minutes for the Board.
@@ -871,6 +939,8 @@ export default function PitchOakParkDouglaston() {
           <p className="mt-6 text-xs" style={{ color: '#6e6858' }}>
             {CAMELOT_COMPANY_FACTS.officeAddress} · {CAMELOT_COMPANY_FACTS.officePhone}
           </p>
+          <img src={LOGO_BLACK} alt="Camelot Realty Group" className="h-6 w-auto mx-auto mt-10 opacity-80" />
+          </div>
         </section>
       </div>
     </div>

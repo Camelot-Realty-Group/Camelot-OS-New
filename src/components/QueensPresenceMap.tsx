@@ -82,26 +82,29 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
 
     const map = L.map(mapDivRef.current, {
       scrollWheelZoom: false,
-      zoomControl: true,
+      zoomControl: false,
+      attributionControl: false,
     });
     mapInstanceRef.current = map;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // Minimal, monochrome basemap (CARTO Positron, no labels) so the map reads as a
+    // quiet editorial graphic rather than a busy street-navigation utility.
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18,
     }).addTo(map);
 
     const subjectIcon = L.divIcon({
-      html: `<div style="background:${navyHex};border:3px solid ${goldHex};width:22px;height:22px;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>`,
+      html: `<div style="background:${navyHex};border:2px solid ${goldHex};width:16px;height:16px;border-radius:50%;"></div>`,
       className: '',
-      iconSize: [22, 22],
-      iconAnchor: [11, 11],
+      iconSize: [16, 16],
+      iconAnchor: [8, 8],
     });
     const buildingIcon = L.divIcon({
-      html: `<div style="background:${goldHex};border:2px solid #fff;width:14px;height:14px;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.35);"></div>`,
+      html: `<div style="background:${goldHex};border:1.5px solid #fff;width:10px;height:10px;border-radius:50%;"></div>`,
       className: '',
-      iconSize: [14, 14],
-      iconAnchor: [7, 7],
+      iconSize: [10, 10],
+      iconAnchor: [5, 5],
     });
 
     const bounds: [number, number][] = [[center.lat, center.lon]];
@@ -112,12 +115,6 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
 
     buildings.forEach((b) => {
       bounds.push([b.lat, b.lon]);
-      L.polyline([[center.lat, center.lon], [b.lat, b.lon]], {
-        color: goldHex,
-        weight: 1,
-        opacity: 0.45,
-        dashArray: '4,5',
-      }).addTo(map);
       L.marker([b.lat, b.lon], { icon: buildingIcon })
         .addTo(map)
         .bindPopup(
@@ -125,7 +122,7 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
         );
     });
 
-    map.fitBounds(bounds, { padding: [40, 40] });
+    map.fitBounds(bounds, { padding: [56, 56] });
 
     return () => {
       map.remove();
@@ -135,11 +132,28 @@ export default function QueensPresenceMap({ center, centerLabel, buildings, gold
 
   if (failed) {
     return (
-      <div className="w-full h-96 flex items-center justify-center text-sm" style={{ background: '#F0EDE4', color: '#6b665c' }}>
+      <div className="w-full h-80 flex items-center justify-center text-sm border" style={{ background: '#F0EDE4', color: '#6b665c', borderColor: '#d9d2c2' }}>
         Map could not be loaded. See the table below for portfolio details.
       </div>
     );
   }
 
-  return <div ref={mapDivRef} className="w-full h-96 rounded" style={{ background: '#F0EDE4' }} />;
+  return (
+    <div>
+      <div ref={mapDivRef} className="w-full h-80 border" style={{ background: '#F0EDE4', borderColor: '#d9d2c2' }} />
+      <div className="flex items-center gap-6 mt-3">
+        <span className="flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider" style={{ color: navyHex }}>
+          <span
+            className="inline-block w-3 h-3 rounded-full shrink-0"
+            style={{ background: navyHex, border: `2px solid ${goldHex}` }}
+          />
+          Subject property
+        </span>
+        <span className="flex items-center gap-2 font-sans text-[11px] uppercase tracking-wider" style={{ color: navyHex }}>
+          <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: goldHex, border: '1.5px solid #fff', boxShadow: `0 0 0 1px ${goldHex}55` }} />
+          Camelot-managed building
+        </span>
+      </div>
+    </div>
+  );
 }

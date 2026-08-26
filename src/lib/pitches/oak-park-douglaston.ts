@@ -485,6 +485,26 @@ export const OAK_PARK_TESTIMONIALS: Testimonial[] = [
     name: 'The Mactaggart Family Office',
     description: '13-Building Portfolio, Chinatown & Park Slope',
   },
+  {
+    quote: 'Their communication is clear, their follow-through is dependable, and they approach every issue with professionalism.',
+    name: 'The Sarva Family Office Portfolio',
+    description: 'Six-Family Building',
+  },
+  {
+    quote: 'They are quick to respond, easy to work with, and consistently professional in how they manage both tenant concerns and property needs. It gives me real confidence knowing my building is in capable hands.',
+    name: 'Ron Masseroni',
+    description: 'Landlord, 748 East 9th Street',
+  },
+  {
+    quote: 'They handle the details thoroughly, communicate well, and stay ahead of issues before they become bigger problems. Their experience and steady oversight have made a noticeable difference.',
+    name: 'James Barrell',
+    description: 'Landlord, 50 Lispenard Street & 300 West 11th Street',
+  },
+  {
+    quote: 'Their team is attentive, responsive, and committed to maintaining a high standard across every aspect of management. I value their reliability and the peace of mind they bring.',
+    name: 'Fabrice Lecomte',
+    description: 'Landlord, 43 East 63rd Street & 410 East 50th Street',
+  },
 ];
 
 // ============================================================

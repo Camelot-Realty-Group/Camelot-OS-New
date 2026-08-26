@@ -205,8 +205,12 @@ export default function PitchOakParkDouglaston() {
         phases: OAK_PARK_TRANSITION_PLAN,
         checklistCategories: OAK_PARK_TRANSITION_CHECKLIST,
       });
-      await downloadAsPDF(html, 'Oak-Park-at-Douglaston__Camelot-Transition-Plan.pdf');
-      toast.success('Transition Plan downloaded');
+      const result = await downloadAsPDF(html, 'Oak-Park-at-Douglaston__Camelot-Transition-Plan.pdf');
+      toast.success(
+        result.method === 'download'
+          ? 'Transition Plan downloaded'
+          : 'Opened the Transition Plan for printing — use Ctrl/Cmd+P and choose “Save as PDF.”'
+      );
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : 'Could not generate the Transition Plan');
@@ -223,12 +227,17 @@ export default function PitchOakParkDouglaston() {
       const entity = OAK_PARK_ENTITIES.find((e) => e.key === entityKey)!;
       const filenameBase = `Oak-Park-at-Douglaston__${entity.shortLabel.replace(/[^a-zA-Z0-9]+/g, '-')}__Camelot-Condominium-Management-Agreement`;
       if (format === 'pdf') {
-        await downloadAsPDF(html, `${filenameBase}.pdf`);
+        const result = await downloadAsPDF(html, `${filenameBase}.pdf`);
+        toast.success(
+          result.method === 'download'
+            ? `${entity.shortLabel} agreement (PDF) downloaded`
+            : `Opened the ${entity.shortLabel} agreement for printing — use Ctrl/Cmd+P and choose “Save as PDF.”`
+        );
       } else {
         const blob = await generateAgreementDocxBlob(html);
         await downloadBlob(blob, `${filenameBase}.docx`);
+        toast.success(`${entity.shortLabel} agreement (DOCX) downloaded`);
       }
-      toast.success(`${entity.shortLabel} agreement (${format.toUpperCase()}) downloaded`);
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error && format === 'pdf' ? err.message : 'Could not generate the management agreement');

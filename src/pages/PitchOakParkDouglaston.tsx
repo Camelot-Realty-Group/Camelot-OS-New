@@ -348,6 +348,35 @@ export default function PitchOakParkDouglaston() {
           </div>
         </section>
 
+        {/* ============ PROPERTY SUMMARY ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Property summary</SectionLabel>
+          <SectionTitle>What we're proposing to manage.</SectionTitle>
+          <Rule />
+          <p className="mb-6 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            The summary below anchors this proposal to the property we walked today, and keeps factual assumptions
+            separate from the cover letter above. Anything not yet independently confirmed is marked as such —
+            see Open Items, further down — rather than assumed.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ backgroundColor: '#e5decc' }}>
+            {[
+              { label: 'Property', value: OAK_PARK_PROPERTY.fullAddress },
+              { label: 'Block / Lot', value: OAK_PARK_PROPERTY.blockLot },
+              { label: 'Asset type', value: 'Gated townhouse-style condominium community' },
+              { label: 'Governing entities', value: 'Condominium I, Condominium II, and a Unit Owners Association' },
+              { label: 'Total units', value: <FactValue fact={OAK_PARK_PROPERTY.totalUnits} /> },
+              { label: 'Buildings', value: <FactValue fact={OAK_PARK_PROPERTY.buildingCount} /> },
+              { label: 'Year built', value: <FactValue fact={OAK_PARK_PROPERTY.yearBuilt} /> },
+              { label: 'Zoning', value: <FactValue fact={OAK_PARK_PROPERTY.zoning} /> },
+            ].map((cell) => (
+              <div key={cell.label} className="p-5" style={{ backgroundColor: PAPER }}>
+                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>{cell.label}</p>
+                <p className="text-sm leading-snug" style={{ color: NAVY }}>{cell.value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ============ WHAT WE HEARD ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>What we heard</SectionLabel>
@@ -378,9 +407,15 @@ export default function PitchOakParkDouglaston() {
 
         {/* ============ THE CAMELOT SOLUTION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
-          <SectionLabel>The Camelot solution</SectionLabel>
+          <SectionLabel>Our commitment</SectionLabel>
           <SectionTitle>A direct answer to each gap above.</SectionTitle>
           <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            Camelot's approach is a boutique, hands-on management model — senior accountability, practical
+            communication, and financial discipline, fitted to the actual building rather than a generic
+            package. Applied to Oak Park specifically, based on what the Board described and what we saw on
+            today's walkthrough, that looks like the six commitments below.
+          </p>
           <div className="grid md:grid-cols-2 gap-8">
             {[
               { t: 'Weekly on-site management', d: 'A dedicated property manager on site at least weekly, with a written report after every visit — not an occasional drive-by.' },
@@ -403,6 +438,11 @@ export default function PitchOakParkDouglaston() {
           <SectionLabel>Your dedicated team</SectionLabel>
           <SectionTitle>The people who will actually be here.</SectionTitle>
           <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            Camelot assigns a named team so the Board knows exactly who is accountable for management,
+            accounting, compliance, and facilities at Oak Park — real people behind the email address, not
+            a rotating account number.
+          </p>
 
           {/* Photo cards for the named principals */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">

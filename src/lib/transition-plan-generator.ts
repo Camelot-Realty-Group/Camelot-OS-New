@@ -70,7 +70,7 @@ ${opts?.noLetterhead ? '' : `<div class="letterhead">
   <div class="lh-text">
     <div class="lh-name">CAMELOT REALTY GROUP</div>
     <div class="lh-services">REAL ESTATE &middot; PROPERTY MGMT &middot; BROKERAGE &middot; INVESTMENT SERVICES</div>
-    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal;font-size:7pt">EST. 2006</span></div>
+    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal">EST. 2006</span></div>
   </div>
 </div>`}
 
@@ -78,10 +78,8 @@ ${bodyHtml}
 
 </div><!-- .page-content -->
 <div class="pf">
-  <img class="pf-logo" src="${RENTAL_AGREEMENT_LOGO_B64}" alt="" />
-  <div class="pf-left">${esc(CAMELOT.address)} &middot; ${esc(CAMELOT.phone)}</div>
-  <div class="pf-center">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr}</div>
-  <div class="pf-right">Page ${n} of ${totalPagesPlaceholder}</div>
+  <div class="pf-line">${esc(CAMELOT.address)} &middot; ${esc(CAMELOT.phone)} &middot; info@camelot.nyc &middot; www.camelot.nyc</div>
+  <div class="pf-line">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr} &middot; Page ${n} of ${totalPagesPlaceholder}</div>
 </div>
 </div><!-- .page -->`;
   };
@@ -149,15 +147,15 @@ body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55
 @media screen{
   .page{margin:20px auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);background:white}
 }
-.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;border:2px solid ${GOLD_RULE};page-break-after:always;position:relative;background:white}
-.page-content{position:relative;z-index:1}
+.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;page-break-after:always;position:relative;background:white}
+.page-content{position:relative;z-index:1;padding-top:6pt}
 
-.letterhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #8a867e}
-.letterhead img{width:44px;height:44px}
-.lh-text{flex:1}
-.lh-name{font-size:14px;font-weight:700;color:${NAVY};letter-spacing:0.5px;margin:0}
-.lh-services{font-size:7.5px;color:#6B675F;letter-spacing:1px;margin:1px 0}
-.lh-tag{font-size:9px;color:#A9814A;font-style:italic;margin:2px 0}
+.letterhead{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #D9D2C2}
+.letterhead img{width:34px;height:34px;max-width:34px;max-height:34px;object-fit:contain;flex:0 0 34px}
+.lh-text{flex:1;margin-left:2px}
+.lh-name{font-size:13px;font-weight:700;color:#162B5E;letter-spacing:0.3px;margin:0}
+.lh-services{font-size:6.5px;color:#6B7280;letter-spacing:1px;margin:2px 0 0}
+.lh-tag{font-size:8px;color:#A9814A;font-style:italic;margin:2px 0 0}
 
 .cover-wrap{text-align:center;padding-top:120pt}
 h1.cover-title{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:24pt;font-weight:400;margin:0 0 10pt}
@@ -182,11 +180,8 @@ ul.blt b{color:${NAVY}}
 
 .article-block{page-break-inside:avoid}
 
-.pf{margin-top:16px;padding-top:6px;border-top:1px solid ${GOLD_RULE};text-align:center;font-family:${BODY_FONT};font-size:8pt;color:${BODY_BLACK};display:flex;align-items:center;justify-content:space-between}
-.pf-logo{width:16px;height:16px;margin-right:8px;flex:0 0 auto}
-.pf-left{text-align:left;flex:1}
-.pf-center{flex:1;text-align:center}
-.pf-right{text-align:right;flex:0 0 auto;white-space:nowrap}
+.pf{margin-top:16px;padding-top:6px;border-top:1px solid #D9D2C2;text-align:center;font-family:${BODY_FONT};font-size:7pt;color:#6B7280}
+.pf-line{text-align:center;margin:1pt 0}
 
 @media print{
   @page{margin:0.75in}

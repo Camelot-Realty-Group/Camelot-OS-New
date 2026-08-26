@@ -529,7 +529,98 @@ export const OAK_PARK_VENDOR_NETWORK: VendorCategory[] = [
 ];
 
 export const OAK_PARK_VENDOR_NETWORK_NOTE =
-  'Every vendor in Camelot\'s network is licensed and bonded — not a name pulled from a listing the week a contract expires. The point is a deeper bench than Oak Park has had: when a vendor underperforms, there is already a vetted alternative to call, not a scramble to find one.';
+  'Every vendor in Camelot\'s network is licensed and bonded — not a name pulled from a listing the week a contract expires. Camelot tracks each contractor\'s certificate of insurance and license status on an ongoing basis, not just at onboarding, so coverage lapses get caught before a claim does, not after. The point is a deeper bench than Oak Park has had: when a vendor underperforms, there is already a vetted alternative to call, not a scramble to find one.';
+
+// ============================================================
+// Communication philosophy — how Camelot works with the Board day to
+// day (distinct from the itemized "Our Commitment" list above: this is
+// the operating philosophy behind it).
+// ============================================================
+
+export interface CommunicationPillar {
+  icon: 'message' | 'clipboard' | 'eye' | 'handshake' | 'file' | 'shield' | 'sparkles';
+  title: string;
+  description: string;
+}
+
+export const OAK_PARK_COMMUNICATION_INTRO =
+  'Camelot takes the day-to-day management burden off the Board while keeping it fully informed and in control. More communication. Less work for the Board. Better management.';
+
+export const OAK_PARK_COMMUNICATION_PILLARS: CommunicationPillar[] = [
+  {
+    icon: 'message',
+    title: 'Proactive communication',
+    description: 'The Board shouldn\'t have to chase management for updates. Camelot establishes a regular communication rhythm and keeps the Board informed on issues, projects, and decisions as they happen — not after the fact.',
+  },
+  {
+    icon: 'clipboard',
+    title: 'Less for the Board to manage',
+    description: 'Camelot handles the follow-up with vendors, staff, contractors, and inspections directly, so the Board can focus on oversight and policy rather than running day-to-day operations.',
+  },
+  {
+    icon: 'eye',
+    title: 'Regular on-site presence',
+    description: 'Scheduled property visits by the management team mean issues get seen firsthand, Josh has a direct line to Camelot, and building operations get checked — not assumed.',
+  },
+  {
+    icon: 'handshake',
+    title: 'Strong relationship with Josh and the staff',
+    description: 'Camelot works with the onsite superintendent, not around him. Josh knows this property — Camelot provides the support, resources, and direct oversight he needs to keep it running smoothly.',
+  },
+  {
+    icon: 'file',
+    title: 'Consistent financial reporting',
+    description: 'A fixed monthly schedule from Camelot\'s in-house accounting department gives the Board a clear, predictable picture of the property\'s financial position and expenses — every month, on time.',
+  },
+  {
+    icon: 'shield',
+    title: 'Accountability',
+    description: 'Camelot is the Board\'s single point of contact — responsible for making sure vendors and staff follow through, so nothing falls through the cracks.',
+  },
+  {
+    icon: 'sparkles',
+    title: 'Seamless operations',
+    description: 'The goal is simple: residents see a well-run property, while the Board feels confident that everything behind the scenes is being handled.',
+  },
+];
+
+// ============================================================
+// Building community — getting owners in the room. Sourced from Tim
+// Kelly's (Director of Field Operations) post-walkthrough field notes
+// on low homeowner participation / no quorum at the annual meeting.
+// ============================================================
+
+export interface CommunityActivity {
+  emoji: string;
+  title: string;
+  description: string;
+}
+
+export const OAK_PARK_COMMUNITY_INTRO =
+  'Tim Kelly\'s notes from the walkthrough flagged something boards underestimate: low homeowner participation and no quorum at the annual meeting isn\'t just an attendance problem — it\'s a governance risk. Camelot\'s answer is to give owners real reasons to show up, not just another meeting notice.';
+
+export const OAK_PARK_COMMUNITY_ACTIVITIES: CommunityActivity[] = [
+  {
+    emoji: '🌿',
+    title: 'A resident landscaping committee',
+    description: 'A standing volunteer committee that gives owners direct input on grounds and seasonal plantings — participation that builds toward showing up for the annual meeting too.',
+  },
+  {
+    emoji: '🎬',
+    title: 'Weekly movie night',
+    description: 'A regular, low-effort reason for neighbors to see each other outside of a complaint or a board notice.',
+  },
+  {
+    emoji: '🎾',
+    title: 'A tennis tournament',
+    description: 'Puts the community\'s own tennis court to use as a gathering point, not just a line item on the amenities list.',
+  },
+  {
+    emoji: '🔥',
+    title: 'Spring and end-of-summer barbecues',
+    description: 'Two anchor community events a year — bookending the season and giving Camelot\'s team a standing, informal opportunity to meet owners face to face.',
+  },
+];
 
 // ============================================================
 // Transition plan — records/files checklist (from Camelot's internal

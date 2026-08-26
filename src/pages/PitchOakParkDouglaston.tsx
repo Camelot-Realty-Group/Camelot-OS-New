@@ -47,6 +47,8 @@ import {
   OAK_PARK_QUEENS_PORTFOLIO_NOTE,
   OAK_PARK_ANNUAL_CALENDAR,
   OAK_PARK_ANNUAL_CALENDAR_INTRO,
+  OAK_PARK_BOARD_EDUCATION,
+  OAK_PARK_BOARD_EDUCATION_INTRO,
   CAMELOT_COMPANY_FACTS,
   oakParkAsBuilding,
   oakParkAgreementInputFor,
@@ -869,6 +871,24 @@ export default function PitchOakParkDouglaston() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============ BOARD EDUCATION & GOVERNANCE SUPPORT ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Board education &amp; governance support</SectionLabel>
+          <SectionTitle>Direct answers, not a course library.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            {OAK_PARK_BOARD_EDUCATION_INTRO}
+          </p>
+          <div>
+            {OAK_PARK_BOARD_EDUCATION.map((item) => (
+              <div key={item.title} className="grid md:grid-cols-[280px_1fr] gap-2 md:gap-10 py-6 border-b items-start" style={{ borderColor: '#e5decc' }}>
+                <p className="font-heading text-lg" style={{ color: NAVY }}>{item.title}</p>
+                <p className="text-sm leading-relaxed max-w-2xl" style={{ color: '#6e6858' }}>{item.description}</p>
               </div>
             ))}
           </div>

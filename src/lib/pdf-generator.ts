@@ -317,27 +317,64 @@ function raceTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-/** Download an HTML report as a PDF using the browser-side renderer. */
-export async function downloadAsPDF(html: string, filename: string): Promise<void> {
+// A real one-page letter document with any actual rendered content
+// (letterhead, headings, body text) reliably produces a PDF well above
+// this size once fonts/images are embedded. The confirmed-broken capture
+// mode in this app (html2canvas silently failing to ever create/read a
+// canvas inside the isolated render iframe — no thrown error, no failed
+// network request, jsPDF proceeding anyway with an empty page) has been
+// observed to consistently produce 3–6KB single-page PDFs with a content
+// stream containing only a stray line-width/stroke-color pair and zero
+// text/image-drawing operators. Treat anything under this floor as an
+// unreliable capture rather than trusting size/toast/no-thrown-error as
+// proof of real content.
+const MIN_VALID_PDF_BYTES = 12000;
+
+export type PdfDownloadResult = { method: 'download' } | { method: 'print-fallback' };
+
+/**
+ * Download an HTML report as a PDF using the browser-side html2canvas
+ * renderer. If that renderer produces a suspiciously small/likely-blank
+ * result (see MIN_VALID_PDF_BYTES) or times out, falls back to opening
+ * the real HTML in a new tab via openBrochureForPrint() so the user can
+ * still get a correct PDF through the browser's own, fully reliable
+ * native print-to-PDF (Ctrl+P / Cmd+P → Save as PDF) instead of silently
+ * downloading a blank file. Callers should branch on the returned
+ * `method` to show the right confirmation message.
+ */
+export async function downloadAsPDF(html: string, filename: string): Promise<PdfDownloadResult> {
   const html2pdf = (await import('html2pdf.js')).default;
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
+  let blob: Blob | undefined;
   try {
     await waitForFrameSettled(frame);
     const win = frame.contentWindow!;
     try {
-      await raceTimeout(
-        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).save(),
-        45000
+      blob = await raceTimeout(
+        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob'),
+        30000
       );
-    } catch (err) {
-      if (err instanceof PdfRenderTimeoutError) {
-        throw new Error('PDF generation timed out. Please use the Word (.docx) download instead — it contains the same content and is not affected by this issue.');
-      }
-      throw err;
+    } catch {
+      blob = undefined;
     }
   } finally {
     frame.remove();
   }
+
+  if (blob && blob.size >= MIN_VALID_PDF_BYTES) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return { method: 'download' };
+  }
+
+  openBrochureForPrint(html, filename);
+  return { method: 'print-fallback' };
 }
 
 /**
@@ -362,6 +399,9 @@ export async function generatePdfBase64(html: string, filename: string): Promise
         throw new Error('PDF generation timed out while preparing the email attachment.');
       }
       throw err;
+    }
+    if (blob.size < MIN_VALID_PDF_BYTES) {
+      throw new Error('PDF render produced an unreliable (likely blank) result — not attaching a broken PDF to the email.');
     }
     const dataUrl = await blobToDataUrl(blob);
     // Strip the "data:application/pdf;base64," prefix — Resend wants the raw base64 payload.

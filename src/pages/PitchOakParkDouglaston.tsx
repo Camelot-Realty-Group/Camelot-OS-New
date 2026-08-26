@@ -16,6 +16,15 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import toast from 'react-hot-toast';
 import {
+  MessageCircle,
+  ClipboardCheck,
+  Eye,
+  Handshake,
+  FileText,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+import {
   OAK_PARK_PROPERTY,
   OAK_PARK_ENTITIES,
   OAK_PARK_MARKET_COMP,
@@ -49,6 +58,10 @@ import {
   OAK_PARK_ANNUAL_CALENDAR_INTRO,
   OAK_PARK_BOARD_EDUCATION,
   OAK_PARK_BOARD_EDUCATION_INTRO,
+  OAK_PARK_COMMUNICATION_INTRO,
+  OAK_PARK_COMMUNICATION_PILLARS,
+  OAK_PARK_COMMUNITY_INTRO,
+  OAK_PARK_COMMUNITY_ACTIVITIES,
   CAMELOT_COMPANY_FACTS,
   oakParkAsBuilding,
   oakParkAgreementInputFor,
@@ -165,6 +178,79 @@ function SectionTitle({ children }: { children: ReactNode }) {
 
 function Rule() {
   return <div className="w-16 h-px mb-8" style={{ backgroundColor: GOLD }} />;
+}
+
+// Small badge icons for topic-level items (e.g. a single Communication
+// pillar) — kept visually distinct from SectionLabel, which marks the
+// broader category an entire section belongs to.
+const PILLAR_ICONS = {
+  message: MessageCircle,
+  clipboard: ClipboardCheck,
+  eye: Eye,
+  handshake: Handshake,
+  file: FileText,
+  shield: ShieldCheck,
+  sparkles: Sparkles,
+} as const;
+
+function IconBadge({ icon }: { icon: keyof typeof PILLAR_ICONS }) {
+  const Icon = PILLAR_ICONS[icon];
+  return (
+    <div
+      className="w-11 h-11 rounded-full border flex items-center justify-center shrink-0"
+      style={{ borderColor: GOLD, backgroundColor: `${GOLD}14` }}
+    >
+      <Icon size={18} strokeWidth={1.5} color={GOLD} />
+    </div>
+  );
+}
+
+// Top jump-navigation — a curated subset of sections (not every section on
+// the page) so the sticky bar stays scannable. "category" groups a few
+// related nav buttons together for a small visual separator between
+// groups, mirroring the category/topic distinction used elsewhere.
+const NAV_SECTIONS: { id: string; label: string; category: string }[] = [
+  { id: 'cover-letter', label: 'Overview', category: 'Intro' },
+  { id: 'communication', label: 'Communication', category: 'Intro' },
+  { id: 'team', label: 'Team', category: 'People' },
+  { id: 'community', label: 'Community', category: 'People' },
+  { id: 'financial-reporting', label: 'Financials', category: 'Operations' },
+  { id: 'vendor-network', label: 'Vendors', category: 'Operations' },
+  { id: 'transition', label: 'Transition', category: 'Operations' },
+  { id: 'proposal', label: 'Pricing', category: 'Documents' },
+  { id: 'agreement', label: 'Agreement', category: 'Documents' },
+  { id: 'documents', label: 'Documents', category: 'Documents' },
+];
+
+function TopNav() {
+  return (
+    <nav
+      className="sticky top-0 z-50 border-b overflow-x-auto"
+      style={{ backgroundColor: IVORY, borderColor: DIVIDER }}
+      aria-label="Section navigation"
+    >
+      <div className="flex items-center gap-1 px-6 md:px-10 py-2 min-w-max">
+        {NAV_SECTIONS.map((s, i) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className="px-3.5 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap rounded-full transition-colors hover:opacity-100"
+            style={{
+              color: NAVY,
+              opacity: 0.65,
+              marginLeft: i > 0 && s.category !== NAV_SECTIONS[i - 1].category ? '10px' : undefined,
+              borderLeft: i > 0 && s.category !== NAV_SECTIONS[i - 1].category ? `1px solid ${DIVIDER}` : undefined,
+              paddingLeft: i > 0 && s.category !== NAV_SECTIONS[i - 1].category ? '14px' : undefined,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.65')}
+          >
+            {s.label}
+          </a>
+        ))}
+      </div>
+    </nav>
+  );
 }
 
 // ============================================================
@@ -295,6 +381,9 @@ export default function PitchOakParkDouglaston() {
         <span className="text-right">Private Board Edition &middot; Oak Park at Douglaston &middot; Queens</span>
       </div>
 
+      {/* ============ STICKY SECTION NAV ============ */}
+      <TopNav />
+
       {/* ============ HERO ============ */}
       <section className="relative min-h-[92vh] flex flex-col">
         <img
@@ -330,10 +419,41 @@ export default function PitchOakParkDouglaston() {
         </div>
       </section>
 
+      {/* ============ TOP DOCUMENT CALLOUT — pricing/agreements up front ============ */}
+      <div className="py-6 border-b" style={{ backgroundColor: NAVY, borderColor: DIVIDER }}>
+        <div className="max-w-5xl mx-auto px-6 md:px-10 flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+          <p className="font-sans text-sm font-semibold text-white shrink-0">
+            Don't want to scroll? <span style={{ color: GOLD }}>Every document below is downloadable right now:</span>
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleDownloadProposal}
+              disabled={downloading === 'proposal'}
+              className="px-4 py-2 font-sans text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+              style={{ backgroundColor: GOLD, color: NAVY }}
+            >
+              {downloading === 'proposal' ? 'Preparing…' : 'Proposal (PDF)'}
+            </button>
+            <a
+              href="#proposal"
+              className="px-4 py-2 font-sans text-xs font-semibold uppercase tracking-wider border border-white/40 text-white hover:border-white transition-colors"
+            >
+              See Pricing ↓
+            </a>
+            <a
+              href="#agreement"
+              className="px-4 py-2 font-sans text-xs font-semibold uppercase tracking-wider border border-white/40 text-white hover:border-white transition-colors"
+            >
+              Management Agreement ↓
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-5xl mx-auto px-6 md:px-10">
 
         {/* ============ COVER LETTER ============ */}
-        <section className="relative py-20 md:py-28 border-b overflow-hidden" style={{ borderColor: DIVIDER }}>
+        <section id="cover-letter" className="relative py-20 md:py-28 border-b overflow-hidden" style={{ borderColor: DIVIDER }}>
           <img
             src={LOGO_BLACK}
             alt=""
@@ -407,6 +527,27 @@ export default function PitchOakParkDouglaston() {
           </p>
         </section>
 
+        {/* ============ COMMUNICATION PHILOSOPHY ============ */}
+        <section id="communication" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>How we work with the Board</SectionLabel>
+          <SectionTitle>More communication. Less work for the Board. Better management.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            {OAK_PARK_COMMUNICATION_INTRO}
+          </p>
+          <div className="grid md:grid-cols-2 gap-8">
+            {OAK_PARK_COMMUNICATION_PILLARS.map((item) => (
+              <div key={item.title} className="flex gap-4">
+                <IconBadge icon={item.icon} />
+                <div>
+                  <h3 className="font-heading text-lg mb-1.5" style={{ color: NAVY }}>{item.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ============ THE CAMELOT SOLUTION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Our commitment</SectionLabel>
@@ -437,7 +578,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ TEAM ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+        <section id="team" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Your dedicated team</SectionLabel>
           <SectionTitle>The people who will actually be here.</SectionTitle>
           <Rule />
@@ -539,7 +680,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ FINANCIAL REPORTING ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+        <section id="financial-reporting" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Financial reporting</SectionLabel>
           <SectionTitle>One accountable lead, three clean closes.</SectionTitle>
           <Rule />
@@ -655,6 +796,27 @@ export default function PitchOakParkDouglaston() {
           </p>
         </section>
 
+        {/* ============ BUILDING COMMUNITY ============ */}
+        <section id="community" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Building community</SectionLabel>
+          <SectionTitle>Getting owners in the room.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            {OAK_PARK_COMMUNITY_INTRO}
+          </p>
+          <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
+            {OAK_PARK_COMMUNITY_ACTIVITIES.map((activity) => (
+              <div key={activity.title} className="flex gap-4">
+                <span className="text-2xl leading-none shrink-0" aria-hidden="true">{activity.emoji}</span>
+                <div>
+                  <h3 className="font-heading text-lg mb-1" style={{ color: NAVY }}>{activity.title}</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{activity.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ============ COST OPTIMIZATION ============ */}
         <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Cost optimization</SectionLabel>
@@ -682,7 +844,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ VENDOR NETWORK ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+        <section id="vendor-network" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Vendor network</SectionLabel>
           <SectionTitle>The deeper bench Oak Park has never had.</SectionTitle>
           <Rule />
@@ -828,7 +990,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ TRANSITION ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+        <section id="transition" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Transition</SectionLabel>
           <SectionTitle>A 60–90 day plan, not a name change on an invoice.</SectionTitle>
           <Rule />
@@ -1006,7 +1168,7 @@ export default function PitchOakParkDouglaston() {
         </section>
 
         {/* ============ SUPPORTING DOCUMENTS ============ */}
-        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+        <section id="documents" className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
           <SectionLabel>Supporting documents</SectionLabel>
           <SectionTitle>What the Board can review now — and what stays behind the portal.</SectionTitle>
           <Rule />

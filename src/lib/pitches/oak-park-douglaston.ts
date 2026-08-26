@@ -706,10 +706,35 @@ export const CAMELOT_COMPANY_FACTS = {
   aum: '$240M+',
   footprint: 'Active in NYC\u2019s five boroughs plus Riverdale, Westchester, and New Jersey',
   affiliations: ['REBNY', 'IREM', 'SPONY', 'NYAA', 'NYARM', 'BOMA', 'CNYC'],
+  reBnyCommittee: 'Member, REBNY Residential Management Committee',
   officeAddress: '57 West 57th Street, Suite 410, New York, NY 10019',
   officePhone: '(212) 206-9939',
   officeCoords: { lat: 40.76438, lon: -73.97654 },
 };
+
+export interface CompliancePartner {
+  name: string;
+  role: string;
+  description: string;
+}
+
+export const OAK_PARK_COMPLIANCE_PARTNERS: CompliancePartner[] = [
+  {
+    name: 'PVE Engineering',
+    role: 'Engineering & compliance governance partner',
+    description: 'Camelot\'s strategic engineering partner for facade (Local Law 11/FISP), structural, and mechanical compliance oversight — an outside professional check on Camelot\'s own facilities work, not a rubber stamp from an in-house team.',
+  },
+  {
+    name: 'Energy & Local Law 97 consulting',
+    role: 'Internal + outside energy consultants',
+    description: 'Camelot pairs its internal compliance staff with outside, expedited energy consultants for Local Law 97 benchmarking, emissions-reduction planning, and capital-project sequencing — so Oak Park has a real compliance plan ahead of LL97\'s escalating penalty periods, not a scramble the year fines start.',
+  },
+  {
+    name: 'Insurance placement — three brokers, not one',
+    role: 'Competitive insurance placement',
+    description: 'Camelot places coverage through three different insurance brokers rather than a single in-house or exclusive brokerage, so every renewal is shopped for the best available pricing and terms instead of accepting one broker\'s first quote.',
+  },
+];
 
 // ============================================================
 // Helpers: build inputs for the existing Proposal + Agreement engines

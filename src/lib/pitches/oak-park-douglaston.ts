@@ -150,7 +150,7 @@ export const OAK_PARK_PAIN_POINTS: string[] = [
 
 export const OAK_PARK_BOARD_CONTACTS = {
   namedContacts: ['Judy', 'Tony', 'Juil'],
-  openItem: 'Resolved — Juil asked for the assigned property manager\'s name; Nicholas Shapiro is confirmed as the Oak Park property manager (see Team, below).',
+  openItem: 'Juil asked for the assigned property manager\'s name — Nicholas Shapiro is Camelot\'s working assignment for the on-site role (see Team, below), with final confirmation of the account lead/PM structure and backup coverage tracked as an open item ahead of signing.',
 };
 
 // ============================================================
@@ -174,7 +174,7 @@ export const OAK_PARK_TEAM: PitchTeamMember[] = [
     commitment: 'On site at least weekly, ~2-hour minimum visit, superintendent/staff check-in, common-area walk, written site report — with real time in the first weeks set aside to get to know the staff, the Board, and residents by name, not just by unit number.',
   },
   {
-    role: 'Director of Condo & Co-Op Management',
+    role: 'Senior Director, Condo & Co-Op Services',
     person: confirmed('Valerie Fiume'),
     photo: '/pitch/oak-park-douglaston/team/valerie-fiume.jpg',
     bio: 'Valerie oversees Camelot\u2019s condo and co-op portfolio and steps in directly on escalations, management standards, and transition oversight.',
@@ -649,6 +649,7 @@ export const OAK_PARK_QUEENS_PORTFOLIO_NOTE =
 
 export const OAK_PARK_TO_BE_CONFIRMED: string[] = [
   'Official unit counts — Condominium I, Condominium II, and total community (currently working figures of 121 / 92 / 213)',
+  'Final assignment and title for the account lead / property manager role — including current portfolio and unit load, and backup coverage — to be confirmed directly with the Board before this proposal is finalized',
   'Fidelity/E&O insurance certificates and verified coverage limits',
   'Three direct Board references, ideally from multi-board/garden-style management experience',
   'Latest approved budgets and monthly management reports from the Boards or outgoing management',

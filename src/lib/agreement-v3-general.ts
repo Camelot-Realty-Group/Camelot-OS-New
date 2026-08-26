@@ -402,7 +402,7 @@ ${opts?.noLetterhead ? '' : `<div class="letterhead">
   <div class="lh-text">
     <div class="lh-name">CAMELOT REALTY GROUP</div>
     <div class="lh-services">REAL ESTATE &middot; PROPERTY MGMT &middot; BROKERAGE &middot; INVESTMENT SERVICES</div>
-    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal;font-size:7pt">EST. 2006</span></div>
+    <div class="lh-tag">New Yorkers Working for New Yorkers <span style="font-style:normal">EST. 2006</span></div>
   </div>
 </div>`}
 
@@ -411,10 +411,8 @@ ${bodyHtml}
 
 </div><!-- .page-content -->
 <div class="pf">
-  <img class="pf-logo" src="${RENTAL_AGREEMENT_LOGO_B64}" alt="" />
-  <div class="pf-left">${CAMELOT_OFFICE.address} &middot; ${CAMELOT_OFFICE.phone}</div>
-  <div class="pf-center">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr}</div>
-  <div class="pf-right">Page ${n} of ${totalPagesPlaceholder}</div>
+  <div class="pf-line">${CAMELOT_OFFICE.address} &middot; ${CAMELOT_OFFICE.phone} &middot; ${CAMELOT_OFFICE.email} &middot; ${CAMELOT_OFFICE.web}</div>
+  <div class="pf-line">CONFIDENTIAL &mdash; ${version} &mdash; ${dateStr} &middot; Page ${n} of ${totalPagesPlaceholder}</div>
 </div>
 </div><!-- .page -->`;
   };
@@ -570,17 +568,17 @@ body{font-family:${BODY_FONT};color:${BODY_BLACK};font-size:9pt;line-height:1.55
 @media screen{
   .page{margin:20px auto;box-shadow:0 2px 10px rgba(0,0,0,0.1);background:white}
 }
-.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;border:2px solid ${GOLD_RULE};page-break-after:always;position:relative;background:white}
+.page{width:8.5in;min-height:11in;padding:0.75in 0.75in 1.1in 0.75in;margin:20px auto;page-break-after:always;position:relative;background:white}
 .page-content{position:relative;z-index:1;padding-top:6pt}
 
-.letterhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #8a867e}
-.letterhead img{width:44px;height:44px}
-.lh-text{flex:1}
-.lh-name{font-size:14px;font-weight:700;color:#1B2A4A;letter-spacing:0.5px;margin:0}
-.lh-services{font-size:7.5px;color:#6B675F;letter-spacing:1px;margin:1px 0}
-.lh-tag{font-size:9px;color:#A9814A;font-style:italic;margin:2px 0}
+.letterhead{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #D9D2C2}
+.letterhead img{width:34px;height:34px;max-width:34px;max-height:34px;object-fit:contain;flex:0 0 34px}
+.lh-text{flex:1;margin-left:2px}
+.lh-name{font-size:13px;font-weight:700;color:#162B5E;letter-spacing:0.3px;margin:0}
+.lh-services{font-size:6.5px;color:#6B7280;letter-spacing:1px;margin:2px 0 0}
+.lh-tag{font-size:8px;color:#A9814A;font-style:italic;margin:2px 0 0}
 
-.cover-wrap{text-align:center;padding-top:56pt}
+.cover-wrap{text-align:center;padding-top:120pt}
 h1.cover-addr{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:18pt;font-weight:400;margin:0 0 4pt;line-height:1.25}
 h2.cover-citystate{font-family:${COVER_TITLE_FONT};color:${COVER_TITLE_COLOR};font-size:16pt;font-weight:400;margin:0 0 18pt;line-height:1.25}
 .cover-photo-box{margin:0 auto 16pt;width:4.5in;height:3.5in;border:1px solid #000;overflow:hidden}
@@ -594,7 +592,8 @@ p.cover-version{font-family:${BODY_FONT};font-size:9pt;color:${BODY_BLACK};font-
 
 h2.art{font-family:${HEADING_FONT};font-size:12pt;font-weight:700;color:${DARK_GOLD};text-align:center;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1.5pt solid ${GOLD_RULE};padding:12pt 0 6pt;margin:20pt 0 0;page-break-after:avoid}
 h3.art-sub{font-family:${HEADING_FONT};font-size:11pt;font-weight:700;color:${DARK_GOLD};text-align:center;letter-spacing:0.5px;margin:6pt 0 10pt;padding:0;page-break-after:avoid}
-.page-content > .article-block:first-of-type > h2.art{margin-top:64pt}
+.page-content > .article-block:first-of-type > h2.art{margin-top:120pt}
+.page-content > p.body:first-of-type{margin-top:64pt}
 
 p.body{font-family:${BODY_FONT};font-size:9pt;font-weight:400;color:${BODY_BLACK};margin-bottom:8pt;text-align:justify}
 p.ind{font-family:${BODY_FONT};font-size:9pt;font-weight:400;color:${BODY_BLACK};margin:0 0 7pt 18pt;text-align:justify}
@@ -625,7 +624,7 @@ table.fee tr:nth-child(odd) td{background:#F7F4EC}
 td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
 .sched-note{font-family:${BODY_FONT};font-size:8.5pt;font-style:italic;color:#6B675F;margin:5pt 0 0}
 
-.sig-page{padding-top:48pt;text-align:center}
+.sig-page{padding-top:80pt;text-align:center}
 .sig-head{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;letter-spacing:2px;margin-bottom:8pt;text-transform:uppercase}
 .sig-wit{margin:0 auto 20px;max-width:600px}
 .sig-witness{font-family:${BODY_FONT};font-style:italic;font-size:9pt}
@@ -636,15 +635,12 @@ td.fee-amt{white-space:nowrap;font-weight:700;color:#1B2A4A}
 .sig-field b{color:${BODY_BLACK};font-weight:700}
 .sig-rule{width:70%;margin:24px auto;border-bottom:1px solid #C9A55C}
 
-.sched-title{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:48pt 0 10pt;text-transform:uppercase}
+.sched-title{font-family:${HEADING_FONT};font-size:13pt;font-weight:700;color:#1B2A4A;text-align:center;letter-spacing:1px;margin:100pt 0 10pt;text-transform:uppercase}
 .avoid-break{page-break-inside:avoid}
 .article-block{page-break-inside:avoid}
 
-.pf{margin-top:16px;padding-top:6px;border-top:1px solid ${GOLD_RULE};text-align:center;font-family:${BODY_FONT};font-size:8pt;color:${BODY_BLACK};display:flex;justify-content:space-between;align-items:center}
-.pf-logo{width:16px;height:16px;margin-right:8px;flex:0 0 auto}
-.pf-left{text-align:left;flex:0 0 42%}
-.pf-center{flex:1;text-align:center}
-.pf-right{text-align:right;flex:0 0 auto;white-space:nowrap}
+.pf{margin-top:16px;padding-top:6px;border-top:1px solid #D9D2C2;text-align:center;font-family:${BODY_FONT};font-size:7pt;color:#6B7280}
+.pf-line{text-align:center;margin:1pt 0}
 
 @media print{
   @page{margin:0.75in}

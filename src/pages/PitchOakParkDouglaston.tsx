@@ -452,10 +452,10 @@ export default function PitchOakParkDouglaston() {
             {OAK_PARK_TEAM.map((member) => (
               <div
                 key={member.role}
-                className="grid md:grid-cols-[88px_1fr] gap-4 md:gap-8 py-8 border-b items-start"
+                className="grid md:grid-cols-[110px_1fr] gap-4 md:gap-8 py-8 border-b items-start"
                 style={{ borderColor: '#e5decc' }}
               >
-                <div className="w-16 h-16 md:w-[72px] md:h-[72px] shrink-0">
+                <div className="w-20 h-20 md:w-[90px] md:h-[90px] shrink-0">
                   {member.photo ? (
                     <img
                       src={member.photo}

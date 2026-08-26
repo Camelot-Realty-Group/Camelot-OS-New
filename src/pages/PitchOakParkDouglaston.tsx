@@ -35,6 +35,7 @@ import {
   OAK_PARK_EQUIPMENT_REQUESTS,
   OAK_PARK_VENDOR_NETWORK,
   OAK_PARK_VENDOR_NETWORK_NOTE,
+  OAK_PARK_COMPLIANCE_PARTNERS,
   OAK_PARK_REVENUE_PLAN,
   OAK_PARK_DOMECILE_REVENUE,
   OAK_PARK_TRANSITION_CHECKLIST,
@@ -697,6 +698,43 @@ export default function PitchOakParkDouglaston() {
             ))}
           </div>
           <p className="text-sm leading-relaxed" style={{ color: '#6e6858' }}>{OAK_PARK_VENDOR_NETWORK_NOTE}</p>
+        </section>
+
+        {/* ============ COMPLIANCE, ENGINEERING & INSURANCE PARTNERS ============ */}
+        <section className="py-20 border-b" style={{ borderColor: '#d9d2c2' }}>
+          <SectionLabel>Compliance, engineering &amp; insurance</SectionLabel>
+          <SectionTitle>Outside checks on our own work, not just an in-house sign-off.</SectionTitle>
+          <Rule />
+          <div className="mb-14">
+            {OAK_PARK_COMPLIANCE_PARTNERS.map((p) => (
+              <div
+                key={p.name}
+                className="grid md:grid-cols-[220px_1fr] gap-4 md:gap-10 py-8 border-b items-start"
+                style={{ borderColor: '#e5decc' }}
+              >
+                <p className="font-heading text-lg" style={{ color: NAVY }}>{p.name}</p>
+                <div>
+                  <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{p.role}</p>
+                  <p className="text-sm leading-relaxed max-w-2xl" style={{ color: '#6e6858' }}>{p.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="border-t pt-8" style={{ borderColor: '#e5decc' }}>
+            <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>Where Camelot sits in the industry</p>
+            <p className="text-sm leading-relaxed mb-4 max-w-2xl" style={{ color: '#6e6858' }}>
+              {CAMELOT_COMPANY_FACTS.reBnyCommittee}, alongside membership in the following NYC real estate
+              and residential-management industry organizations — the same rooms where policy, Local Law
+              changes, and vendor accountability get discussed before they reach a board meeting.
+            </p>
+            <div className="flex flex-wrap gap-x-8 gap-y-2">
+              {CAMELOT_COMPANY_FACTS.affiliations.map((a) => (
+                <span key={a} className="font-sans text-xs font-semibold uppercase tracking-wider" style={{ color: NAVY }}>
+                  {a}
+                </span>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* ============ REVENUE GROWTH ============ */}

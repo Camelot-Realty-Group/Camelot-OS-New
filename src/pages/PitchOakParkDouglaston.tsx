@@ -223,6 +223,17 @@ const NAV_SECTIONS: { id: string; label: string; category: string }[] = [
 ];
 
 function TopNav() {
+  // NOTE: this app runs under react-router's HashRouter, which treats the
+  // entire URL fragment as its own route. A plain `href="#section-id"` link
+  // is intercepted by the router as "navigate to route /section-id" (which
+  // doesn't exist, so it falls back to the app's home/dashboard route)
+  // instead of scrolling to that element on the current page. Anchor hrefs
+  // must not be used here — every nav item scrolls via JS instead, and
+  // `e.preventDefault()` stops the router from ever seeing the hash change.
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   return (
     <nav
       className="sticky top-0 z-50 border-b overflow-x-auto"
@@ -234,6 +245,7 @@ function TopNav() {
           <a
             key={s.id}
             href={`#${s.id}`}
+            onClick={(e) => scrollToSection(e, s.id)}
             className="px-3.5 py-2 font-sans text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap rounded-full transition-colors hover:opacity-100"
             style={{
               color: NAVY,
@@ -436,12 +448,14 @@ export default function PitchOakParkDouglaston() {
             </button>
             <a
               href="#proposal"
+              onClick={(e) => { e.preventDefault(); document.getElementById('proposal')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
               className="px-4 py-2 font-sans text-xs font-semibold uppercase tracking-wider border border-white/40 text-white hover:border-white transition-colors"
             >
               See Pricing ↓
             </a>
             <a
               href="#agreement"
+              onClick={(e) => { e.preventDefault(); document.getElementById('agreement')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
               className="px-4 py-2 font-sans text-xs font-semibold uppercase tracking-wider border border-white/40 text-white hover:border-white transition-colors"
             >
               Management Agreement ↓

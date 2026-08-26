@@ -140,6 +140,7 @@ export const OAK_PARK_MARKET_COMP = {
 
 export const OAK_PARK_PAIN_POINTS: string[] = [
   'A property manager physically on-site weekly, checking in with the superintendent and visually inspecting grounds, common areas, and facilities',
+  'Board members currently doing day-to-day management work themselves — chasing vendors, fielding resident issues directly — that should sit with a managing agent, not the Board',
   'Monthly financial and management reports that arrive consistently on a fixed date',
   'Active arrears follow-up — an aging report, documented collection actions, escalation to counsel under Board policy',
   'A facilities professional reviewing mechanical systems, training staff, and building SOPs and checklists',

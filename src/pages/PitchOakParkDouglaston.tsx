@@ -413,10 +413,11 @@ export default function PitchOakParkDouglaston() {
             Camelot's approach is a boutique, hands-on management model — senior accountability, practical
             communication, and financial discipline, fitted to the actual building rather than a generic
             package. Applied to Oak Park specifically, based on what the Board described and what we saw on
-            today's walkthrough, that looks like the six commitments below.
+            today's walkthrough, that looks like the seven commitments below.
           </p>
           <div className="grid md:grid-cols-2 gap-8">
             {[
+              { t: 'The Board goes back to governing', d: 'Chasing vendors and fielding resident issues directly is a managing agent\'s job, not a volunteer Board\'s — Camelot absorbs that day-to-day work so the Board can set policy instead of running operations.' },
               { t: 'Weekly on-site management', d: 'A dedicated property manager on site at least weekly, with a written report after every visit — not an occasional drive-by.' },
               { t: 'Three clean sets of books', d: 'Condominium I, Condominium II, and the UOA each get their own accurate monthly close, reconciled and reported on a fixed schedule.' },
               { t: 'Active arrears management', d: 'An aging report, documented follow-up, and escalation to counsel under Board policy — arrears get worked, not just tracked.' },

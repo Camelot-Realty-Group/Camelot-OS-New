@@ -464,7 +464,7 @@ export default function NeighborhoodLeads() {
                         </div>
                       </div>
                       {followUpOverdue && <Clock size={14} className="text-amber-600" />}
-                      {lead.hubspot_deal_id && <Link2 size={14} className="text-orange-500" title="Synced to HubSpot" />}
+                      {lead.hubspot_deal_id && <span title="Synced to HubSpot"><Link2 size={14} className="text-orange-500" /></span>}
                       <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full ${statusMeta.cls}`}>{statusMeta.label}</span>
                       {isExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                     </button>

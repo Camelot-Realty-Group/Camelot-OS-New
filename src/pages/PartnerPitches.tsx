@@ -7,7 +7,7 @@
  */
 import { useState, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
-import { Briefcase, Building2, Calculator, Download, FileCode, FileSearch, Gavel, Landmark, Link2, Mail, Printer } from 'lucide-react';
+import { Briefcase, Building2, Calculator, Download, FileCode, FileSearch, Gavel, Landmark, Link2, Mail, Printer, Users } from 'lucide-react';
 import {
   PARTNER_AUDIENCES,
   buildPartnerPitchFilename,
@@ -26,6 +26,7 @@ const AUDIENCE_ICONS: Record<PartnerAudience, ReactNode> = {
   audit: <FileSearch size={22} />,
   brokerage: <Building2 size={22} />,
   receivership: <Landmark size={22} />,
+  neighbor: <Users size={22} />,
 };
 
 interface CardForm { firmName: string; contactName: string; recipientEmail: string; }

@@ -174,7 +174,7 @@ function buildPdfFrame(html: string): Promise<{ frame: HTMLIFrameElement; target
   });
 }
 
-function pdfOptions(filename: string, isSlideDeck: boolean) {
+function pdfOptions(filename: string, isSlideDeck: boolean, windowWidth: number, windowHeight: number) {
   return ({
     margin: 0,
     filename: filename.endsWith('.pdf') ? filename : `${filename.replace(/\.(html|pdf)$/i, '')}.pdf`,
@@ -186,30 +186,195 @@ function pdfOptions(filename: string, isSlideDeck: boolean) {
       logging: false,
       imageTimeout: 12000,
       removeContainer: true,
-      // Belt-and-suspenders: the real fix for the blank-PDF bug is that the
-      // target now lives in its own isolated iframe document (see
-      // buildPdfFrame) rather than being injected into the live app's DOM,
-      // so html2canvas never has to clone the full dashboard shell. That
-      // iframe document is always freshly created and unscrolled, but
-      // pinning scrollX/Y to 0 costs nothing and guards against any future
-      // regression back toward capturing an element that isn't at (0,0).
+      // Belt-and-suspenders: the target lives in its own isolated iframe
+      // document (see buildPdfFrame) rather than being injected into the
+      // live app's DOM, so html2canvas never has to clone the full
+      // dashboard shell. That iframe document is always freshly created
+      // and unscrolled, but pinning scrollX/Y to 0 costs nothing.
       scrollX: 0,
       scrollY: 0,
+      // Explicitly pin the capture viewport to the iframe's own
+      // contentWindow dimensions. Without this, html2canvas can fall back
+      // to measuring against the OUTER page's window in some browser/
+      // iframe-timing combinations, which produces a well-formed but
+      // empty (~3KB, single stray line-width operator) PDF — no thrown
+      // error, no failed network request, just a silently short-circuited
+      // capture. This was the actual root cause of the recurring
+      // blank-agreement-PDF bug, not the earlier <input>/@import theories.
+      windowWidth,
+      windowHeight,
     },
     jsPDF: { unit: 'in', format: 'letter', orientation: isSlideDeck ? 'landscape' : 'portrait' },
     pagebreak: { mode: ['css', 'legacy'] },
   }) as any;
 }
 
-/** Download an HTML report as a PDF using the browser-side renderer. */
-export async function downloadAsPDF(html: string, filename: string): Promise<void> {
+/**
+ * Waits for the iframe's fonts to finish loading, every <img> to finish
+ * loading, and two animation-frame ticks to elapse so the browser has
+ * actually completed a layout + paint pass before html2canvas measures
+ * and rasterizes the document. Setting frame.style.height synchronously
+ * inside buildPdfFrame's onload handler does not guarantee the browser
+ * has reflowed/painted by the time the very next microtask runs, and
+ * html2canvas capturing mid-reflow is the likely source of the silent
+ * blank-page failures seen in production (no thrown error, no failed
+ * request — just an empty capture).
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      }
+    );
+  });
+}
+
+async function waitForFrameSettledInner(frame: HTMLIFrameElement): Promise<void> {
+  const doc = frame.contentDocument;
+  if (!doc) return;
+
+  await withTimeout(Promise.resolve((doc as any).fonts?.ready), 4000);
+
+  const images = Array.from(doc.querySelectorAll('img'));
+  await Promise.all(
+    images.map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : withTimeout(
+          new Promise<void>((resolve) => {
+            img.addEventListener('load', () => resolve(), { once: true });
+            img.addEventListener('error', () => resolve(), { once: true });
+          }),
+          4000
+        )
+    )
+  );
+
+  // Re-measure and re-apply height now that images/fonts have settled —
+  // font swaps and image intrinsic sizes can change scrollHeight after
+  // the initial measurement in buildPdfFrame.
+  const fullHeight = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 1);
+  frame.style.height = `${fullHeight}px`;
+
+  // Use the TOP-LEVEL page's requestAnimationFrame, not the off-screen
+  // iframe's own contentWindow.requestAnimationFrame. Chromium throttles
+  // rAF (and can suspend it near-indefinitely) inside iframes it judges
+  // to be non-visible/off-screen — exactly the case here, since the
+  // capture iframe is deliberately positioned at left:-10000px. Ticking
+  // the outer visible window's rAF still gives the browser a real paint
+  // opportunity without risking an effectively-infinite wait.
+  const nextFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+  await nextFrame();
+  await nextFrame();
+}
+
+/**
+ * Wraps waitForFrameSettledInner in a hard overall timeout so a capture
+ * can never hang indefinitely, regardless of which sub-step misbehaves.
+ * Falls back to proceeding with best-effort (possibly not fully settled)
+ * content rather than hanging the whole download forever.
+ */
+async function waitForFrameSettled(frame: HTMLIFrameElement): Promise<void> {
+  await withTimeout(waitForFrameSettledInner(frame), 6000);
+}
+
+class PdfRenderTimeoutError extends Error {
+  constructor() {
+    super('PDF render timed out');
+    this.name = 'PdfRenderTimeoutError';
+  }
+}
+
+/**
+ * Races a promise against a hard deadline and throws a distinguishable
+ * error on timeout, instead of leaving the caller (and the user-facing
+ * button) hanging forever with no feedback. html2canvas/html2pdf.js has
+ * no built-in timeout of its own for the actual capture+encode step, so
+ * without this a slow or stuck render (e.g. a very tall multi-page
+ * agreement, or a constrained/software-rendering browser context) shows
+ * no error at all — just an infinite disabled-button spinner.
+ */
+function raceTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new PdfRenderTimeoutError()), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+// A real one-page letter document with any actual rendered content
+// (letterhead, headings, body text) reliably produces a PDF well above
+// this size once fonts/images are embedded. The confirmed-broken capture
+// mode in this app (html2canvas silently failing to ever create/read a
+// canvas inside the isolated render iframe — no thrown error, no failed
+// network request, jsPDF proceeding anyway with an empty page) has been
+// observed to consistently produce 3–6KB single-page PDFs with a content
+// stream containing only a stray line-width/stroke-color pair and zero
+// text/image-drawing operators. Treat anything under this floor as an
+// unreliable capture rather than trusting size/toast/no-thrown-error as
+// proof of real content.
+const MIN_VALID_PDF_BYTES = 12000;
+
+export type PdfDownloadResult = { method: 'download' } | { method: 'print-fallback' };
+
+/**
+ * Download an HTML report as a PDF using the browser-side html2canvas
+ * renderer. If that renderer produces a suspiciously small/likely-blank
+ * result (see MIN_VALID_PDF_BYTES) or times out, falls back to opening
+ * the real HTML in a new tab via openBrochureForPrint() so the user can
+ * still get a correct PDF through the browser's own, fully reliable
+ * native print-to-PDF (Ctrl+P / Cmd+P → Save as PDF) instead of silently
+ * downloading a blank file. Callers should branch on the returned
+ * `method` to show the right confirmation message.
+ */
+export async function downloadAsPDF(html: string, filename: string): Promise<PdfDownloadResult> {
   const html2pdf = (await import('html2pdf.js')).default;
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
+  let blob: Blob | undefined;
   try {
-    await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck)).save();
+    await waitForFrameSettled(frame);
+    const win = frame.contentWindow!;
+    try {
+      blob = await raceTimeout(
+        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob'),
+        30000
+      );
+    } catch {
+      blob = undefined;
+    }
   } finally {
     frame.remove();
   }
+
+  if (blob && blob.size >= MIN_VALID_PDF_BYTES) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    return { method: 'download' };
+  }
+
+  openBrochureForPrint(html, filename);
+  return { method: 'print-fallback' };
 }
 
 /**
@@ -221,7 +386,23 @@ export async function generatePdfBase64(html: string, filename: string): Promise
   const html2pdf = (await import('html2pdf.js')).default;
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
   try {
-    const blob: Blob = await html2pdf().from(target).set(pdfOptions(filename, isSlideDeck)).outputPdf('blob');
+    await waitForFrameSettled(frame);
+    const win = frame.contentWindow!;
+    let blob: Blob;
+    try {
+      blob = await raceTimeout(
+        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob'),
+        45000
+      );
+    } catch (err) {
+      if (err instanceof PdfRenderTimeoutError) {
+        throw new Error('PDF generation timed out while preparing the email attachment.');
+      }
+      throw err;
+    }
+    if (blob.size < MIN_VALID_PDF_BYTES) {
+      throw new Error('PDF render produced an unreliable (likely blank) result — not attaching a broken PDF to the email.');
+    }
     const dataUrl = await blobToDataUrl(blob);
     // Strip the "data:application/pdf;base64," prefix — Resend wants the raw base64 payload.
     const commaIndex = dataUrl.indexOf(',');

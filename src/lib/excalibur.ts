@@ -1,5 +1,6 @@
 import { GOOGLE_MAPS_KEY } from '@/lib/maps-key';
 import { generateRentalAgreementV3 } from './rental-agreement-v3';
+import { generateAgreementV3General } from './agreement-v3-general';
 /**
  * @deprecated v2026.05.31 — Excalibur will be replaced by an Edge Function
  * (`agreements-generate`) backed by the same Fact Packet store as Jackie. The
@@ -110,7 +111,7 @@ export const ASSET_CLASS_LABELS: Record<AssetClass, string> = {
 // Constants
 // ============================================================
 
-const CAMELOT = {
+export const CAMELOT = {
   name: 'CAMELOT PROPERTY MANAGEMENT SERVICES CORP.',
   shortName: 'Camelot Property Management Services Corp.',
   address: '57 West 57th Street, Suite 410, New York, NY 10019',
@@ -165,7 +166,10 @@ export function generateRentalAgreement(input: AgreementInput): string {
 
   const css = `
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+/* No external @import here on purpose — the isolated PDF-render iframe
+   (buildPdfFrame) has to finish loading before html2canvas captures it, and
+   an @import'd webfont is a known html2canvas source of blank/failed
+   captures. Fall back to the system font stack below instead. */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;color:#2C3240;font-size:12px;line-height:1.7;background:#fff}
 @media print{@page{margin:0.6in 0.75in;size:letter}body{font-size:11px}}
@@ -410,11 +414,15 @@ ${input.assetClass === 'single-tenant' ? `
 <div class="article">
 <div class="article-title">Article V — Compensation</div>
 <div class="article-sub">5.1 Management Fee.</div>
+${input.assetClass === 'condo' || input.assetClass === 'coop' ? `
+<p>As consideration for the performance of the Services, the Client shall pay to the Agent a fixed monthly management fee of ${fee > 0 ? '<strong>$' + fee.toLocaleString() + '/month</strong>' : 'the amount set forth in Schedule A'} ${perUnit > 0 ? '(<strong>$' + perUnit + '</strong>/unit × <strong>' + input.units + '</strong> units)' : ''}.</p>
+` : `
 <p>As consideration for the performance of the Services, the Client shall pay to the Agent a monthly management fee equal to the <strong>greater</strong> of the following two options, whichever produces the higher amount:</p>
 <ul style="margin:8px 0 8px 24px;list-style:disc">
 <li style="margin-bottom:6px"><strong>Option A — Fixed Monthly Fee:</strong> ${fee > 0 ? '<strong>$' + fee.toLocaleString() + '/month</strong>' : 'The Fixed Monthly Fee set forth in Schedule A'} ${perUnit > 0 ? '(<strong>$' + perUnit + '</strong>/unit × <strong>' + input.units + '</strong> units)' : ''}</li>
 <li style="margin-bottom:6px"><strong>Option B — Percentage of Rent:</strong> <strong>Five percent (5%)</strong> of gross monthly rent collected from the Property during such month</li>
 </ul>
+`}
 <p>The management fee shall be deducted directly from the Client Account on the first business day of each month.</p>
 <div class="article-sub">5.2 Accounting & Reporting Fee.</div>
 <p>Baseline monthly accounting coordination and board-facing reporting are included in the selected management package. Tax returns, audits, historical cleanup, litigation support, agency proceedings, and special financial projects are separately scoped or billed under Schedule A.</p>
@@ -576,7 +584,7 @@ ${input.specialTerms ? `
 <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#A89035;font-weight:700;margin-bottom:12px">CLIENT (OWNER)</p>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Organization / Entity Name:</label>
-<input type="text" value="${input.clientEntityName || input.clientName || ''}" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none" placeholder="Entity name">
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">${input.clientEntityName || input.clientName || '&nbsp;'}</div>
 </div>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Signature:</label>
@@ -584,15 +592,15 @@ ${input.specialTerms ? `
 </div>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Print Name:</label>
-<input type="text" value="${input.clientName || ''}" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none" placeholder="Full name">
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">${input.clientName || '&nbsp;'}</div>
 </div>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Title:</label>
-<input type="text" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none" placeholder="Title / Position">
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">&nbsp;</div>
 </div>
 <div>
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Date:</label>
-<input type="date" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none">
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">&nbsp;</div>
 </div>
 </div>
 
@@ -600,7 +608,7 @@ ${input.specialTerms ? `
 <p style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#A89035;font-weight:700;margin-bottom:12px">AGENT</p>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Organization:</label>
-<input type="text" value="${CAMELOT.name}" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none" readonly>
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">${CAMELOT.name}</div>
 </div>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Signature:</label>
@@ -608,15 +616,15 @@ ${input.specialTerms ? `
 </div>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Print Name:</label>
-<input type="text" value="${CAMELOT.principal}" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none" readonly>
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">${CAMELOT.principal}</div>
 </div>
 <div style="margin-bottom:10px">
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Title:</label>
-<input type="text" value="${CAMELOT.title}" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none" readonly>
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">${CAMELOT.title}</div>
 </div>
 <div>
 <label style="font-size:9px;color:#888;display:block;margin-bottom:2px">Date:</label>
-<input type="date" style="width:100%;border:none;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;background:transparent;outline:none">
+<div style="width:100%;border-bottom:1.5px solid #3A4B5B;padding:6px 2px;font-size:12px;font-family:'DM Sans',sans-serif;color:#2C3240;min-height:20px">&nbsp;</div>
 </div>
 </div>
 </div>
@@ -826,16 +834,19 @@ export function generateSingleUnitAgreement(input: AgreementInput): string {
 
 export function generateAgreement(input: AgreementInput): string {
   switch (input.assetClass) {
-    // Rental (and individual-unit rentals) use the new generator that
-    // mirrors the Word master template exactly — the Camelot Rental
-    // Management Agreement house design. See src/lib/rental-agreement-v3.ts.
+    // Rental (and individual-unit rentals) use the branded house design
+    // that mirrors the Word master template exactly. See
+    // src/lib/rental-agreement-v3.ts.
     case 'rental': return generateRentalAgreementV3(input);
     case 'single-tenant': return generateRentalAgreementV3(input);
-    case 'condo': return generateCondoAgreement(input);
-    case 'coop': return generateCoopAgreement(input);
-    case 'new-construction': return generateCondoAgreement(input); // new construction uses condo base
-    case 'office': return generateOfficeAgreement(input);
-    case 'retail': return generateRetailAgreement(input);
+    // Condo, co-op, office, retail, and new-construction use the same
+    // branded house design with asset-class-specific legal content. See
+    // src/lib/agreement-v3-general.ts.
+    case 'condo': return generateAgreementV3General(input);
+    case 'coop': return generateAgreementV3General(input);
+    case 'new-construction': return generateAgreementV3General(input);
+    case 'office': return generateAgreementV3General(input);
+    case 'retail': return generateAgreementV3General(input);
     default: return generateRentalAgreementV3(input);
   }
 }

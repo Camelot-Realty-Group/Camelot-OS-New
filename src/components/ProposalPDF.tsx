@@ -1,6 +1,15 @@
 /**
- * ProposalPDF — React-PDF document component
- * Professional property management proposal for Camelot.
+ * ProposalPDF — React-PDF document component.
+ *
+ * Matches the Camelot "Proposal of Property Management Services" Word
+ * master template exactly: navy letter-style layout (not a multi-section
+ * scout report), header logo + letterhead + gold tagline on every page,
+ * footer with office contact + confidential line, an info table (Date /
+ * Version / Prepared For / Addressed To / Recipient Contact), a Notes box,
+ * a cover letter, Property Description, Property Snapshot table, Scope of
+ * Services (grouped, bulleted), Term/Rate/Fees table, Next Steps, and the
+ * Summary of Transitional Procedures / Budget & Staff Review / Meet & Greet
+ * closing sections, ending in a signature block.
  */
 
 import {
@@ -10,9 +19,9 @@ import {
   View,
   Image,
   StyleSheet,
-  Font,
 } from '@react-pdf/renderer';
 import type { ProposalData } from '@/lib/proposal-generator';
+import { RENTAL_AGREEMENT_LOGO_B64 } from '@/lib/agreement-brand';
 import {
   DAVID_GOLDOFF_SIGNATURE,
   DAVID_GOLDOFF_SIGNATURE_IMAGE,
@@ -20,389 +29,134 @@ import {
 } from '@/lib/camelot-signature';
 
 // ============================================================
-// Color Palette
+// Color Palette — matches Camelot_Proposal_of_Services_Template.docx
 // ============================================================
 
-const NAVY = '#0f1629';
-const GOLD = '#C5A55A';
-const GOLD_LIGHT = '#D4BA78';
-const WHITE = '#FFFFFF';
-const LIGHT_GRAY = '#F5F5F5';
-const MEDIUM_GRAY = '#888888';
-const DARK_TEXT = '#1a1a2e';
-const CAMELOT_GOLD_LOGO = '/images/camelot-gold-logo.png';
+const NAVY = '#162B5E';
+const GOLD = '#A9814A';
+const GRAY = '#6B7280';
+const DARK_TEXT = '#222222';
+const LIGHT_GRAY_BG = '#F7F4EC';
+const RULE = '#D9D2C2';
 
 // ============================================================
 // Styles
 // ============================================================
 
 const s = StyleSheet.create({
-  // Global
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 10,
+    fontSize: 9.5,
     color: DARK_TEXT,
-    paddingTop: 72,
-    paddingBottom: 60,
-    paddingHorizontal: 50,
-  },
-  pageHeader: {
-    position: 'absolute',
-    top: 18,
-    left: 50,
-    right: 50,
-    height: 38,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#ddd',
-    paddingBottom: 8,
-  },
-  headerLogo: {
-    width: 86,
-    height: 38,
-    objectFit: 'contain',
-  },
-  headerContact: {
-    fontSize: 7.5,
-    color: MEDIUM_GRAY,
-    textAlign: 'right',
-    lineHeight: 1.35,
-  },
-
-  // Cover page
-  coverPage: {
-    fontFamily: 'Helvetica',
-    backgroundColor: WHITE,
-    display: 'flex',
-    flexDirection: 'column',
-    paddingTop: 54,
+    paddingTop: 76,
+    paddingBottom: 54,
     paddingHorizontal: 54,
-    paddingBottom: 50,
-  },
-  coverTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 52,
-  },
-  coverLogo: {
-    width: 140,
-    height: 64,
-    objectFit: 'contain',
-  },
-  coverContact: {
-    fontSize: 8.5,
-    color: DARK_TEXT,
-    textAlign: 'right',
-    lineHeight: 1.45,
-  },
-  coverTitle: {
-    fontSize: 29,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
-    marginBottom: 10,
-  },
-  coverSubtitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: GOLD,
-    marginBottom: 8,
-  },
-  coverDivider: {
-    width: 120,
-    height: 2,
-    backgroundColor: GOLD,
-    marginVertical: 24,
-  },
-  coverAddress: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: DARK_TEXT,
-    marginBottom: 6,
-  },
-  coverMeta: {
-    fontSize: 10,
-    color: MEDIUM_GRAY,
-    marginBottom: 4,
-  },
-  coverFacts: {
-    flexDirection: 'row',
-    marginTop: 28,
-    borderTopWidth: 1,
-    borderTopColor: GOLD,
-    borderBottomWidth: 1,
-    borderBottomColor: GOLD,
-    paddingVertical: 14,
-  },
-  coverFact: {
-    width: '25%',
-  },
-  coverFactValue: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: GOLD,
-  },
-  coverFactLabel: {
-    fontSize: 7.5,
-    color: MEDIUM_GRAY,
-    textTransform: 'uppercase',
-    marginTop: 3,
-  },
-  coverFooter: {
-    position: 'absolute',
-    bottom: 40,
-    left: 50,
-    right: 50,
-    textAlign: 'center',
-  },
-  coverFooterText: {
-    fontSize: 8,
-    color: MEDIUM_GRAY,
-    textAlign: 'center',
-  },
-
-  // Section headers
-  sectionHeader: {
-    backgroundColor: NAVY,
-    color: WHITE,
-    padding: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 4,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: WHITE,
-  },
-  sectionSubtitle: {
-    fontSize: 9,
-    color: GOLD_LIGHT,
-    marginTop: 2,
-  },
-
-  // Sub-section headers
-  subHeader: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
-    borderBottomWidth: 1,
-    borderBottomColor: GOLD,
-    paddingBottom: 4,
-    marginBottom: 8,
-    marginTop: 14,
-  },
-
-  // Body text
-  body: {
-    fontSize: 10,
-    lineHeight: 1.6,
-    color: DARK_TEXT,
-    marginBottom: 8,
-  },
-  bodySmall: {
-    fontSize: 9,
-    color: MEDIUM_GRAY,
     lineHeight: 1.5,
   },
 
-  // Key-value row
-  kvRow: {
+  // Letterhead header, every page
+  header: {
+    position: 'absolute',
+    top: 24,
+    left: 54,
+    right: 54,
     flexDirection: 'row',
-    paddingVertical: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e5e5',
+    alignItems: 'center',
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
+    paddingBottom: 8,
   },
-  kvLabel: {
-    width: '40%',
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
-  },
-  kvValue: {
-    width: '60%',
-    fontSize: 10,
-    color: DARK_TEXT,
-  },
+  headerLogo: { width: 34, height: 34 },
+  headerTextWrap: { flex: 1, marginLeft: 10 },
+  headerName: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: NAVY, letterSpacing: 0.3 },
+  headerServices: { fontSize: 6.5, color: GRAY, letterSpacing: 1, marginTop: 2 },
+  headerTag: { fontSize: 8, color: GOLD, fontStyle: 'italic', marginTop: 2 },
 
-  // Tables
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: NAVY,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderRadius: 2,
+  // Footer, every page
+  footer: {
+    position: 'absolute',
+    bottom: 22,
+    left: 54,
+    right: 54,
+    borderTopWidth: 1,
+    borderTopColor: RULE,
+    paddingTop: 6,
+    alignItems: 'center',
   },
-  tableHeaderCell: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: WHITE,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e5e5',
-  },
-  tableRowAlt: {
-    backgroundColor: LIGHT_GRAY,
-  },
-  tableCell: {
-    fontSize: 9,
-    color: DARK_TEXT,
-  },
+  footerLine: { fontSize: 7, color: GRAY, textAlign: 'center' },
 
-  // Highlight box
-  highlight: {
-    backgroundColor: '#FDF8ED',
-    borderWidth: 1,
-    borderColor: GOLD,
-    borderRadius: 4,
-    padding: 12,
-    marginVertical: 10,
-  },
-  highlightTitle: {
+  // Title block
+  docTitle: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: NAVY, marginBottom: 2 },
+  docSubtitle: { fontSize: 8.5, color: GRAY, marginBottom: 1 },
+
+  sectionHeading: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
     color: NAVY,
-    marginBottom: 4,
-  },
-  highlightValue: {
-    fontSize: 20,
-    fontFamily: 'Helvetica-Bold',
-    color: GOLD,
+    marginTop: 16,
+    marginBottom: 6,
   },
 
-  // Advantages grid
-  advantageItem: {
-    marginBottom: 10,
-  },
-  advantageTitle: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
-    marginBottom: 2,
-  },
-  advantageDesc: {
-    fontSize: 9,
-    color: DARK_TEXT,
-    lineHeight: 1.5,
-  },
-
-  // Bullet
-  bulletRow: {
+  // Info table
+  infoTable: { marginTop: 14, borderTopWidth: 1, borderTopColor: RULE },
+  infoRow: {
     flexDirection: 'row',
-    marginBottom: 4,
-    paddingLeft: 8,
-  },
-  bulletDot: {
-    width: 14,
-    fontSize: 10,
-    color: GOLD,
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 10,
-    color: DARK_TEXT,
-    lineHeight: 1.5,
-  },
-
-  // Page footer
-  footer: {
-    position: 'absolute',
-    bottom: 25,
-    left: 50,
-    right: 50,
-    flexDirection: 'column',
-    alignItems: 'center',
-    borderTopWidth: 0.5,
-    borderTopColor: '#ddd',
-    paddingTop: 6,
-  },
-  footerText: {
-    fontSize: 7,
-    color: MEDIUM_GRAY,
-    textAlign: 'center',
-    lineHeight: 1.35,
-  },
-  footerContact: {
-    fontSize: 7,
-    color: MEDIUM_GRAY,
-    textAlign: 'center',
-    lineHeight: 1.35,
-    marginTop: 1,
-  },
-
-  // Two-column
-  row: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  col50: {
-    width: '48%',
-  },
-
-  // Pricing summary columns
-  pricingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
     paddingVertical: 4,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e5e5',
   },
-  pricingLabel: {
-    fontSize: 10,
-    color: DARK_TEXT,
+  infoLabel: { width: '30%', fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: NAVY },
+  infoValue: { width: '70%', fontSize: 8.5, color: DARK_TEXT },
+
+  // Notes box
+  notesBox: {
+    marginTop: 12,
+    backgroundColor: LIGHT_GRAY_BG,
+    borderLeftWidth: 2,
+    borderLeftColor: GOLD,
+    padding: 10,
   },
-  pricingValue: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
-  },
-  pricingTotal: {
+  notesTitle: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: NAVY, marginBottom: 4 },
+  notesItem: { fontSize: 8.5, color: DARK_TEXT, marginBottom: 2, lineHeight: 1.4 },
+
+  body: { fontSize: 9.5, color: DARK_TEXT, lineHeight: 1.55, marginBottom: 8, textAlign: 'justify' },
+
+  // Snapshot / Term table
+  snapshotTable: { marginTop: 4, marginBottom: 4 },
+  snapshotRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    marginTop: 4,
-    borderTopWidth: 1.5,
-    borderTopColor: NAVY,
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
+    paddingVertical: 5,
   },
-  pricingTotalLabel: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
+  snapshotLabel: { width: '32%', fontSize: 9, fontFamily: 'Helvetica-Bold', color: NAVY },
+  snapshotValue: { width: '68%', fontSize: 9, color: DARK_TEXT },
+
+  // Scope of services
+  serviceGroupTitle: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: NAVY, marginTop: 10, marginBottom: 4 },
+  bulletRow: { flexDirection: 'row', marginBottom: 3, paddingLeft: 4 },
+  bulletDot: { width: 10, fontSize: 9, color: GOLD },
+  bulletText: { flex: 1, fontSize: 9, color: DARK_TEXT, lineHeight: 1.4 },
+
+  numberedRow: { flexDirection: 'row', marginBottom: 6 },
+  numberBadge: {
+    width: 16, height: 16, borderRadius: 8, backgroundColor: NAVY,
+    justifyContent: 'center', alignItems: 'center', marginRight: 8, marginTop: 1,
   },
-  pricingTotalValue: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: GOLD,
-  },
+  numberBadgeText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#fff' },
+  numberedTitle: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: NAVY, marginBottom: 1 },
+  numberedDesc: { fontSize: 9, color: DARK_TEXT, lineHeight: 1.45 },
+
   signatureBlock: {
     marginTop: 18,
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 0.75,
     borderTopColor: GOLD,
   },
-  signatureImage: {
-    width: 175,
-    height: 50,
-    objectFit: 'contain',
-    marginBottom: 4,
-  },
-  signatureLine: {
-    fontSize: 8.5,
-    color: DARK_TEXT,
-    lineHeight: 1.4,
-  },
-  signatureName: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: NAVY,
-    marginTop: 4,
-  },
+  signatureImage: { width: 155, height: 44, objectFit: 'contain', marginBottom: 4 },
+  signatureLine: { fontSize: 8, color: DARK_TEXT, lineHeight: 1.4 },
+  signatureName: { fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: NAVY, marginTop: 3 },
 });
 
 // ============================================================
@@ -410,20 +164,72 @@ const s = StyleSheet.create({
 // ============================================================
 
 function fmtCurrency(v: number): string {
-  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
+  return `$${Math.round(v).toLocaleString('en-US')}`;
 }
 
-function fmtDate(iso?: string): string {
-  if (!iso) return 'N/A';
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+function fmtDateLong(iso?: string): string {
+  if (!iso) return '[Month Day, Year]';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-function sectionEnabled(data: ProposalData, id: string): boolean {
-  return data.sections.find((sec) => sec.id === id)?.enabled ?? true;
+function versionFromDate(iso?: string): string {
+  const d = iso ? new Date(iso) : new Date();
+  return `v${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.1`;
+}
+
+function buildPropertyDescription(data: ProposalData): string {
+  const label = data.buildingName || data.buildingAddress;
+  const typeLabel = (data.buildingType || 'residential').replace(/-/g, ' ');
+  const parts: string[] = [];
+  parts.push(
+    `${label} is a ${typeLabel}${data.units ? ` property comprising ${data.units} units` : ''}${
+      data.yearBuilt ? `, built in ${data.yearBuilt}` : ''
+    }${data.borough ? ` in ${data.borough}` : ''}${data.neighborhood ? `, ${data.neighborhood}` : ''}.`
+  );
+  if (data.openViolationsCount > 0) {
+    parts.push(
+      `The property currently carries ${data.openViolationsCount} open violation${data.openViolationsCount === 1 ? '' : 's'} that will require coordinated resolution during transition.`
+    );
+  } else if (data.violationsCount === 0) {
+    parts.push('The property maintains a clean compliance record, which Camelot intends to preserve.');
+  }
+  if (data.currentManagement && !/unknown/i.test(data.currentManagement)) {
+    parts.push(`The property is currently managed by ${data.currentManagement}.`);
+  }
+  return parts.join(' ');
+}
+
+// ============================================================
+// Header / Footer
+// ============================================================
+
+function LetterheadHeader() {
+  return (
+    <View style={s.header} fixed>
+      <Image src={RENTAL_AGREEMENT_LOGO_B64} style={s.headerLogo} />
+      <View style={s.headerTextWrap}>
+        <Text style={s.headerName}>CAMELOT REALTY GROUP</Text>
+        <Text style={s.headerServices}>REAL ESTATE · PROPERTY MGMT · BROKERAGE · INVESTMENT SERVICES</Text>
+        <Text style={s.headerTag}>New Yorkers Working for New Yorkers   EST. 2006</Text>
+      </View>
+    </View>
+  );
+}
+
+function LetterFooter({ addressLabel }: { addressLabel: string }) {
+  return (
+    <View style={s.footer} fixed>
+      <Text style={s.footerLine}>
+        57 West 57th Street, Suite 410, New York, NY 10019 · (212) 206-9939 · info@camelot.nyc · www.camelot.nyc
+      </Text>
+      <Text
+        style={s.footerLine}
+        render={({ pageNumber, totalPages }) =>
+          `CONFIDENTIAL — PREPARED EXCLUSIVELY FOR ${addressLabel.toUpperCase()} · Page ${pageNumber} of ${totalPages}`
+        }
+      />
+    </View>
+  );
 }
 
 function DavidSignatureBlock() {
@@ -444,776 +250,6 @@ function DavidSignatureBlock() {
   );
 }
 
-function PageHeader({ data }: { data: ProposalData }) {
-  return (
-    <View style={s.pageHeader} fixed>
-      <Image src={CAMELOT_GOLD_LOGO} style={s.headerLogo} />
-      <Text style={s.headerContact}>
-        {data.company.address}
-        {'\n'}
-        {data.company.phone} | {data.company.website}
-        {'\n'}
-        Proposal #{data.proposalNumber}
-      </Text>
-    </View>
-  );
-}
-
-// ============================================================
-// Page Footer
-// ============================================================
-
-function PageFooter({ data, pageNum }: { data: ProposalData; pageNum: number }) {
-  return (
-    <View style={s.footer} fixed>
-      <Text style={s.footerText}>Confidential — Prepared for {data.buildingAddress}</Text>
-      <Text style={s.footerText}>{data.company.name} · Page {pageNum}</Text>
-      <Text style={s.footerContact}>Main: (212) 206-9939  ·  www.camelot.nyc  ·  Licensed Broker ID #10491200104</Text>
-    </View>
-  );
-}
-
-// ============================================================
-// Cover Page
-// ============================================================
-
-function CoverPage({ data }: { data: ProposalData }) {
-  const buildingLabel = data.buildingName || data.buildingAddress;
-  return (
-    <Page size="LETTER" style={s.coverPage}>
-      <View style={s.coverTop}>
-        <Image src={CAMELOT_GOLD_LOGO} style={s.coverLogo} />
-        <Text style={s.coverContact}>
-          {data.company.address}
-          {'\n'}
-          {data.company.phone}
-          {'\n'}
-          {data.company.website}
-        </Text>
-      </View>
-      <Text style={s.coverTitle}>Proposal of Property Management Services</Text>
-      <Text style={s.coverSubtitle}>{buildingLabel}</Text>
-      <Text style={s.coverAddress}>{data.buildingAddress}</Text>
-      <View style={s.coverDivider} />
-      <Text style={s.coverMeta}>Prepared for {data.preparedFor}</Text>
-      <Text style={s.coverMeta}>{fmtDate(data.generatedAt)}</Text>
-      <Text style={s.coverMeta}>Proposal #{data.proposalNumber}</Text>
-      <View style={s.coverFacts}>
-        <View style={s.coverFact}>
-          <Text style={s.coverFactValue}>{data.units || 'TBD'}</Text>
-          <Text style={s.coverFactLabel}>Units</Text>
-        </View>
-        <View style={s.coverFact}>
-          <Text style={s.coverFactValue}>{data.stories || 'TBD'}</Text>
-          <Text style={s.coverFactLabel}>Stories</Text>
-        </View>
-        <View style={s.coverFact}>
-          <Text style={s.coverFactValue}>{data.yearBuilt || 'TBD'}</Text>
-          <Text style={s.coverFactLabel}>Year Built</Text>
-        </View>
-        <View style={s.coverFact}>
-          <Text style={s.coverFactValue}>{data.buildingType.replace('-', ' ')}</Text>
-          <Text style={s.coverFactLabel}>Property Type</Text>
-        </View>
-      </View>
-      <Text style={s.coverMeta}>
-        {data.borough ? `${data.borough}` : 'Borough to be confirmed'}
-        {data.neighborhood ? ` | ${data.neighborhood}` : ''}
-      </Text>
-      <Text style={s.coverMeta}>
-        Generated by {data.generatedBy}
-        {data.sentTo ? ` | Recipient: ${data.sentTo}` : ''}
-      </Text>
-      <View style={s.coverFooter}>
-        <Text style={s.coverFooterText}>
-          {data.company.name} | {data.company.address}
-        </Text>
-        <Text style={s.coverFooterText}>
-          {data.company.phone} | {data.company.website}
-        </Text>
-      </View>
-    </Page>
-  );
-}
-
-// ============================================================
-// Executive Summary Page
-// ============================================================
-
-function CoverLetterPage({ data }: { data: ProposalData }) {
-  const buildingLabel = data.buildingName || data.buildingAddress;
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Executive Cover Letter</Text>
-        <Text style={s.sectionSubtitle}>Prepared for {data.preparedFor}</Text>
-      </View>
-
-      <Text style={s.body}>Dear {data.preparedFor},</Text>
-      <Text style={s.body}>
-        Thank you for considering Camelot Property Management for {buildingLabel}. This
-        proposal is intended to outline our management scope, recommended Intelligence
-        package, transition process, fee structure, and Schedule A / ancillary fee menu.
-      </Text>
-      <Text style={s.body}>
-        Our role is to give the property a practical operating partner: clean accounting,
-        responsive maintenance coordination, disciplined vendor oversight, compliance
-        tracking, board reporting, and a transition process that reduces confusion rather
-        than creating more of it.
-      </Text>
-      <Text style={s.body}>
-        We would welcome the opportunity to review the latest financials, budget,
-        insurance summary, vendor list, and current management materials so the final
-        management agreement can be priced around actual service needs and not guesswork.
-      </Text>
-
-      <DavidSignatureBlock />
-      <PageFooter data={data} pageNum={2} />
-    </Page>
-  );
-}
-
-function ExecutiveSummaryPage({ data }: { data: ProposalData }) {
-  const buildingLabel = data.buildingName || data.buildingAddress;
-  const violationMsg =
-    data.openViolationsCount > 0
-      ? `With ${data.openViolationsCount} open HPD violations currently on record (${data.violationsCount} total), ${buildingLabel} faces regulatory pressure that requires experienced management to resolve efficiently.`
-      : `${buildingLabel} maintains a clean violation record — and with Camelot's proactive compliance approach, we'll keep it that way.`;
-
-  const energyMsg =
-    data.energyStarScore != null && data.energyStarScore < 50
-      ? `The building's Energy Star score of ${data.energyStarScore} signals potential Local Law 97 compliance risk. Our energy team can develop a carbon reduction strategy to avoid significant penalties beginning in 2024.`
-      : data.energyStarScore != null
-        ? `With an Energy Star score of ${data.energyStarScore}, the building is reasonably positioned for LL97 compliance, but ongoing monitoring is essential.`
-        : '';
-
-  const hasExplicitSelfManaged = /self[-\s]?managed/i.test(data.currentManagement || '');
-  const hasVerifiedManagement = !!data.currentManagement && data.currentManagement !== 'Unknown' && !hasExplicitSelfManaged;
-  const mgmtMsg =
-    hasExplicitSelfManaged
-      ? `Currently self-managed, ${buildingLabel} would benefit from professional oversight that brings institutional-grade systems while preserving the personal attention boards expect.`
-      : hasVerifiedManagement
-        ? `As the building evaluates management options, Camelot offers a seamless onboarding process refined over 42+ building transitions.`
-        : `Jackie has not verified the current managing agent yet. Before any board-facing release, Camelot should confirm management through HPD MDR, ACRIS, DOB, PropertyShark, board materials, or the building website.`;
-
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Executive Summary</Text>
-        <Text style={s.sectionSubtitle}>Why {buildingLabel} Deserves Camelot</Text>
-      </View>
-
-      <Text style={s.body}>
-        Camelot Property Management is pleased to present this proposal for the management of{' '}
-        {buildingLabel}, a {data.units}-unit {data.buildingType.replace('-', ' ')} property
-        {data.borough ? ` in ${data.borough}` : ''}
-        {data.yearBuilt ? `, built in ${data.yearBuilt}` : ''}.
-      </Text>
-
-      <Text style={s.body}>{violationMsg}</Text>
-
-      {energyMsg ? <Text style={s.body}>{energyMsg}</Text> : null}
-
-      <Text style={s.body}>{mgmtMsg}</Text>
-
-      <Text style={s.body}>
-        Our approach combines hands-on property oversight with cutting-edge technology,
-        delivering the responsiveness of a boutique firm with the systems and scale of a
-        full-service management company. We manage over {data.company.portfolio.buildings}{' '}
-        buildings and {data.company.portfolio.sqft} sq ft — and every client receives direct
-        principal-level attention.
-      </Text>
-
-      {data.signals.length > 0 && (
-        <>
-          <Text style={s.subHeader}>Key Observations</Text>
-          {data.signals.map((signal, i) => (
-            <View style={s.bulletRow} key={i}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>{signal}</Text>
-            </View>
-          ))}
-        </>
-      )}
-
-      <PageFooter data={data} pageNum={3} />
-    </Page>
-  );
-}
-
-// ============================================================
-// Building Analysis Page
-// ============================================================
-
-function BuildingAnalysisPage({ data }: { data: ProposalData }) {
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Building Analysis</Text>
-        <Text style={s.sectionSubtitle}>
-          Data-Driven Assessment of {data.buildingName || data.buildingAddress}
-        </Text>
-      </View>
-
-      {/* Property Overview */}
-      <Text style={s.subHeader}>Property Overview</Text>
-      <View>
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Address</Text>
-          <Text style={s.kvValue}>{data.buildingAddress}</Text>
-        </View>
-        {data.buildingName && (
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Building Name</Text>
-            <Text style={s.kvValue}>{data.buildingName}</Text>
-          </View>
-        )}
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Type</Text>
-          <Text style={s.kvValue}>{data.buildingType.replace('-', ' ')}</Text>
-        </View>
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Units</Text>
-          <Text style={s.kvValue}>{data.units}</Text>
-        </View>
-        {data.yearBuilt && (
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Year Built</Text>
-            <Text style={s.kvValue}>{data.yearBuilt}</Text>
-          </View>
-        )}
-        {data.stories && (
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Stories</Text>
-            <Text style={s.kvValue}>{data.stories}</Text>
-          </View>
-        )}
-        {data.borough && (
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Borough / Neighborhood</Text>
-            <Text style={s.kvValue}>
-              {data.borough}
-              {data.neighborhood ? ` — ${data.neighborhood}` : ''}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Violations Summary */}
-      <Text style={s.subHeader}>HPD Violations</Text>
-      <View style={s.row}>
-        <View style={s.col50}>
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Total Violations</Text>
-            <Text style={s.kvValue}>{data.violationsCount}</Text>
-          </View>
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Open Violations</Text>
-            <Text style={s.kvValue}>{data.openViolationsCount}</Text>
-          </View>
-        </View>
-        <View style={s.col50}>
-          {data.lastViolationDate && (
-            <View style={s.kvRow}>
-              <Text style={s.kvLabel}>Last Violation</Text>
-              <Text style={s.kvValue}>{fmtDate(data.lastViolationDate)}</Text>
-            </View>
-          )}
-          <View style={s.kvRow}>
-            <Text style={s.kvLabel}>Scout Grade</Text>
-            <Text style={s.kvValue}>
-              {data.grade} (Score: {data.score}/100)
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Energy Compliance */}
-      {(data.energyStarScore != null || data.siteEUI != null) && (
-        <>
-          <Text style={s.subHeader}>Energy & LL97 Compliance</Text>
-          <View>
-            {data.energyStarScore != null && (
-              <View style={s.kvRow}>
-                <Text style={s.kvLabel}>Energy Star Score</Text>
-                <Text style={s.kvValue}>
-                  {data.energyStarScore}/100
-                  {data.energyStarScore < 50 ? ' — Below median, LL97 risk' : ''}
-                </Text>
-              </View>
-            )}
-            {data.siteEUI != null && (
-              <View style={s.kvRow}>
-                <Text style={s.kvLabel}>Site EUI</Text>
-                <Text style={s.kvValue}>{data.siteEUI} kBtu/ft²</Text>
-              </View>
-            )}
-            {data.ghgEmissions != null && (
-              <View style={s.kvRow}>
-                <Text style={s.kvLabel}>GHG Emissions</Text>
-                <Text style={s.kvValue}>{data.ghgEmissions} metric tons CO₂e</Text>
-              </View>
-            )}
-          </View>
-        </>
-      )}
-
-      {/* Ownership / Valuation */}
-      {(data.dofOwner || data.marketValue) && (
-        <>
-          <Text style={s.subHeader}>Ownership & Valuation</Text>
-          <View>
-            {data.dofOwner && (
-              <View style={s.kvRow}>
-                <Text style={s.kvLabel}>DOF Owner</Text>
-                <Text style={s.kvValue}>{data.dofOwner}</Text>
-              </View>
-            )}
-            {data.marketValue && (
-              <View style={s.kvRow}>
-                <Text style={s.kvLabel}>Market Value</Text>
-                <Text style={s.kvValue}>{fmtCurrency(data.marketValue)}</Text>
-              </View>
-            )}
-            {data.assessedValue && (
-              <View style={s.kvRow}>
-                <Text style={s.kvLabel}>Assessed Value</Text>
-                <Text style={s.kvValue}>{fmtCurrency(data.assessedValue)}</Text>
-              </View>
-            )}
-          </View>
-        </>
-      )}
-
-      {data.currentManagement && (
-        <>
-          <Text style={s.subHeader}>Current Management</Text>
-          <Text style={s.body}>{data.currentManagement}</Text>
-        </>
-      )}
-
-      <PageFooter data={data} pageNum={4} />
-    </Page>
-  );
-}
-
-// ============================================================
-// Services & Pricing Page
-// ============================================================
-
-function ServicesPricingPage({ data }: { data: ProposalData }) {
-  const { pricing } = data;
-
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Services & Pricing</Text>
-        <Text style={s.sectionSubtitle}>Comprehensive Management for {data.units} Units</Text>
-      </View>
-
-      {/* Standard Services Table */}
-      <Text style={s.subHeader}>Standard Services (Included)</Text>
-      <View style={s.tableHeader}>
-        <Text style={{ ...s.tableHeaderCell, width: '35%' }}>Service</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '65%' }}>Description</Text>
-      </View>
-      {data.standardServices.map((svc, i) => (
-        <View style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]} key={i}>
-          <Text style={{ ...s.tableCell, width: '35%', fontFamily: 'Helvetica-Bold' }}>
-            {svc.name}
-          </Text>
-          <Text style={{ ...s.tableCell, width: '65%' }}>{svc.description}</Text>
-        </View>
-      ))}
-
-      {/* Premium Services */}
-      <Text style={{ ...s.subHeader, marginTop: 18 }}>Premium Services</Text>
-      <View style={s.tableHeader}>
-        <Text style={{ ...s.tableHeaderCell, width: '35%' }}>Service</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '50%' }}>Description</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '15%', textAlign: 'center' }}>Included</Text>
-      </View>
-      {data.premiumServices.map((svc, i) => (
-        <View style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]} key={i}>
-          <Text style={{ ...s.tableCell, width: '35%', fontFamily: 'Helvetica-Bold' }}>
-            {svc.name}
-          </Text>
-          <Text style={{ ...s.tableCell, width: '50%' }}>{svc.description}</Text>
-          <Text style={{ ...s.tableCell, width: '15%', textAlign: 'center' }}>
-            {svc.included ? '✓' : '—'}
-          </Text>
-        </View>
-      ))}
-
-      {/* Pricing Breakdown */}
-      <View style={{ ...s.highlight, marginTop: 18 }}>
-        <Text style={s.highlightTitle}>Recommended Management Package</Text>
-        <Text style={{ ...s.body, fontFamily: 'Helvetica-Bold', color: NAVY }}>
-          {pricing.packageName}
-        </Text>
-        <View style={s.pricingRow}>
-          <Text style={s.pricingLabel}>
-            Base Management ({pricing.baseRateLabel})
-          </Text>
-          <Text style={s.pricingValue}>{fmtCurrency(pricing.baseRate)}/unit/mo</Text>
-        </View>
-        {pricing.rentStabilizedSurcharge > 0 && (
-          <View style={s.pricingRow}>
-            <Text style={s.pricingLabel}>Rent Stabilization Admin</Text>
-            <Text style={s.pricingValue}>
-              +{fmtCurrency(pricing.rentStabilizedSurcharge)}/unit/mo
-            </Text>
-          </View>
-        )}
-        {pricing.ll97Surcharge > 0 && (
-          <View style={s.pricingRow}>
-            <Text style={s.pricingLabel}>LL97 Compliance Services</Text>
-            <Text style={s.pricingValue}>+{fmtCurrency(pricing.ll97Surcharge)}/unit/mo</Text>
-          </View>
-        )}
-        <View style={s.pricingRow}>
-          <Text style={s.pricingLabel}>
-            Total Per Unit ({data.units} units)
-          </Text>
-          <Text style={s.pricingValue}>{fmtCurrency(pricing.totalPerUnit)}/unit/mo</Text>
-        </View>
-        <View style={s.pricingRow}>
-          <Text style={s.pricingLabel}>Monthly Total</Text>
-          <Text style={{ ...s.pricingValue, textDecoration: 'underline' }}>
-            {fmtCurrency(pricing.totalMonthly)}
-          </Text>
-        </View>
-        <View style={s.pricingTotal}>
-          <Text style={s.pricingTotalLabel}>Annual Total</Text>
-          <Text style={{ ...s.pricingTotalValue, textDecoration: 'underline' }}>
-            {fmtCurrency(pricing.totalAnnual)}
-          </Text>
-        </View>
-      </View>
-
-      <Text style={s.bodySmall}>
-        The Intelligence package is the recommended starting point because today's market
-        requires automation, clean reporting, board minutes, banking visibility, compliance
-        tracking, and resident communication support. Classic or Premier service can be
-        discussed if the board wants a lighter or deeper scope. Schedule A / ancillary fees are
-        outlined on the next page and tailored by property type in the final management
-        agreement. Final rates may be adjusted after document review and on-site assessment.
-      </Text>
-
-      <PageFooter data={data} pageNum={5} />
-    </Page>
-  );
-}
-
-// ============================================================
-// Schedule A / Ancillary Fees Page
-// ============================================================
-
-function AncillaryFeesPage({ data }: { data: ProposalData }) {
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Schedule A / Ancillary Fees</Text>
-        <Text style={s.sectionSubtitle}>
-          Association-level and individual/unit-level charges for final agreement review
-        </Text>
-      </View>
-
-      <Text style={s.body}>
-        The base management fee covers recurring monthly management. Schedule A keeps other
-        work transparent by separating building-level expenses from charges usually paid by an
-        applicant, shareholder, unit owner, tenant, or requesting party.
-      </Text>
-
-      <Text style={s.subHeader}>Association / Building-Level Fees</Text>
-      <View style={s.tableHeader}>
-        <Text style={{ ...s.tableHeaderCell, width: '34%' }}>Service</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '18%' }}>Fee</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '48%' }}>Notes</Text>
-      </View>
-      {data.associationAncillaryFees.slice(0, 10).map((item, i) => (
-        <View style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]} key={item.service}>
-          <Text style={{ ...s.tableCell, width: '34%', fontFamily: 'Helvetica-Bold' }}>
-            {item.service}
-          </Text>
-          <Text style={{ ...s.tableCell, width: '18%', fontFamily: 'Helvetica-Bold', color: NAVY }}>
-            {item.fee}
-          </Text>
-          <Text style={{ ...s.tableCell, width: '48%' }}>{item.notes}</Text>
-        </View>
-      ))}
-
-      <Text style={{ ...s.subHeader, marginTop: 16 }}>
-        Individual / Applicant / Unit-Level Fees
-      </Text>
-      <View style={s.tableHeader}>
-        <Text style={{ ...s.tableHeaderCell, width: '34%' }}>Service</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '18%' }}>Fee</Text>
-        <Text style={{ ...s.tableHeaderCell, width: '48%' }}>Notes</Text>
-      </View>
-      {data.individualAncillaryFees.slice(0, 8).map((item, i) => (
-        <View style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]} key={item.service}>
-          <Text style={{ ...s.tableCell, width: '34%', fontFamily: 'Helvetica-Bold' }}>
-            {item.service}
-          </Text>
-          <Text style={{ ...s.tableCell, width: '18%', fontFamily: 'Helvetica-Bold', color: NAVY }}>
-            {item.fee}
-          </Text>
-          <Text style={{ ...s.tableCell, width: '48%' }}>{item.notes}</Text>
-        </View>
-      ))}
-
-      <Text style={{ ...s.bodySmall, marginTop: 10 }}>
-        Advisory review by Camelot's accounting, legal, engineering, brokerage, banking, or
-        compliance partners is distinct from a formal engagement. Any formal professional service,
-        filing, tax return, legal matter, engineering scope, refinancing assignment, or capital
-        project is separately approved before work begins.
-      </Text>
-
-      <PageFooter data={data} pageNum={6} />
-    </Page>
-  );
-}
-
-// ============================================================
-// Why Camelot Page
-// ============================================================
-
-function WhyCamelotPage({ data }: { data: ProposalData }) {
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Why Camelot</Text>
-        <Text style={s.sectionSubtitle}>
-          Trusted by {data.company.portfolio.buildings} Buildings Across NYC
-        </Text>
-      </View>
-
-      <Text style={s.body}>
-        Camelot Property Management combines institutional-grade systems with the personalized
-        service of a boutique firm. Here's what sets us apart:
-      </Text>
-
-      {data.advantages.map((adv, i) => (
-        <View style={s.advantageItem} key={i}>
-          <Text style={s.advantageTitle}>
-            {i + 1}. {adv.title}
-          </Text>
-          <Text style={s.advantageDesc}>{adv.description}</Text>
-        </View>
-      ))}
-
-      <View style={{ ...s.highlight, marginTop: 10 }}>
-        <Text style={s.highlightTitle}>By the Numbers</Text>
-        <View style={s.row}>
-          <View style={s.col50}>
-            <View style={s.bulletRow}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>
-                {data.company.portfolio.buildings} buildings under management
-              </Text>
-            </View>
-            <View style={s.bulletRow}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>
-                {data.company.portfolio.sqft} sq ft managed
-              </Text>
-            </View>
-            <View style={s.bulletRow}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>All five boroughs covered</Text>
-            </View>
-          </View>
-          <View style={s.col50}>
-            <View style={s.bulletRow}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>98% board renewal rate</Text>
-            </View>
-            <View style={s.bulletRow}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>Average 15% operating cost reduction</Text>
-            </View>
-            <View style={s.bulletRow}>
-              <Text style={s.bulletDot}>•</Text>
-              <Text style={s.bulletText}>24/7 emergency response</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-
-      <PageFooter data={data} pageNum={7} />
-    </Page>
-  );
-}
-
-// ============================================================
-// Next Steps & Contact Page
-// ============================================================
-
-function TransitionPlanPage({ data }: { data: ProposalData }) {
-  const steps = [
-    ['Days 1-5', 'Document intake and control', 'Collect governing documents, owner records, arrears, vendor files, insurance, mortgage statements, prior reports, compliance files, and bank setup needs.'],
-    ['Days 6-10', 'Financial baseline', 'Review cash position, recurring payables, budget, arrears, mortgage obligations, tax exposure, insurance cost, and operating pressure points.'],
-    ['Days 11-15', 'Building walkthrough', 'Inspect common areas and building systems where accessible, review staffing/superintendent coverage, vendor quality, emergency protocols, and open repair priorities.'],
-    ['Days 16-20', 'Board communication setup', 'Set monthly reporting cadence, AP approval flow, maintenance request workflow, resident/shareholder communication channel, and board meeting rhythm.'],
-    ['Days 21-30', 'Transition findings', 'Deliver a first-month transition memo with compliance calendar, staffing recommendation, vendor recommendations, budget flags, and 60/90-day priorities.'],
-  ];
-
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Transition & Implementation</Text>
-        <Text style={s.sectionSubtitle}>First 30 days, then 90-day stabilization</Text>
-      </View>
-      <Text style={s.body}>
-        Camelot treats transition as a controlled operating handoff. Within the first 30
-        days, our objective is to take control of records, finances, vendors, reporting,
-        resident communication, and time-sensitive compliance items without overwhelming the
-        board or the building.
-      </Text>
-      {steps.map(([range, title, desc]) => (
-        <View style={s.bulletRow} key={range}>
-          <Text style={s.bulletDot}>-</Text>
-          <Text style={s.bulletText}>
-            <Text style={{ fontFamily: 'Helvetica-Bold', color: NAVY }}>{range}: {title}. </Text>
-            {desc}
-          </Text>
-        </View>
-      ))}
-      <Text style={s.subHeader}>Meet & Greet</Text>
-      <Text style={s.body}>
-        During the first 30 days, Camelot recommends a board and resident/shareholder meet
-        and greet, either on-site or over Zoom. Accounting, compliance, administration, and
-        the property management team can join so the community can put a face to the email.
-      </Text>
-      <Text style={s.subHeader}>90-Day Stabilization</Text>
-      <Text style={s.body}>
-        The 90-day period focuses on vendor review, insurance review, budget review,
-        compliance calendar, staffing recommendation, arrears review, and refinancing or
-        lender coordination where applicable.
-      </Text>
-      <PageFooter data={data} pageNum={8} />
-    </Page>
-  );
-}
-
-function NextStepsPage({ data }: { data: ProposalData }) {
-  const steps = [
-    {
-      step: '1',
-      title: 'Introductory Meeting',
-      desc: 'We schedule a call or in-person meeting to discuss your building\'s needs, concerns, and goals.',
-    },
-    {
-      step: '2',
-      title: 'Property Walkthrough',
-      desc: 'Our team conducts a comprehensive on-site inspection, reviewing physical conditions, systems, staffing, and vendor contracts.',
-    },
-    {
-      step: '3',
-      title: 'Detailed Proposal',
-      desc: 'Based on our assessment, we present a customized management plan with finalized pricing and transition timeline.',
-    },
-    {
-      step: '4',
-      title: 'Board Presentation',
-      desc: 'We present our proposal to the full board, answering questions and addressing any concerns.',
-    },
-    {
-      step: '5',
-      title: 'Seamless Transition',
-      desc: 'Our dedicated onboarding team manages the transition — typically completed within 30–45 days with zero disruption to residents.',
-    },
-  ];
-
-  return (
-    <Page size="LETTER" style={s.page}>
-      <PageHeader data={data} />
-      <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>Next Steps</Text>
-        <Text style={s.sectionSubtitle}>Getting Started with Camelot</Text>
-      </View>
-
-      {steps.map((item) => (
-        <View style={{ flexDirection: 'row', marginBottom: 12 }} key={item.step}>
-          <View
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: GOLD,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginRight: 12,
-              marginTop: 2,
-            }}
-          >
-            <Text
-              style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: NAVY, textAlign: 'center' }}
-            >
-              {item.step}
-            </Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: NAVY, marginBottom: 2 }}>
-              {item.title}
-            </Text>
-            <Text style={s.body}>{item.desc}</Text>
-          </View>
-        </View>
-      ))}
-
-      {/* Contact Information */}
-      <View style={{ ...s.highlight, marginTop: 16 }}>
-        <Text style={s.highlightTitle}>Contact Us</Text>
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Company</Text>
-          <Text style={s.kvValue}>{data.company.name}</Text>
-        </View>
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Address</Text>
-          <Text style={s.kvValue}>{data.company.address}</Text>
-        </View>
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Phone</Text>
-          <Text style={s.kvValue}>{data.company.phone}</Text>
-        </View>
-        <View style={s.kvRow}>
-          <Text style={s.kvLabel}>Website</Text>
-          <Text style={s.kvValue}>{data.company.website}</Text>
-        </View>
-      </View>
-
-      {/* License Info */}
-      <View style={{ marginTop: 16 }}>
-        <Text style={s.bodySmall}>Licensed Entities:</Text>
-        {data.company.licenses.map((lic, i) => (
-          <Text style={s.bodySmall} key={i}>
-            {lic.entity} — {lic.number}
-          </Text>
-        ))}
-      </View>
-
-      <Text style={{ ...s.bodySmall, marginTop: 12, textAlign: 'center' }}>
-        This proposal is confidential and intended solely for the recipient. Pricing is
-        subject to on-site assessment. Valid for 60 days from date of issue. Internal reference:
-        {` ${data.proposalNumber}`} generated {fmtDate(data.generatedAt)} by {data.generatedBy}.
-      </Text>
-
-      <DavidSignatureBlock />
-
-      <PageFooter data={data} pageNum={9} />
-    </Page>
-  );
-}
-
 // ============================================================
 // Main Document
 // ============================================================
@@ -1223,21 +259,246 @@ interface ProposalPDFProps {
 }
 
 export default function ProposalPDF({ data }: ProposalPDFProps) {
+  const buildingLabel = data.buildingName || data.buildingAddress;
+  const version = versionFromDate(data.generatedAt);
+  const recipientContact = [data.contactEmail, data.contactPhone].filter(Boolean).join(' / ');
+  const propertyDescription = buildPropertyDescription(data);
+  const unitMixLabel = `${(data.buildingType || 'Residential').replace(/-/g, ' ')} — ${data.units || 'TBD'} Units`;
+  const { pricing } = data;
+  const includedPremium = data.premiumServices.filter((p) => p.included);
+
+  const nextSteps = [
+    { title: 'Discuss This Proposal Further', desc: 'Schedule a call or meeting to walk through scope, fee, and answer any questions.' },
+    { title: 'Finalize Term & Fee', desc: 'Confirm the management term and fee structure that works best for the Board/ownership.' },
+    { title: 'Execute Property Management Agreement', desc: 'Once terms are identified, Camelot will issue the formal Agreement for signature.' },
+    { title: 'Begin Transition', desc: 'Our transition team takes over from there, outlined below.' },
+  ];
+
   return (
     <Document
-      title={`Camelot Proposal — ${data.buildingAddress}`}
+      title={`Proposal of Property Management Services — ${data.buildingAddress}`}
       author={data.company.name}
-      subject="Property Management Proposal"
+      subject="Proposal of Property Management Services"
     >
-      <CoverPage data={data} />
-      <CoverLetterPage data={data} />
-      {sectionEnabled(data, 'executive_summary') && <ExecutiveSummaryPage data={data} />}
-      {sectionEnabled(data, 'building_analysis') && <BuildingAnalysisPage data={data} />}
-      {sectionEnabled(data, 'pricing') && <ServicesPricingPage data={data} />}
-      {sectionEnabled(data, 'ancillary_fees') && <AncillaryFeesPage data={data} />}
-      {sectionEnabled(data, 'why_camelot') && <WhyCamelotPage data={data} />}
-      <TransitionPlanPage data={data} />
-      {sectionEnabled(data, 'next_steps') && <NextStepsPage data={data} />}
+      <Page size="LETTER" style={s.page} wrap>
+        <LetterheadHeader />
+        <LetterFooter addressLabel={data.preparedFor || 'THE ADDRESSEE'} />
+
+        <Text style={s.docTitle}>PROPOSAL OF PROPERTY MANAGEMENT SERVICES</Text>
+        <Text style={s.docSubtitle}>PREPARED BY CAMELOT PROPERTY MANAGEMENT SERVICES CORP.</Text>
+        <Text style={s.docSubtitle}>{buildingLabel}</Text>
+        <Text style={s.docSubtitle}>{data.buildingAddress}{data.borough ? `, ${data.borough}` : ''}</Text>
+
+        {/* Info table */}
+        <View style={s.infoTable}>
+          <View style={s.infoRow}>
+            <Text style={s.infoLabel}>Date</Text>
+            <Text style={s.infoValue}>{fmtDateLong(data.generatedAt)}</Text>
+          </View>
+          <View style={s.infoRow}>
+            <Text style={s.infoLabel}>Version</Text>
+            <Text style={s.infoValue}>{version}</Text>
+          </View>
+          <View style={s.infoRow}>
+            <Text style={s.infoLabel}>Prepared For</Text>
+            <Text style={s.infoValue}>{data.preparedFor}</Text>
+          </View>
+          <View style={s.infoRow}>
+            <Text style={s.infoLabel}>Addressed To</Text>
+            <Text style={s.infoValue}>{buildingLabel}</Text>
+          </View>
+          {recipientContact ? (
+            <View style={s.infoRow}>
+              <Text style={s.infoLabel}>Recipient Contact</Text>
+              <Text style={s.infoValue}>{recipientContact}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Notes box, from Key Observations / signals */}
+        {data.signals.length > 0 ? (
+          <View style={s.notesBox}>
+            <Text style={s.notesTitle}>NOTES</Text>
+            <Text style={[s.notesItem, { marginBottom: 4 }]}>
+              Context gathered from property records and conversations with the client — reference before finalizing this proposal.
+            </Text>
+            {data.signals.map((sig, i) => (
+              <Text style={s.notesItem} key={i}>• {sig}</Text>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Cover letter */}
+        <Text style={[s.body, { marginTop: 16 }]}>Re: Property Management Proposal — {buildingLabel}, {data.buildingAddress}</Text>
+        <Text style={s.body}>Dear {data.preparedFor},</Text>
+        {data.coverLetterParagraphs && data.coverLetterParagraphs.length > 0 ? (
+          data.coverLetterParagraphs.map((para, i) => (
+            <Text key={i} style={s.body}>{para}</Text>
+          ))
+        ) : (
+          <>
+            <Text style={s.body}>
+              It was a pleasure connecting with you about the opportunity to manage {buildingLabel}. We are grateful for
+              your consideration and the trust you're placing in Camelot — we're confident that our hands-on approach,
+              vetted network of contractors and vendors, and responsive team can bring real, measurable value to your
+              Board and residents.
+            </Text>
+            <Text style={s.body}>
+              Outlined in this proposal is the scope of services, fee structure, and next steps we recommend for{' '}
+              {buildingLabel}. We would welcome the opportunity to discuss this further at your convenience, and we
+              look forward to the possibility of working together.
+            </Text>
+          </>
+        )}
+        <Text style={[s.body, { fontFamily: 'Helvetica-Bold', marginBottom: 0 }]}>David Goldoff</Text>
+        <Text style={s.body}>President{'\n'}Camelot Property Management Services Corp.</Text>
+
+        {/* Property Description */}
+        <Text style={s.sectionHeading}>Property Description</Text>
+        <Text style={s.body}>{propertyDescription}</Text>
+
+        {/* Property Snapshot */}
+        <Text style={s.sectionHeading}>Property Snapshot</Text>
+        <View style={s.snapshotTable}>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>The Property</Text>
+            <Text style={s.snapshotValue}>{data.buildingAddress}</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>The Client</Text>
+            <Text style={s.snapshotValue}>{data.preparedFor}</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Unit Mix</Text>
+            <Text style={s.snapshotValue}>{unitMixLabel}</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Management Of</Text>
+            <Text style={s.snapshotValue}>Board Agendas, Common Areas, Building Operations</Text>
+          </View>
+        </View>
+
+        {/* Scope of Services */}
+        <Text style={s.sectionHeading}>Scope of Services</Text>
+        <Text style={s.body}>
+          If retained, Camelot will assign a dedicated team to {buildingLabel}, including a Property Manager who leads
+          day-to-day operations and Board meetings, an account manager and administrative support, and an in-house
+          controller and CPA for budget development and financial oversight.
+        </Text>
+        <Text style={s.serviceGroupTitle}>Property Management Services</Text>
+        {data.standardServices.map((svc, i) => (
+          <View style={s.bulletRow} key={i}>
+            <Text style={s.bulletDot}>•</Text>
+            <Text style={s.bulletText}><Text style={{ fontFamily: 'Helvetica-Bold' }}>{svc.name}.</Text> {svc.description}</Text>
+          </View>
+        ))}
+        {includedPremium.length > 0 ? (
+          <>
+            <Text style={s.serviceGroupTitle}>Additional Services (Recommended)</Text>
+            {includedPremium.map((svc, i) => (
+              <View style={s.bulletRow} key={i}>
+                <Text style={s.bulletDot}>•</Text>
+                <Text style={s.bulletText}><Text style={{ fontFamily: 'Helvetica-Bold' }}>{svc.name}.</Text> {svc.description}</Text>
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        {/* Term, Rate & Fees */}
+        <Text style={s.sectionHeading}>Term, Rate &amp; Fees</Text>
+        <View style={s.snapshotTable}>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Initial Term</Text>
+            <Text style={s.snapshotValue}>24 months, commencing upon execution</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Renewal</Text>
+            <Text style={s.snapshotValue}>Auto-renews annually unless terminated with 90 days' written notice</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Monthly Management Fee</Text>
+            <Text style={s.snapshotValue}>{fmtCurrency(pricing.totalMonthly)} per month ({fmtCurrency(pricing.totalPerUnit)} per unit)</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Annual Escalation</Text>
+            <Text style={s.snapshotValue}>4% annually</Text>
+          </View>
+          <View style={s.snapshotRow}>
+            <Text style={s.snapshotLabel}>Ancillary Fees</Text>
+            <Text style={s.snapshotValue}>Per the attached Ancillary Fee Schedule (see below)</Text>
+          </View>
+        </View>
+        <Text style={s.body}>
+          The fee above reflects comparable properties we currently manage, factoring in scope, labor, insurance,
+          overhead, and profit. Services outside the base scope of this proposal — such as lease renewals,
+          sublet/transfer processing, capital project oversight, or tax certiorari coordination — are billed
+          according to our standard Ancillary Fee Schedule, provided as an attachment to this proposal.
+        </Text>
+        <Text style={s.body}>
+          The full terms, responsibilities, and conditions of our engagement are set forth in Camelot's standard
+          Property Management Agreement, which we will issue once the term and fee above are confirmed.
+        </Text>
+
+        {/* Ancillary Fee Schedule */}
+        <Text style={s.sectionHeading}>Ancillary Fee Schedule</Text>
+        <Text style={[s.serviceGroupTitle, { marginTop: 0 }]}>Association / Building-Level Fees</Text>
+        {data.associationAncillaryFees.slice(0, 8).map((item) => (
+          <View style={s.snapshotRow} key={item.service}>
+            <Text style={s.snapshotLabel}>{item.service}</Text>
+            <Text style={s.snapshotValue}>{item.fee}</Text>
+          </View>
+        ))}
+        <Text style={s.serviceGroupTitle}>Individual / Applicant / Unit-Level Fees</Text>
+        {data.individualAncillaryFees.slice(0, 8).map((item) => (
+          <View style={s.snapshotRow} key={item.service}>
+            <Text style={s.snapshotLabel}>{item.service}</Text>
+            <Text style={s.snapshotValue}>{item.fee}</Text>
+          </View>
+        ))}
+
+        {/* Next Steps */}
+        <Text style={s.sectionHeading}>Next Steps</Text>
+        {nextSteps.map((step, i) => (
+          <View style={s.numberedRow} key={step.title}>
+            <View style={s.numberBadge}>
+              <Text style={s.numberBadgeText}>{i + 1}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.numberedTitle}>{step.title}</Text>
+              <Text style={s.numberedDesc}>{step.desc}</Text>
+            </View>
+          </View>
+        ))}
+
+        {/* Transitional procedures */}
+        <Text style={s.sectionHeading}>Summary of Transitional Procedures</Text>
+        <Text style={s.body}>
+          Camelot understands that a change in management can feel disruptive if it isn't handled carefully. Our
+          transition team works closely with the outgoing management company, ownership, and building staff to make
+          the handoff as seamless as possible — most transitions take 45–60 days. Upon being retained, we contact
+          the outgoing manager directly, request all building files and financial records, and set target dates for
+          payroll, billing, and any time-sensitive operational items so nothing falls through the cracks.
+        </Text>
+
+        <Text style={s.sectionHeading}>Budget, Facility &amp; Staff Review</Text>
+        <Text style={s.body}>
+          In parallel with the transition, we conduct a full review of the building's finances, staff, and current
+          vendor relationships against comparable properties in our portfolio. We meet with building staff to
+          understand what's working and what isn't, and we deliver a written report to the Board within the first
+          30 days, along with recommendations for cost savings or operational improvements.
+        </Text>
+
+        <Text style={s.sectionHeading}>Meet &amp; Greet with Owners/Board</Text>
+        <Text style={s.body}>
+          Within the first 30–60 days, we like to introduce the Camelot team to residents and the Board, in person
+          or over Zoom. This gives owners a chance to put a face to the team managing their building, raise any
+          concerns directly, and update their contact information on file.
+        </Text>
+
+        <Text style={s.body}>Thank you again for your consideration.</Text>
+
+        <DavidSignatureBlock />
+      </Page>
     </Document>
   );
 }

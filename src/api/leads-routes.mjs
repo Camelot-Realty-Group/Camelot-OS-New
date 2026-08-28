@@ -185,7 +185,25 @@ export default function createLeadsRouter(deps) {
 
     try {
       console.log(`[Leads] search started by ${triggeredBy}: minUnits=${minUnits} borough=${borough || 'ALL'}`);
-      const result = await runCitywideLeadSearch({ minUnits, borough, limit });
+
+      // Pull Camelot's live managed portfolio (synced from Spire MDS + RealtyMX
+      // — see portfolio-sync.mjs) as the anchor set for same-block/across-street
+      // matching. A search still runs even if this fails (falls back to a bare
+      // city-wide list with relationship left null on every lead) rather than
+      // blocking the whole search on the portfolio table being reachable.
+      let anchorBuildings = [];
+      try {
+        const { data: anchors, error: anchorsError } = await supabase
+          .from('buildings')
+          .select('id, building_name, address, city, is_active')
+          .eq('is_active', true);
+        if (anchorsError) throw anchorsError;
+        anchorBuildings = (anchors || []).filter((a) => a.address);
+      } catch (anchorErr) {
+        console.error('[Leads] failed to load anchor buildings, continuing without neighbor tagging:', anchorErr.message);
+      }
+
+      const result = await runCitywideLeadSearch({ minUnits, borough, limit, anchorBuildings });
 
       let leadsNew = 0;
       let leadsUpdated = 0;
@@ -219,7 +237,7 @@ export default function createLeadsRouter(deps) {
         })
         .eq('id', runRow.id);
 
-      res.json({ runId: runRow.id, summary: result.summary, dataGaps: result.dataGaps, leadsNew, leadsUpdated });
+      res.json({ runId: runRow.id, summary: result.summary, anchorResolution: result.anchorResolution, dataGaps: result.dataGaps, leadsNew, leadsUpdated });
     } catch (error) {
       console.error('[Leads] search error:', error);
       await supabase.from('neighborhood_lead_runs').update({ status: 'failed', completed_at: new Date().toISOString(), error_message: error.message }).eq('id', runRow.id);

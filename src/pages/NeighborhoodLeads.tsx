@@ -23,10 +23,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import {
   Search, RefreshCw, Users, Building2, Mail, CheckCircle2, Send,
-  Clock, Link2, Filter, ChevronDown, ChevronUp, Edit3, X, MapPin,
+  Clock, Link2, Filter, ChevronDown, ChevronUp, Edit3, MapPin,
 } from 'lucide-react';
 import { authenticatedApiFetch } from '@/lib/api-auth';
-import { generatePartnerPitchDeck, buildPartnerPitchFilename } from '@/lib/partner-pitch';
+import { generateNeighborProspectReport } from '@/lib/neighbor-prospect-report';
 import { generatePdfBase64 } from '@/lib/pdf-generator';
 
 interface Lead {
@@ -47,8 +47,11 @@ interface Lead {
   super_name: string | null;
   board_contact_name: string | null;
   mailing_address: string | null;
+  mailing_zip: string | null;
   contact_email: string | null;
   contact_confidence: string | null;
+  relationship: 'same_block' | 'across_street' | null;
+  nearest_camelot_buildings: string[] | null;
   status: string;
   draft_subject: string | null;
   draft_body_html: string | null;
@@ -61,7 +64,14 @@ interface Lead {
 
 interface RunSummary {
   runId: string;
-  summary: { totalFound: number; minUnits: number; borough: string; confidenceBreakdown: Record<string, number> };
+  summary: {
+    totalFound: number;
+    minUnits: number;
+    borough: string;
+    confidenceBreakdown: Record<string, number>;
+    relationshipBreakdown: Record<string, number>;
+  };
+  anchorResolution: { attempted: number; resolved: number; unresolved: Array<{ name: string; reason: string }> } | null;
   dataGaps: string[];
   leadsNew: number;
   leadsUpdated: number;
@@ -91,14 +101,29 @@ function firstName(name?: string | null): string {
   return (name || '').trim().split(/\s+/)[0] || '';
 }
 
+function relationshipPhrase(rel: Lead['relationship']): string {
+  return rel === 'same_block' ? 'on your block' : rel === 'across_street' ? 'directly across the street' : 'in your neighborhood';
+}
+
 function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
   const contactName = lead.management_contact_name || lead.owner_name || '';
   const fn = firstName(contactName);
-  const subject = `Camelot Property Management — we manage a building near ${lead.address}`;
+  const nearest = (lead.nearest_camelot_buildings || []).slice(0, 2);
+  const hasNamedNeighbor = nearest.length > 0;
+  const relPhrase = relationshipPhrase(lead.relationship);
+
+  const subject = hasNamedNeighbor
+    ? `We manage ${nearest.length > 1 ? 'buildings' : 'a building'} ${relPhrase} — quick intro`
+    : `Camelot Property Management — we manage buildings across New York`;
+
+  const neighborLine = hasNamedNeighbor
+    ? `We manage <strong>${nearest.map(escapeHtml).join(' and ')}</strong>, ${relPhrase} from ${escapeHtml(lead.address)}, and wanted to introduce ourselves.`
+    : `We manage residential and mixed-use buildings across New York City, and wanted to introduce ourselves.`;
+
   const bodyHtml = `<p>${fn ? `Hi ${escapeHtml(fn)},` : 'Hello,'}</p>
-<p>My name is [SENDER NAME] with Camelot Realty Group. We manage residential and mixed-use buildings across New York City, and wanted to introduce ourselves — we're already active in your neighborhood.</p>
+<p>My name is [SENDER NAME] with Camelot Realty Group. ${neighborLine}</p>
 <p>Camelot has managed New York buildings since 2006 — today that's 42+ properties, $240M+ under management, and about 5,351 units. Attached is a short overview of who we are, our track record, and how our technology platform (Camelot OS) gives owners and boards a live view into their building's financials and compliance — not just a monthly PDF.</p>
-<p>No pressure at all — if you're ever curious what a management transition would look like, or just want to compare notes on vendor pricing, we'd welcome 20 minutes, in person or by Zoom.</p>
+<p>No pressure at all — if you're ever curious what a management transition would look like, or just want to compare notes on vendor pricing, we'd welcome 20 minutes${hasNamedNeighbor ? ', in person since we\'re already in the neighborhood, or by Zoom' : ', in person or by Zoom'}.</p>
 <p>Best,<br><strong>[SENDER NAME]</strong><br>Camelot Realty Group<br>57 West 57th Street, Suite 410, New York, NY 10019<br>(212) 206-9939 &middot; info@camelot.nyc &middot; www.camelot.nyc</p>`;
   return { subject, bodyHtml };
 }
@@ -246,13 +271,30 @@ export default function NeighborhoodLeads() {
     if (!to) return;
     setBusyId(lead.id);
     try {
-      toast.loading('Rendering pitch deck PDF…', { id: `send-${lead.id}` });
-      const deckHtml = generatePartnerPitchDeck('neighbor', {
-        firmName: lead.management_company || lead.owner_name || lead.address,
+      toast.loading('Rendering report PDF…', { id: `send-${lead.id}` });
+      const nearest = lead.nearest_camelot_buildings && lead.nearest_camelot_buildings.length > 0
+        ? lead.nearest_camelot_buildings
+        : ['a nearby Camelot-managed building']; // report still needs to render even for a lead found via pure city-wide search with no anchor match
+      const reportHtml = generateNeighborProspectReport({
+        prospectAddress: lead.address,
+        prospectBorough: lead.borough || '',
+        prospectBbl: lead.bbl,
+        bldgClass: lead.bldg_class || undefined,
+        unitsTotal: lead.units_total || undefined,
+        numFloors: lead.num_floors || undefined,
+        yearBuilt: lead.year_built || undefined,
+        zipCode: lead.zip_code || undefined,
+        ownerName: lead.owner_name || undefined,
+        relationship: lead.relationship || 'same_block',
+        nearestCamelotBuildings: nearest,
         contactName: lead.management_contact_name || lead.owner_name || undefined,
+        contactCompany: lead.management_company || undefined,
+        mailingAddress: lead.mailing_address || undefined,
+        mailingZip: lead.mailing_zip || undefined,
       });
-      const filename = buildPartnerPitchFilename('neighbor', 'pdf', { firmName: lead.address });
-      const attachmentBase64 = await generatePdfBase64(deckHtml, filename);
+      const addressSlug = lead.address.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+      const filename = `Camelot-Neighbor-Report_${addressSlug}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      const attachmentBase64 = await generatePdfBase64(reportHtml, filename);
 
       toast.loading('Sending…', { id: `send-${lead.id}` });
       const resp = await authenticatedApiFetch(`/api/leads/${lead.id}/send`, {
@@ -370,7 +412,11 @@ export default function NeighborhoodLeads() {
           {lastRun && (
             <div className="mt-4 text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
               Last run found {lastRun.summary.totalFound} buildings ({lastRun.leadsNew} new, {lastRun.leadsUpdated} updated).
-              Contact confidence: {Object.entries(lastRun.summary.confidenceBreakdown).map(([k, v]) => `${k}: ${v}`).join(', ')}.
+              {lastRun.anchorResolution && (
+                <> Matched against {lastRun.anchorResolution.resolved}/{lastRun.anchorResolution.attempted} Camelot-managed buildings (geocoded from your live MDS/RealtyMX-synced portfolio).</>
+              )}
+              {' '}Neighbor relationship: {Object.entries(lastRun.summary.relationshipBreakdown).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`).join(', ')}.
+              {' '}Contact confidence: {Object.entries(lastRun.summary.confidenceBreakdown).map(([k, v]) => `${k}: ${v}`).join(', ')}.
               {lastRun.dataGaps.length > 0 && (
                 <details className="mt-1"><summary className="cursor-pointer font-semibold">Known data gaps</summary>
                   <ul className="list-disc pl-5 mt-1 space-y-0.5">{lastRun.dataGaps.map((g, i) => <li key={i}>{g}</li>)}</ul>
@@ -433,6 +479,12 @@ export default function NeighborhoodLeads() {
                             <div><span className="text-slate-500">Floors:</span> {lead.num_floors || '—'}</div>
                             <div><span className="text-slate-500">Year Built:</span> {lead.year_built || '—'}</div>
                             <div><span className="text-slate-500">ZIP:</span> {lead.zip_code || '—'}</div>
+                            <div className="pt-1 border-t border-slate-100 mt-1">
+                              <span className="text-slate-500">Camelot Neighbor:</span>{' '}
+                              {lead.nearest_camelot_buildings && lead.nearest_camelot_buildings.length > 0
+                                ? <span className="font-semibold text-emerald-700">{lead.nearest_camelot_buildings.join(', ')} ({lead.relationship === 'same_block' ? 'same block' : 'across the street'})</span>
+                                : <span className="text-slate-400">no Camelot-managed anchor nearby (found via city-wide search)</span>}
+                            </div>
                           </div>
                           <div className="bg-white rounded-xl border border-slate-200 p-4 text-sm space-y-1.5">
                             <div className="font-bold text-slate-700 text-xs uppercase tracking-wide mb-2">Ownership &amp; Contacts</div>

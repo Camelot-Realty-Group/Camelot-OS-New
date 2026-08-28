@@ -20,7 +20,7 @@
 import { GOOGLE_MAPS_KEY } from './maps-key';
 import { CAMELOT_PORTFOLIO, portfolioLatLngs } from './camelot-portfolio';
 
-export type PartnerAudience = 'law' | 'accounting' | 'audit' | 'brokerage' | 'receivership';
+export type PartnerAudience = 'law' | 'accounting' | 'audit' | 'brokerage' | 'receivership' | 'neighbor';
 
 export const PARTNER_AUDIENCES: Array<{ key: PartnerAudience; label: string; description: string }> = [
   { key: 'law', label: 'Law Firms', description: 'Real estate, co-op/condo, and landlord-tenant practices' },
@@ -28,6 +28,7 @@ export const PARTNER_AUDIENCES: Array<{ key: PartnerAudience; label: string; des
   { key: 'audit', label: 'Audit Practices', description: 'Auditors of condo, co-op, and HOA financial statements' },
   { key: 'brokerage', label: 'Commercial Brokerages', description: 'Investment-sales brokers selling multifamily, mixed-use, rental, and office buildings to landlords — including 1031 and overseas buyers' },
   { key: 'receivership', label: 'Receivers, Lenders & Auctions', description: 'Receiverships, bankruptcies, lender takeovers, and auction dispositions needing an operator on short notice' },
+  { key: 'neighbor', label: 'Neighborhood Leads', description: 'Owners, managing agents, and boards of multifamily/mixed-use buildings near a Camelot-managed property — the "we\'re already on your block" introduction deck used by the Neighborhood Leads engine' },
 ];
 
 const AUDIENCE_COPY: Record<PartnerAudience, {
@@ -127,6 +128,24 @@ const AUDIENCE_COPY: Record<PartnerAudience, {
       'Introduce us to trustees and workout teams that need court-ready reporting from day one',
     ],
   },
+  neighbor: {
+    title: 'We’re Already In Your Neighborhood',
+    titleLines: ['We’re Already', 'In Your Neighborhood'],
+    hook: 'Camelot manages a building on your block. We wanted to introduce ourselves — not because your current management is doing anything wrong, but because we’re already here, and it costs you nothing to know a local option exists. If you’re ever curious what a management transition would look like, or just want to compare notes on vendor pricing and violations, we’re a short walk away.',
+    coverLines: ['The Local Introduction', 'Already on your block', 'Worth 20 minutes, no obligation'],
+    howWeHelp: [
+      'Local, hands-on management — the person who answers your phone knows your building, not a call center three boroughs away',
+      'Camelot OS technology platform: owners and boards get a live portal with real-time financials, HPD/DOB/ECB compliance tracking, and vendor bid comparisons — not a monthly PDF',
+      'Portfolio vendor leverage that a single building can’t get alone: plumbing, HVAC, electrical, fire safety, boiler, and elevator contracts benchmarked across our managed buildings',
+      'Full regulatory coverage for rent-stabilized, rent-controlled, market-rate, condo, and co-op buildings — DHCR/RGB compliance, registrations, and local-law calendar management handled in-house',
+      'A track record you can verify locally: 42+ buildings, $240M+ under management, in New York since 2006 — and, since we’re neighbors, references from boards and owners near you specifically',
+    ],
+    whatWeAsk: [
+      'Twenty minutes, whenever works — in person, since we’re already in the neighborhood, or by Zoom',
+      'If nothing else, keep us in mind if your management contract ever comes up for renewal or your board asks you to look at options',
+      'Let us know what a great management company would look like from where you sit — we build to that standard',
+    ],
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -195,7 +214,7 @@ const RENTAL_CASE_STUDIES: Array<{ title: string; body: string }> = [
 ];
 
 const caseStudiesFor = (audience: PartnerAudience) => {
-  if (audience === 'brokerage' || audience === 'receivership') return RENTAL_CASE_STUDIES;
+  if (audience === 'brokerage' || audience === 'receivership' || audience === 'neighbor') return RENTAL_CASE_STUDIES;
   if (audience === 'law') return LAW_CASE_STUDIES;
   if (audience === 'accounting') return ACCOUNTING_CASE_STUDIES;
   return AUDIT_CASE_STUDIES;
@@ -218,6 +237,7 @@ export function buildPartnerPitchFilename(audience: PartnerAudience, extension =
     : audience === 'accounting' ? 'Accounting-Firms'
     : audience === 'audit' ? 'Audit-Practices'
     : audience === 'brokerage' ? 'Commercial-Brokerages'
+    : audience === 'neighbor' ? 'Neighborhood-Leads'
     : 'Receivers-Lenders-Auctions';
   const date = new Date().toISOString().slice(0, 10);
   const firmSlug = (firm?.firmName || '').trim().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
@@ -476,7 +496,9 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
               ? 'One building can’t move a vendor’s pricing. A portfolio of accounts can.'
               : audience === 'receivership'
                 ? 'Take the keys, secure the cash, report like a fiduciary — within days of appointment.'
-                : 'Audit quality depends on management quality. We build for your fieldwork.'}</div>
+                : audience === 'neighbor'
+                  ? 'We’re not asking you to switch. We’re just saying hello — and letting you know a local option exists.'
+                  : 'Audit quality depends on management quality. We build for your fieldwork.'}</div>
           <div style="margin-top:14px;max-width:560px">${illusCard('board-meeting.jpg', 'Board meeting — the relationship the big firms abandoned', 150, 'The board relationship, kept human')}</div>
         </div>
         <div class="grid3" style="grid-template-columns:1fr;gap:10px">
@@ -589,16 +611,20 @@ export function generatePartnerPitchDeck(audience: PartnerAudience, firm?: Partn
     sl(`${logo}<div class="kicker">The Value Exchange</div><h2>What We Bring &mdash; and What We Ask</h2><div class="rule"></div>
       <div class="grid2">
         <div>
-          <p class="body" style="font-weight:700;margin-bottom:8px">We bring your practice:</p>
+          <p class="body" style="font-weight:700;margin-bottom:8px">${audience === 'neighbor' ? 'What a conversation costs you:' : 'We bring your practice:'}</p>
           ${audience === 'law' || audience === 'accounting' ? `<div class="card" style="border-left-color:#1a2130"><strong>Loyalty runs both ways.</strong> When your firm recommends Camelot, your firm stays on with the client after the switch — the relationship you brought stays yours. That is a commitment, not a courtesy.</div>` : ''}
-          <div class="card">Clients whose buildings run properly — fewer emergencies landing on your desk, better records behind every engagement</div>
-          <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
-          <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>
+          ${audience === 'neighbor'
+            ? `<div class="card"><strong>Nothing.</strong> Twenty minutes, no pressure, no obligation — just a local option on the record in case you ever want it</div>
+               <div class="card">A free, no-obligation look at how your building's costs compare to similar buildings nearby, if you want one</div>
+               <div class="card">A direct line to a local manager instead of a call center — useful to have even if you never switch</div>`
+            : `<div class="card">Clients whose buildings run properly — fewer emergencies landing on your desk, better records behind every engagement</div>
+               <div class="card">A steady referral source: boards and landlords regularly ask us for ${audience === 'law' ? 'counsel' : audience === 'accounting' ? 'accountants' : audience === 'audit' ? 'auditors' : audience === 'brokerage' ? 'brokers when they buy, sell, or refinance' : 'workout and disposition professionals'} we trust</div>
+               <div class="card">Co-marketing: board education events, newsletters, and introductions across our portfolio</div>`}
         </div>
         <div>
           <p class="body" style="font-weight:700;margin-bottom:8px">What we ask of you:</p>
           ${copy.whatWeAsk.map(item => `<div class="card">${esc(item)}</div>`).join('')}
-          <div class="card" style="background:#22303a;color:rgba(255,255,255,.9);border-left-color:#F4D26A"><strong style="color:#F4D26A">We're also buyers.</strong> Camelot is actively scaling and always in the market to acquire well-run property management companies. If you represent one — or know an owner thinking about an exit — we'd like that conversation.</div>
+          ${audience === 'neighbor' ? '' : `<div class="card" style="background:#22303a;color:rgba(255,255,255,.9);border-left-color:#F4D26A"><strong style="color:#F4D26A">We're also buyers.</strong> Camelot is actively scaling and always in the market to acquire well-run property management companies. If you represent one — or know an owner thinking about an exit — we'd like that conversation.</div>`}
         </div>
       </div>${foot}`),
 

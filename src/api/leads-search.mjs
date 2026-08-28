@@ -82,7 +82,7 @@ function classifyAndFilter(row, minUnits) {
   return category;
 }
 
-const BOROUGH_LETTER_TO_NAME = { MN: 'MANHATTAN', BX: 'BRONX', BK: 'BROOKLYN', QN: 'QUEENS', SI: 'STATEN ISLAND' };
+const VALID_BOROUGH_LETTERS = new Set(['MN', 'BX', 'BK', 'QN', 'SI']);
 
 /**
  * Run a city-wide PLUTO search for the target property types, paginated.
@@ -93,11 +93,13 @@ export async function searchPlutoCitywide({ minUnits = 10, borough = null, limit
   const pageSize = 1000;
   let offset = 0;
   const whereClauses = [`unitstotal >= ${Number(minUnits)}`, `landuse in ('2','3','4','5')`];
-  if (borough && BOROUGH_LETTER_TO_NAME[borough]) {
-    // PLUTO's canonical 64uk-42ks dataset stores full borough names (e.g. "MANHATTAN"),
-    // not the 2-letter code used everywhere else in this app/table — translate here so
-    // callers can keep passing the 2-letter code consistently.
-    whereClauses.push(`borough = '${BOROUGH_LETTER_TO_NAME[borough]}'`);
+  if (borough && VALID_BOROUGH_LETTERS.has(borough)) {
+    // Live-verified against the 64uk-42ks dataset (Aug 2026): the `borough` field
+    // stores the 2-letter code directly (e.g. "MN"), matching the code used
+    // everywhere else in this app/table — no translation needed. (A prior pass
+    // assumed full names like "MANHATTAN" here; that returned zero rows for any
+    // borough-scoped search — confirmed live and reverted.)
+    whereClauses.push(`borough = '${borough}'`);
   }
 
   while (true) {
@@ -303,17 +305,17 @@ function plutoStyleAddress(rawAddress) {
   return s.split(' ').map((w) => ANCHOR_ORDINAL_WORDS[w.toLowerCase()] || w).join(' ');
 }
 
-const BOROUGH_NAME_TO_LETTER = { MANHATTAN: 'MN', BRONX: 'BX', BROOKLYN: 'BK', QUEENS: 'QN', 'STATEN ISLAND': 'SI' };
-
-/** City hints -> likely PLUTO borough name, used to scope the geocoding query per anchor. */
+/** City hints -> likely PLUTO borough 2-letter code, used to scope the geocoding query
+ * per anchor. Live-verified against the 64uk-42ks dataset (Aug 2026): `borough` stores
+ * the 2-letter code (e.g. "MN") directly — no full-name translation needed or accepted. */
 function guessBoroughFromCity(city) {
   const c = String(city || '').toUpperCase().trim();
   if (!c) return null;
-  if (c === 'BROOKLYN') return 'BROOKLYN';
-  if (['LONG ISLAND CITY', 'WOODSIDE', 'FLUSHING', 'KEW GARDENS', 'ASTORIA', 'JACKSON HEIGHTS'].some((n) => c.includes(n))) return 'QUEENS';
-  if (c.includes('BRONX')) return 'BRONX';
-  if (c.includes('STATEN')) return 'STATEN ISLAND';
-  if (['NEW YORK', 'NY', 'MANHATTAN'].includes(c)) return 'MANHATTAN';
+  if (c === 'BROOKLYN') return 'BK';
+  if (['LONG ISLAND CITY', 'WOODSIDE', 'FLUSHING', 'KEW GARDENS', 'ASTORIA', 'JACKSON HEIGHTS'].some((n) => c.includes(n))) return 'QN';
+  if (c.includes('BRONX')) return 'BX';
+  if (c.includes('STATEN')) return 'SI';
+  if (['NEW YORK', 'NY', 'MANHATTAN'].includes(c)) return 'MN';
   return null; // unknown — geocode will fall back to a citywide (unscoped) lookup
 }
 
@@ -352,7 +354,9 @@ export async function geocodeAnchorsToPluto(anchorBuildings) {
         resolved.push({
           name: b.building_name || b.address,
           address: b.address,
-          borough: BOROUGH_NAME_TO_LETTER[rows[0].borough] || null,
+          // PLUTO's `borough` field is already the 2-letter code (e.g. "MN") —
+          // used directly, matching the same convention as searchPlutoCitywide().
+          borough: rows[0].borough || null,
           block: rows[0].block,
           lot: rows[0].lot,
           bbl: rows[0].bbl,

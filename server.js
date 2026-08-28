@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
+import portfolioRoutes from './src/api/portfolio-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1733,6 +1734,12 @@ app.post('/api/templates/generate', async (req, res) => {
 
 // Cost-Cutting Analysis Routes
 app.use(costCuttingRoutes);
+
+// Portfolio Sync Routes (Spire MDS -> Supabase, RealtyMX enrichment)
+// NOTE: this router was built in a prior session but never mounted here,
+// which is why /api/portfolio/sync 404'd and the `buildings` table stayed
+// empty despite the sync engine, migration, and UI all being in place.
+app.use('/api', portfolioRoutes);
 
 // Serve fingerprinted assets with long-lived caching, but never cache the SPA
 // document itself. This prevents an obsolete dashboard shell from surviving a

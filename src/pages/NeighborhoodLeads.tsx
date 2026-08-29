@@ -106,6 +106,26 @@ function relationshipPhrase(rel: Lead['relationship']): string {
   return rel === 'same_block' ? 'on your block' : rel === 'across_street' ? 'directly across the street' : 'in your neighborhood';
 }
 
+const EMAIL_SENDER_NAME = 'David Goldoff';
+const EMAIL_GOLD = '#B8960F';
+const EMAIL_DARK_GOLD = '#8B6F47';
+const EMAIL_TITLE_BLUE = '#2F5597';
+const EMAIL_LOGO_URL = 'https://camelot-os.onrender.com/camelot-logo.png';
+
+/**
+ * Branded HTML email template — mirrors the letterhead/typography of the
+ * attached PDF (see neighbor-prospect-report.ts) so the email body itself
+ * looks designed rather than falling back to bare unstyled <p> tags, which
+ * is how it rendered in every client before this fix (confirmed via a
+ * screenshot of a live received email — plain stacked black text, no
+ * letterhead, no color, no visual hierarchy).
+ *
+ * Email clients (Gmail, Outlook, Apple Mail) strip <style> blocks
+ * unreliably, so every rule here is inlined directly on each element
+ * rather than living in a <head><style> block. Layout uses <table> instead
+ * of flex/grid for the same reason — table-based layout is the only thing
+ * guaranteed to render consistently across email clients.
+ */
 function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
   const contactName = lead.management_contact_name || lead.owner_name || '';
   const fn = firstName(contactName);
@@ -121,11 +141,53 @@ function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
     ? `We manage <strong>${nearest.map(escapeHtml).join(' and ')}</strong>, ${relPhrase} from ${escapeHtml(lead.address)}, and wanted to introduce ourselves.`
     : `We manage residential and mixed-use buildings across New York City, and wanted to introduce ourselves.`;
 
-  const bodyHtml = `<p>${fn ? `Hi ${escapeHtml(fn)},` : 'Hello,'}</p>
-<p>My name is [SENDER NAME] with Camelot Realty Group. ${neighborLine}</p>
-<p>Camelot has managed New York buildings since 2006 — today that's 42+ properties, $240M+ under management, and about 5,351 units. Attached is a short overview of who we are, our track record, and how our technology platform (Camelot OS) gives owners and boards a live view into their building's financials and compliance — not just a monthly PDF.</p>
-<p>No pressure at all — if you're ever curious what a management transition would look like, or just want to compare notes on vendor pricing, we'd welcome 20 minutes${hasNamedNeighbor ? ', in person since we\'re already in the neighborhood, or by Zoom' : ', in person or by Zoom'}.</p>
-<p>Best,<br><strong>[SENDER NAME]</strong><br>Camelot Realty Group<br>57 West 57th Street, Suite 410, New York, NY 10019<br>(212) 206-9939 &middot; info@camelot.nyc &middot; www.camelot.nyc</p>`;
+  const p = (inner: string) =>
+    `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a1a1a;">${inner}</p>`;
+
+  const bodyHtml = `<div style="background:#f5f0e5;padding:24px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+  <tr>
+    <td style="padding:28px 32px 18px;border-bottom:2px solid ${EMAIL_GOLD};">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:${EMAIL_TITLE_BLUE};">Camelot Realty Group</td>
+          <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#666;line-height:1.5;">
+            57 West 57th Street, Suite 410<br/>New York, NY 10019<br/>(212) 206-9939 &middot; www.camelot.nyc
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:26px 32px 8px;">
+      ${p(`${fn ? `Hi ${escapeHtml(fn)},` : 'Hello,'}`)}
+      ${p(`My name is ${EMAIL_SENDER_NAME} with Camelot Realty Group. ${neighborLine}`)}
+      ${p(`Camelot has managed New York buildings since 2006 — today that's 42+ properties, $240M+ under management, and about 5,351 units. Attached is a short overview of who we are, our track record, and how our technology platform (Camelot OS) gives owners and boards a live view into their building's financials and compliance — not just a monthly PDF.`)}
+      ${p(`No pressure at all — if you're ever curious what a management transition would look like, or just want to compare notes on vendor pricing, we'd welcome 20 minutes${hasNamedNeighbor ? ", in person since we're already in the neighborhood, or by Zoom" : ', in person or by Zoom'}.`)}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:4px 32px 28px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="background:#faf7f0;border:1px solid ${EMAIL_GOLD};border-radius:6px;">
+        <tr>
+          <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a1a1a;">
+            Best,<br/>
+            <strong style="color:${EMAIL_DARK_GOLD};">${EMAIL_SENDER_NAME}</strong><br/>
+            Camelot Realty Group<br/>
+            57 West 57th Street, Suite 410, New York, NY 10019<br/>
+            (212) 206-9939 &middot; info@camelot.nyc &middot; www.camelot.nyc
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:14px 32px;background:#faf7f0;border-top:1px solid #e5ddc8;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#888;">
+      Camelot Realty Group &middot; 57 West 57th Street, Suite 410, New York, NY 10019
+    </td>
+  </tr>
+</table>
+</div>`;
   return { subject, bodyHtml };
 }
 
@@ -390,11 +452,44 @@ export default function NeighborhoodLeads() {
         ),
       ]);
 
+      // Also render a PDF copy of the branded email letter itself (per
+      // David's request, Aug 2026), so the recipient — and our own records
+      // — has a standalone file of exactly what was sent, not just the
+      // pitch-deck attachment. Uses the same draft HTML that's actually
+      // emailed (editingDraft override if the user hand-edited it in the
+      // UI, otherwise the freshly-built intro draft) so the PDF always
+      // matches what's really sent.
+      toast.loading('Rendering letter PDF…', { id: `send-${lead.id}` });
+      const letterHtmlSource =
+        editingDraft && expandedId === lead.id ? editingDraft.bodyHtml : (lead.draft_body_html || buildIntroDraft(lead).bodyHtml);
+      const letterFullHtml = `<!doctype html><html><head><meta charset="utf-8"/><title>Camelot Realty Group — Letter</title></head>
+<body style="margin:0;background:#f5f0e5;">${letterHtmlSource}</body></html>`;
+      const letterFilename = `Camelot-Neighbor-Letter_${addressSlug}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      let attachment2Base64: string | undefined;
+      try {
+        attachment2Base64 = await Promise.race([
+          generatePdfBase64(letterFullHtml, letterFilename),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Letter PDF render timed out')), 30000)
+          ),
+        ]);
+      } catch (letterErr) {
+        // Non-fatal — the pitch-deck attachment and the styled email body
+        // itself are the essential deliverables; a failed letter-PDF render
+        // shouldn't block the send.
+        console.warn('[NeighborhoodLeads] letter PDF render failed, sending without it:', letterErr);
+      }
+
       toast.loading('Sending…', { id: `send-${lead.id}` });
       const resp = await authenticatedApiFetch(`/api/leads/${lead.id}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, attachmentBase64, attachmentFilename: filename }),
+        body: JSON.stringify({
+          to,
+          attachmentBase64,
+          attachmentFilename: filename,
+          ...(attachment2Base64 ? { attachment2Base64, attachment2Filename: letterFilename } : {}),
+        }),
       });
       const data = await resp.json();
       toast.dismiss(`send-${lead.id}`);

@@ -186,6 +186,20 @@ function pdfOptions(filename: string, isSlideDeck: boolean, windowWidth: number,
       logging: false,
       imageTimeout: 12000,
       removeContainer: true,
+      // Use the browser's native SVG <foreignObject> text/layout engine
+      // instead of html2canvas's own DOM-walking text renderer. The manual
+      // renderer is known to collapse inter-word spaces and vertical
+      // margin/padding under certain font-metric/line-height combinations
+      // (confirmed here: a report that rendered pixel-perfect when the
+      // exact same srcdoc HTML was displayed directly in an iframe came out
+      // of html2canvas with every word run together and no section
+      // spacing). foreignObjectRendering delegates layout to the browser
+      // itself, which is what already renders the source correctly, so it
+      // eliminates this whole class of bug. Safe here because the capture
+      // target is always our own same-origin, CORS-clean iframe document
+      // (see buildPdfFrame) — the one case foreignObjectRendering can't
+      // handle reliably (cross-origin/tainted content) never applies.
+      foreignObjectRendering: true,
       // Belt-and-suspenders: the target lives in its own isolated iframe
       // document (see buildPdfFrame) rather than being injected into the
       // live app's DOM, so html2canvas never has to clone the full
@@ -240,12 +254,9 @@ async function waitForFrameSettledInner(frame: HTMLIFrameElement): Promise<void>
   const doc = frame.contentDocument;
   if (!doc) return;
 
-  console.log('[pdf-debug] 3a: awaiting fonts.ready');
   await withTimeout(Promise.resolve((doc as any).fonts?.ready), 4000);
-  console.log('[pdf-debug] 3b: fonts settled, checking images');
 
   const images = Array.from(doc.querySelectorAll('img'));
-  console.log('[pdf-debug] 3c: image count=', images.length, 'complete=', images.map(i => i.complete));
   await Promise.all(
     images.map((img) =>
       img.complete
@@ -259,14 +270,12 @@ async function waitForFrameSettledInner(frame: HTMLIFrameElement): Promise<void>
         )
     )
   );
-  console.log('[pdf-debug] 3d: images settled, measuring height');
 
   // Re-measure and re-apply height now that images/fonts have settled —
   // font swaps and image intrinsic sizes can change scrollHeight after
   // the initial measurement in buildPdfFrame.
   const fullHeight = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 1);
   frame.style.height = `${fullHeight}px`;
-  console.log('[pdf-debug] 3e: height set to', fullHeight, '- awaiting rAF x2');
 
   // Use the TOP-LEVEL page's requestAnimationFrame, not the off-screen
   // iframe's own contentWindow.requestAnimationFrame. Chromium throttles
@@ -277,9 +286,7 @@ async function waitForFrameSettledInner(frame: HTMLIFrameElement): Promise<void>
   // opportunity without risking an effectively-infinite wait.
   const nextFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
   await nextFrame();
-  console.log('[pdf-debug] 3f: rAF 1 done');
   await nextFrame();
-  console.log('[pdf-debug] 3g: rAF 2 done, waitForFrameSettledInner returning');
 }
 
 /**
@@ -390,34 +397,16 @@ export async function downloadAsPDF(html: string, filename: string): Promise<Pdf
  * sendCamelotEmail() instead of only ever being saved locally.
  */
 export async function generatePdfBase64(html: string, filename: string): Promise<string> {
-  console.log('[pdf-debug] 1: importing html2pdf.js');
   const html2pdf = (await import('html2pdf.js')).default;
-  console.log('[pdf-debug] 2: html2pdf.js imported, building frame');
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
-  console.log('[pdf-debug] 3: frame built, waiting for settle');
-  const watchdogStart = Date.now();
-  const watchdog = setInterval(() => {
-    console.log('[pdf-debug] WATCHDOG tick, elapsed ms=', Date.now() - watchdogStart);
-  }, 2000);
   try {
     await waitForFrameSettled(frame);
-    clearInterval(watchdog);
-    console.log('[pdf-debug] 4: frame settled, starting html2pdf capture');
     const win = frame.contentWindow!;
     let blob: Blob;
     try {
       const h2pInstance = html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight));
-      console.log('[pdf-debug] 5: html2pdf instance created, calling outputPdf');
-      blob = await raceTimeout(
-        h2pInstance.outputPdf('blob').then((b: Blob) => {
-          console.log('[pdf-debug] 6: outputPdf resolved, size=', b?.size);
-          return b;
-        }),
-        45000
-      );
-      console.log('[pdf-debug] 7: raceTimeout resolved');
+      blob = await raceTimeout(h2pInstance.outputPdf('blob'), 45000);
     } catch (err) {
-      console.log('[pdf-debug] ERROR caught:', err);
       if (err instanceof PdfRenderTimeoutError) {
         throw new Error('PDF generation timed out while preparing the email attachment.');
       }
@@ -431,7 +420,6 @@ export async function generatePdfBase64(html: string, filename: string): Promise
     const commaIndex = dataUrl.indexOf(',');
     return commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
   } finally {
-    clearInterval(watchdog);
     frame.remove();
   }
 }

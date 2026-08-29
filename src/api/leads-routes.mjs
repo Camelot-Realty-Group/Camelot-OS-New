@@ -336,11 +336,15 @@ export default function createLeadsRouter(deps) {
 
   // ---------------------------------------------------------------------
   // POST /api/leads/:id/send
-  // body: { to: string, attachmentBase64: string, attachmentFilename: string }
-  // The PDF attachment is generated client-side (same generatePdfBase64 path
-  // used by Partner Pitches / Instant Proposal) and posted here as base64,
-  // matching the existing sendCamelotEmail() contract — this route does not
-  // render PDFs itself.
+  // body: { to: string, attachmentBase64: string, attachmentFilename: string,
+  //         attachment2Base64?: string, attachment2Filename?: string }
+  // The PDF attachment(s) are generated client-side (same generatePdfBase64
+  // path used by Partner Pitches / Instant Proposal) and posted here as
+  // base64, matching the existing sendCamelotEmail() contract — this route
+  // does not render PDFs itself. The optional second attachment is a PDF
+  // copy of the email body itself (added per David's request, Aug 2026) so
+  // the branded letter is also available as a standalone file, alongside
+  // the full pitch-deck attachment.
   // ---------------------------------------------------------------------
   router.post('/leads/:id/send', async (req, res) => {
     try {
@@ -352,13 +356,18 @@ export default function createLeadsRouter(deps) {
         return res.status(409).json({ error: `Lead must be approved before sending (current status: ${lead.status}). Approve the draft first.` });
       }
 
-      const { to, attachmentBase64, attachmentFilename } = req.body || {};
+      const { to, attachmentBase64, attachmentFilename, attachment2Base64, attachment2Filename } = req.body || {};
       if (!to || !attachmentBase64 || !attachmentFilename) {
         return res.status(400).json({ error: 'to, attachmentBase64, and attachmentFilename are required.' });
       }
 
       const resendKey = getResendApiKey();
       if (!resendKey) return res.status(400).json({ error: 'Email sending is not configured (RESEND_API_KEY missing).' });
+
+      const attachments = [{ filename: attachmentFilename, content: attachmentBase64 }];
+      if (attachment2Base64 && attachment2Filename) {
+        attachments.push({ filename: attachment2Filename, content: attachment2Base64 });
+      }
 
       const resp = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -369,7 +378,7 @@ export default function createLeadsRouter(deps) {
           subject: lead.draft_subject,
           html: lead.draft_body_html,
           reply_to: 'dgoldoff@camelot.nyc',
-          attachments: [{ filename: attachmentFilename, content: attachmentBase64 }],
+          attachments,
         }),
       });
       const sendData = await resp.json().catch(() => ({}));

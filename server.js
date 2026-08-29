@@ -31,9 +31,18 @@ let supabaseAuthClient;
 function getSupabaseAuthClient() {
   if (supabaseAuthClient) return supabaseAuthClient;
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url || !anonKey || /placeholder/i.test(`${url}${anonKey}`)) return null;
-  supabaseAuthClient = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  // Prefer the service role key for server-side token verification. The
+  // anon/publishable key path (SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY)
+  // was rejected by GoTrue's /user endpoint with "API key is invalid" —
+  // this project's legacy anon JWT is disabled, and the newer
+  // sb_publishable_... key isn't recognized by the pinned
+  // @supabase/supabase-js@^2.45.0 SDK for this call. The service role key
+  // is already required elsewhere in this file for admin DB access, is
+  // confirmed valid, and is the correct credential for server-side auth
+  // verification anyway (it bypasses RLS and is never exposed to clients).
+  const authKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !authKey || /placeholder/i.test(`${url}${authKey}`)) return null;
+  supabaseAuthClient = createClient(url, authKey, { auth: { persistSession: false, autoRefreshToken: false } });
   return supabaseAuthClient;
 }
 

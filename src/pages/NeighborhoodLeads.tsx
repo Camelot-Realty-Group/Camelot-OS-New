@@ -376,7 +376,19 @@ export default function NeighborhoodLeads() {
       });
       const addressSlug = lead.address.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
       const filename = `Camelot-Neighbor-Report_${addressSlug}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      const attachmentBase64 = await generatePdfBase64(reportHtml, filename);
+      // Outer safety-net timeout: generatePdfBase64() already races its own
+      // internal html2pdf.js capture against a 45s deadline, but that guard
+      // can only fire between JS ticks — if the underlying library call
+      // never yields back to the event loop (observed live: button stuck on
+      // "Rendering report PDF…" well past 45s with zero network activity),
+      // the inner timeout literally cannot preempt it. This outer race
+      // guarantees the Send button always recovers within ~60s regardless.
+      const attachmentBase64 = await Promise.race([
+        generatePdfBase64(reportHtml, filename),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('PDF generation is taking unusually long. Please try again — if this keeps happening, use a shorter report or contact support.')), 60000)
+        ),
+      ]);
 
       toast.loading('Sending…', { id: `send-${lead.id}` });
       const resp = await authenticatedApiFetch(`/api/leads/${lead.id}/send`, {

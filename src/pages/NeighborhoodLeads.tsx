@@ -197,13 +197,13 @@ function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
   <tr>
     <td style="padding:0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${EMAIL_GOLD};">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#000000;">
         <tr>
           <td style="padding:18px 24px;width:180px;">
             <img src="${EMAIL_LOGO_URL}" alt="Camelot Realty Group" height="52" style="display:block;height:52px;width:auto;"/>
           </td>
           <td align="right" style="padding:18px 24px;font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#ffffff;letter-spacing:0.3px;">
-            New Yorkers Servicing New Yorkers&hellip;
+            New Yorkers Servicing New Yorkers since 2006
           </td>
         </tr>
       </table>
@@ -226,8 +226,8 @@ function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
     <td style="padding:4px 32px 24px;">
       <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#faf7f0;border:1px solid ${EMAIL_GOLD};border-radius:6px;">
         <tr>
-          <td style="padding:16px 20px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:${EMAIL_INK};">
-            <a href="${DAVID_CREDENTIALS_URL}" style="color:${EMAIL_DARK_GOLD};font-weight:bold;font-size:15px;text-decoration:none;">David A. Goldoff</a><br/>
+          <td style="padding:16px 20px;font-family:Arial,Helvetica,sans-serif;font-size:9px;line-height:1.5;color:${EMAIL_INK};">
+            <a href="${DAVID_CREDENTIALS_URL}" style="color:${EMAIL_DARK_GOLD};font-weight:bold;font-size:11px;text-decoration:none;">David A. Goldoff</a><br/>
             President/Owner<br/>
             Camelot Realty Group<br/>
             <br/>

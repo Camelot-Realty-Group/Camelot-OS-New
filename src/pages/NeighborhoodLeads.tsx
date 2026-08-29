@@ -143,9 +143,13 @@ const EMAIL_GOLD = '#B8960F';
 const EMAIL_DARK_GOLD = '#8B6F47';
 const EMAIL_INK = '#1a1a1a';
 const EMAIL_LOGO_URL = 'https://camelot-os.onrender.com/images/camelot-gold-logo.png';
-const DAVID_BIO_URL = 'https://david-goldoff-camelot-president.netlify.app/#author';
+// NOTE: #author anchors deep on the bio site (the "Buff Businessman" author
+// section, ~6400px down) — not David's bio. #about is the real "About David"
+// section near the top of the page, which is what this link should land on.
+const DAVID_BIO_URL = 'https://david-goldoff-camelot-president.netlify.app/#about';
 const DAVID_CREDENTIALS_URL = 'https://david-goldoff-camelot-president.netlify.app/#credentials';
 const CAMELOT_SITE_URL = 'https://www.camelot.nyc';
+const SCHEDULING_URL = 'https://calendly.com/dgoldoff/intro-to-camelot-os-demo';
 
 const SOCIAL_LINKS: Array<{ label: string; url: string; icon: string }> = [
   { label: 'LinkedIn', url: 'https://www.linkedin.com/company/camelot-realty-group/', icon: 'https://cdn-icons-png.flaticon.com/24/174/174857.png' },
@@ -219,7 +223,20 @@ function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
       ${p(`I&rsquo;ve attached a brief overview of Camelot, our experience, and the platform.`)}
       ${p(`There&rsquo;s absolutely no pressure to make a change. Even if you&rsquo;re simply interested in comparing management approaches, reviewing vendor costs, or understanding what a transition to another management company might look like, I&rsquo;d be happy to spend 20 minutes with you.`)}
       ${p(`We can meet in person or by Zoom, whichever is easiest.`)}
+      ${p(`If it&rsquo;s easier, feel free to grab a time directly on my calendar &mdash; pick whatever works for you and I&rsquo;ll follow up with a Google Meet, Zoom, or phone link right away.`)}
       ${p(`Best,`)}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 32px 24px;" align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center" style="border-radius:4px;background:${EMAIL_GOLD};">
+            <a href="${SCHEDULING_URL}" style="display:inline-block;padding:12px 28px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">Schedule a Time to Talk &rarr;</a>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#666;">Book directly via Google Calendar, Zoom, or Calendly &mdash; whichever you prefer.</p>
     </td>
   </tr>
   <tr>

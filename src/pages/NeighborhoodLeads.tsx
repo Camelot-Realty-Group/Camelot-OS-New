@@ -98,27 +98,71 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   lost: { label: 'Lost', cls: 'bg-red-100 text-red-700' },
 };
 
-function firstName(name?: string | null): string {
-  return (name || '').trim().split(/\s+/)[0] || '';
+function lastName(name?: string | null): string {
+  const parts = (name || '').trim().split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : '';
+}
+
+/**
+ * Formal salutation per David's Aug 2026 direction: "Mr./Mrs. Lastname"
+ * instead of a first-name greeting, wherever we can tell. We don't have a
+ * reliable gender signal in the lead data (NYC HPD/PLUTO records don't
+ * carry one), so this defaults to "Mr./Ms." only when a title is already
+ * present in the source name (e.g. HPD officer records sometimes carry
+ * "Mrs. Jane Smith"); otherwise it falls back to the full name, which reads
+ * naturally either way ("Dear Jane Smith,") without guessing someone's
+ * gender from a first name — a guess that's wrong often enough in a contact
+ * list this size to be worse than not guessing at all.
+ */
+function formalSalutation(contactName: string): string {
+  const trimmed = contactName.trim();
+  if (!trimmed) return 'Hello';
+  const titleMatch = trimmed.match(/^(Mr|Mrs|Ms|Mx)\.?\s+(.+)$/i);
+  if (titleMatch) {
+    const title = titleMatch[1][0].toUpperCase() + titleMatch[1].slice(1).toLowerCase();
+    return `${title}. ${lastName(titleMatch[2]) || titleMatch[2]}`;
+  }
+  const ln = lastName(trimmed);
+  return ln ? `Mr./Mrs. ${ln}` : trimmed;
 }
 
 function relationshipPhrase(rel: Lead['relationship']): string {
   return rel === 'same_block' ? 'on your block' : rel === 'across_street' ? 'directly across the street' : 'in your neighborhood';
 }
 
+/** Good morning / afternoon / evening, based on the sender's local send time. */
+function timeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 const EMAIL_SENDER_NAME = 'David Goldoff';
 const EMAIL_GOLD = '#B8960F';
 const EMAIL_DARK_GOLD = '#8B6F47';
-const EMAIL_TITLE_BLUE = '#2F5597';
-const EMAIL_LOGO_URL = 'https://camelot-os.onrender.com/camelot-logo.png';
+const EMAIL_INK = '#1a1a1a';
+const EMAIL_LOGO_URL = 'https://camelot-os.onrender.com/images/camelot-gold-logo.png';
+const DAVID_BIO_URL = 'https://david-goldoff-camelot-president.netlify.app/#author';
+const DAVID_CREDENTIALS_URL = 'https://david-goldoff-camelot-president.netlify.app/#credentials';
+const CAMELOT_SITE_URL = 'https://www.camelot.nyc';
+
+const SOCIAL_LINKS: Array<{ label: string; url: string; icon: string }> = [
+  { label: 'LinkedIn', url: 'https://www.linkedin.com/company/camelot-realty-group/', icon: 'https://cdn-icons-png.flaticon.com/24/174/174857.png' },
+  { label: 'Instagram', url: 'https://www.instagram.com/camelotrealtygroup/', icon: 'https://cdn-icons-png.flaticon.com/24/2111/2111463.png' },
+  { label: 'Facebook', url: 'https://www.facebook.com/camelotrealty/', icon: 'https://cdn-icons-png.flaticon.com/24/733/733547.png' },
+  { label: 'X', url: 'https://x.com/camelot_realty', icon: 'https://cdn-icons-png.flaticon.com/24/5968/5968958.png' },
+  { label: 'TikTok', url: 'https://www.tiktok.com/@camelotrealtygroup', icon: 'https://cdn-icons-png.flaticon.com/24/3046/3046120.png' },
+];
 
 /**
- * Branded HTML email template — mirrors the letterhead/typography of the
- * attached PDF (see neighbor-prospect-report.ts) so the email body itself
- * looks designed rather than falling back to bare unstyled <p> tags, which
- * is how it rendered in every client before this fix (confirmed via a
- * screenshot of a live received email — plain stacked black text, no
- * letterhead, no color, no visual hierarchy).
+ * Branded HTML email template — David Goldoff outreach letter, Aug 2026
+ * rebuild. Uses the corporate gold wordmark (public/images/camelot-gold-logo.png,
+ * the same asset used in the app header and proposal covers) rather than a
+ * text lockup, a formal Mr./Mrs.-Lastname salutation, the full long-form body
+ * copy David supplied verbatim, and his complete signature block + firm
+ * affiliations/social footer — replacing the shorter placeholder copy this
+ * template shipped with originally.
  *
  * Email clients (Gmail, Outlook, Apple Mail) strip <style> blocks
  * unreliably, so every rule here is inlined directly on each element
@@ -128,62 +172,91 @@ const EMAIL_LOGO_URL = 'https://camelot-os.onrender.com/camelot-logo.png';
  */
 function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
   const contactName = lead.management_contact_name || lead.owner_name || '';
-  const fn = firstName(contactName);
+  const salutation = formalSalutation(contactName);
   const nearest = (lead.nearest_camelot_buildings || []).slice(0, 2);
   const hasNamedNeighbor = nearest.length > 0;
   const relPhrase = relationshipPhrase(lead.relationship);
+  const greeting = timeOfDayGreeting();
 
   const subject = hasNamedNeighbor
     ? `We manage ${nearest.length > 1 ? 'buildings' : 'a building'} ${relPhrase} — quick intro`
-    : `Camelot Property Management — we manage buildings across New York`;
+    : `Camelot Realty Group — introducing ourselves`;
 
   const neighborLine = hasNamedNeighbor
-    ? `We manage <strong>${nearest.map(escapeHtml).join(' and ')}</strong>, ${relPhrase} from ${escapeHtml(lead.address)}, and wanted to introduce ourselves.`
-    : `We manage residential and mixed-use buildings across New York City, and wanted to introduce ourselves.`;
+    ? `We actually manage <strong>${nearest.map(escapeHtml).join(' and ')}</strong>, ${relPhrase} from ${escapeHtml(lead.address)}, and are looking to grow our network by servicing properties like yours.`
+    : `We actually manage buildings in your neighborhood and are looking to grow our network by servicing properties like yours.`;
 
   const p = (inner: string) =>
-    `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a1a1a;">${inner}</p>`;
+    `<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.65;color:${EMAIL_INK};">${inner}</p>`;
+
+  const socialIcons = SOCIAL_LINKS.map(
+    (s) => `<a href="${s.url}" style="text-decoration:none;display:inline-block;margin:0 6px;" title="${s.label}"><img src="${s.icon}" width="18" height="18" alt="${s.label}" style="vertical-align:middle;border:0;"/></a>`
+  ).join('');
 
   const bodyHtml = `<div style="background:#f5f0e5;padding:24px 12px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
   <tr>
-    <td style="padding:28px 32px 18px;border-bottom:2px solid ${EMAIL_GOLD};">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <td style="padding:0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${EMAIL_GOLD};">
         <tr>
-          <td style="font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:bold;color:${EMAIL_TITLE_BLUE};">Camelot Realty Group</td>
-          <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#666;line-height:1.5;">
-            57 West 57th Street, Suite 410<br/>New York, NY 10019<br/>(212) 206-9939 &middot; www.camelot.nyc
+          <td style="padding:18px 24px;width:180px;">
+            <img src="${EMAIL_LOGO_URL}" alt="Camelot Realty Group" height="52" style="display:block;height:52px;width:auto;"/>
+          </td>
+          <td align="right" style="padding:18px 24px;font-family:Georgia,'Times New Roman',serif;font-size:13px;font-style:italic;color:#ffffff;letter-spacing:0.3px;">
+            New Yorkers Servicing New Yorkers&hellip;
           </td>
         </tr>
       </table>
     </td>
   </tr>
   <tr>
-    <td style="padding:26px 32px 8px;">
-      ${p(`${fn ? `Hi ${escapeHtml(fn)},` : 'Hello,'}`)}
-      ${p(`My name is ${EMAIL_SENDER_NAME} with Camelot Realty Group. ${neighborLine}`)}
-      ${p(`Camelot has managed New York buildings since 2006 — today that's 42+ properties, $240M+ under management, and about 5,351 units. Attached is a short overview of who we are, our track record, and how our technology platform (Camelot OS) gives owners and boards a live view into their building's financials and compliance — not just a monthly PDF.`)}
-      ${p(`No pressure at all — if you're ever curious what a management transition would look like, or just want to compare notes on vendor pricing, we'd welcome 20 minutes${hasNamedNeighbor ? ", in person since we're already in the neighborhood, or by Zoom" : ', in person or by Zoom'}.`)}
+    <td style="padding:28px 32px 8px;">
+      ${p(`${greeting}, <strong>${escapeHtml(salutation)}</strong>,`)}
+      ${p(`I hope this email finds you well. My name is <a href="${DAVID_BIO_URL}" style="color:${EMAIL_DARK_GOLD};font-weight:bold;text-decoration:none;">${EMAIL_SENDER_NAME}</a>, and I am the President of <a href="${CAMELOT_SITE_URL}" style="color:${EMAIL_DARK_GOLD};text-decoration:none;">Camelot Realty Group</a>. Independently owned since 2006, we have been a licensed property management and brokerage company serving NYC, Brooklyn, Queens, the Bronx, Westchester, Southern CT, Southern NJ, and now Southeast Florida. We manage all types of residential and mixed-use asset classes.`)}
+      ${p(neighborLine)}
+      ${p(`Our approach goes beyond traditional property management. Beyond day-to-day operations, accounting, compliance, maintenance oversight, and resident services, we focus on helping owners and boards control expenses, benchmark vendor pricing, identify operating efficiencies, and uncover opportunities to create additional value and increase cash flow.`)}
+      ${p(`We&rsquo;ve also developed our own technology platform, Camelot OS, which gives ownership and board members greater visibility into building operations, financial performance, compliance, projects, and outstanding issues. The goal is to provide a much clearer picture of what is happening at the property than the traditional monthly management report.`)}
+      ${p(`I&rsquo;ve attached a brief overview of Camelot, our experience, and the platform.`)}
+      ${p(`There&rsquo;s absolutely no pressure to make a change. Even if you&rsquo;re simply interested in comparing management approaches, reviewing vendor costs, or understanding what a transition to another management company might look like, I&rsquo;d be happy to spend 20 minutes with you.`)}
+      ${p(`We can meet in person or by Zoom, whichever is easiest.`)}
+      ${p(`Best,`)}
     </td>
   </tr>
   <tr>
-    <td style="padding:4px 32px 28px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" style="background:#faf7f0;border:1px solid ${EMAIL_GOLD};border-radius:6px;">
+    <td style="padding:4px 32px 24px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#faf7f0;border:1px solid ${EMAIL_GOLD};border-radius:6px;">
         <tr>
-          <td style="padding:14px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1a1a1a;">
-            Best,<br/>
-            <strong style="color:${EMAIL_DARK_GOLD};">${EMAIL_SENDER_NAME}</strong><br/>
+          <td style="padding:16px 20px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:${EMAIL_INK};">
+            <a href="${DAVID_CREDENTIALS_URL}" style="color:${EMAIL_DARK_GOLD};font-weight:bold;font-size:15px;text-decoration:none;">David A. Goldoff</a><br/>
+            President/Owner<br/>
             Camelot Realty Group<br/>
-            57 West 57th Street, Suite 410, New York, NY 10019<br/>
-            (212) 206-9939 &middot; info@camelot.nyc &middot; www.camelot.nyc
+            <br/>
+            <strong>Executive Office:</strong><br/>
+            501 Madison Avenue, 4th Floor, New York, NY 10022<br/>
+            <br/>
+            <strong>Main Office:</strong><br/>
+            57 West 57th Street, Suite 410 &middot; New York, NY 10019<br/>
+            CP: (646) 523-9068 &nbsp;|&nbsp; P: (212) 206-9939 x701<br/>
+            Email: <a href="mailto:dgoldoff@camelot.nyc" style="color:${EMAIL_DARK_GOLD};text-decoration:none;">dgoldoff@camelot.nyc</a> &nbsp;&nbsp; Web: <a href="${CAMELOT_SITE_URL}" style="color:${EMAIL_DARK_GOLD};text-decoration:none;">www.camelot.nyc</a><br/>
+            <br/>
+            <strong>Members of:</strong><br/>
+            REBNY, NYARM, HGAR, ONEKEY, SPONY, NY Apartment Association, QBBA, QCOC, CNYC, RSA<br/>
+            REBNY Community Service Award &middot; RED Property Management Company of the Year &middot; AMRF Golf Tournament Chief Sponsor<br/>
+            <a href="${DAVID_CREDENTIALS_URL}" style="color:${EMAIL_DARK_GOLD};text-decoration:none;font-style:italic;">learn about David here&hellip;</a>
           </td>
         </tr>
       </table>
     </td>
   </tr>
   <tr>
-    <td style="padding:14px 32px;background:#faf7f0;border-top:1px solid #e5ddc8;font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#888;">
-      Camelot Realty Group &middot; 57 West 57th Street, Suite 410, New York, NY 10019
+    <td style="padding:16px 32px;background:#2a2a2a;text-align:center;">
+      ${socialIcons}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 32px 20px;background:#2a2a2a;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.6;color:#bbb;text-align:center;">
+      Camelot Affiliations: Camelot Brokerage Services Corp. &middot; Camelot Living Solutions &middot; Camelot Property Management Services Corp.<br/>
+      Members of REBNY, NYARM, SPONY, CHIP, IREM &middot; Manhattan, Queens, Brooklyn &amp; Bronx Chambers of Commerce
     </td>
   </tr>
 </table>

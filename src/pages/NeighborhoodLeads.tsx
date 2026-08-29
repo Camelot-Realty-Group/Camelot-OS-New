@@ -222,6 +222,7 @@ export default function NeighborhoodLeads() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [editingDraft, setEditingDraft] = useState<{ subject: string; bodyHtml: string } | null>(null);
+  const [sendEmailOverride, setSendEmailOverride] = useState<Record<number, string>>({});
   const [lastRun, setLastRun] = useState<RunSummary | null>(null);
   const [migrationMissing, setMigrationMissing] = useState(false);
 
@@ -345,8 +346,11 @@ export default function NeighborhoodLeads() {
       toast.error('Approve the draft before sending.');
       return;
     }
-    const to = lead.contact_email || window.prompt(`No email on file for ${lead.management_contact_name || lead.owner_name || lead.address}. Enter recipient email to send:`, '');
-    if (!to) return;
+    const to = lead.contact_email || sendEmailOverride[lead.id]?.trim();
+    if (!to) {
+      toast.error('Enter a recipient email below before sending.');
+      return;
+    }
     setBusyId(lead.id);
     try {
       toast.loading('Rendering report PDF…', { id: `send-${lead.id}` });
@@ -574,7 +578,20 @@ export default function NeighborhoodLeads() {
                             <div><span className="text-slate-500">Super:</span> {lead.super_name || '— (not on file)'}</div>
                             <div><span className="text-slate-500">Board Contact:</span> {lead.board_contact_name || '— (not published by NYC Open Data)'}</div>
                             <div><span className="text-slate-500">Mailing Address:</span> {lead.mailing_address || '—'}</div>
-                            <div><span className="text-slate-500">Email:</span> {lead.contact_email || '— (not available; enter at send time)'}</div>
+                            <div>
+                              <span className="text-slate-500">Email:</span>{' '}
+                              {lead.contact_email ? (
+                                lead.contact_email
+                              ) : (
+                                <input
+                                  type="email"
+                                  placeholder="Enter recipient email to send…"
+                                  value={sendEmailOverride[lead.id] || ''}
+                                  onChange={(e) => setSendEmailOverride((prev) => ({ ...prev, [lead.id]: e.target.value }))}
+                                  className="border rounded px-2 py-0.5 text-xs w-56 align-middle"
+                                />
+                              )}
+                            </div>
                             <div className="text-xs text-slate-400 pt-1">Confidence: {lead.contact_confidence}</div>
                           </div>
                         </div>
@@ -623,7 +640,12 @@ export default function NeighborhoodLeads() {
                                 {lead.status === 'approved' && (
                                   <>
                                     <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1"><CheckCircle2 size={12} /> Approved — ready to send</span>
-                                    <button onClick={() => void sendIntro(lead)} disabled={busyId === lead.id} className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-camelot-gold text-white hover:opacity-90 disabled:opacity-50">
+                                    <button
+                                      onClick={() => void sendIntro(lead)}
+                                      disabled={busyId === lead.id || !(lead.contact_email || sendEmailOverride[lead.id]?.trim())}
+                                      title={!(lead.contact_email || sendEmailOverride[lead.id]?.trim()) ? 'Enter a recipient email above first' : undefined}
+                                      className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-camelot-gold text-white hover:opacity-90 disabled:opacity-50"
+                                    >
                                       <Send size={12} /> Send Intro Email + Deck
                                     </button>
                                   </>

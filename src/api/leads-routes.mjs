@@ -7,12 +7,16 @@
  * GET  /api/leads/runs                     — recent search-run history
  * POST /api/leads/:id/draft                — generate the intro email draft (+ pitch deck HTML) for staff review
  * PATCH /api/leads/:id/draft                — staff edits the draft before approval
+ * PATCH /api/leads/:id/contact              — staff manually enters email/name/title/phone/company (Needs Email queue)
  * POST /api/leads/:id/approve               — staff approves the draft (required before send)
  * POST /api/leads/:id/send                  — send the approved email (Resend) with the deck PDF attached;
  *                                              on success: push to HubSpot "Camelot Neighborhood Leads" pipeline
  *                                              + schedule the 4-day follow-up task
+ *                                              Enforces the daily send cap (see DAILY_SEND_CAP below) server-side.
+ * GET  /api/leads/send-limit               — today's send count + cap, for the UI banner
  * POST /api/leads/:id/follow-up/complete    — mark the 4-day follow-up as done
  * POST /api/hubspot/pipelines/ensure-neighborhood-leads — idempotently create the dedicated HubSpot pipeline
+ * POST /api/leads/daily-report/run          — manually trigger today's daily report email (also runs automatically, see startDailyReportScheduler)
  *
  * All routes sit behind requireApiUser (mounted the same way as
  * /api/portfolio in server.js) — HubSpot/Resend/NYC Open Data credentials
@@ -22,15 +26,31 @@
  * `approved_at` is set via POST /:id/approve. The send route enforces this
  * server-side, not just in the UI, so the workflow can't be bypassed by a
  * direct API call either.
+ *
+ * Daily send cap + reporting (per David, Aug 2026): a young sending domain
+ * gets flagged for spam if it suddenly blasts out hundreds of cold emails a
+ * day. DAILY_SEND_CAP keeps outbound volume conservative (20-30/day) while
+ * the domain builds reputation; raise it gradually as deliverability proves
+ * out (check Resend's domain health dashboard before increasing). The cap
+ * is enforced here, server-side, via neighborhood_send_daily_counter — not
+ * just disabled in the UI — so it can't be bypassed by a direct API call.
+ * Every night, a report of what was sent (and what's still waiting on a
+ * human to add an email) goes to info@camelot.nyc automatically.
  */
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { runCitywideLeadSearch } from './leads-search.mjs';
 
-/* global console, process */
+/* global console, process, setInterval, setTimeout, Buffer */
 
 const router = express.Router();
+
+// Conservative daily cap for cold outbound intro emails (per David, Aug
+// 2026) — keeps a young sending domain from tripping spam filters. Revisit
+// upward only after checking Resend's domain deliverability metrics.
+const DAILY_SEND_CAP = 25;
+const DAILY_REPORT_RECIPIENT = 'info@camelot.nyc';
 
 let supabaseInstance = null;
 function getSupabase() {
@@ -47,6 +67,53 @@ function getSupabase() {
     });
   }
   return supabaseInstance;
+}
+
+/** Today's date key (UTC calendar day) used for the daily send cap + report log. */
+function todayDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Atomically claims one "send slot" for today against DAILY_SEND_CAP.
+ * Returns { allowed, sentToday, cap }. Uses a Postgres upsert + conditional
+ * update rather than read-then-write so two near-simultaneous sends can't
+ * both slip through past the cap (classic check-then-act race).
+ */
+async function claimDailySendSlot(supabase) {
+  const dateKey = todayDateKey();
+
+  // Ensure today's row exists (no-op if it already does).
+  await supabase
+    .from('neighborhood_send_daily_counter')
+    .upsert({ send_date: dateKey }, { onConflict: 'send_date', ignoreDuplicates: true });
+
+  const { data: row, error: readError } = await supabase
+    .from('neighborhood_send_daily_counter')
+    .select('sent_count')
+    .eq('send_date', dateKey)
+    .single();
+  if (readError) throw readError;
+
+  if ((row?.sent_count || 0) >= DAILY_SEND_CAP) {
+    return { allowed: false, sentToday: row.sent_count, cap: DAILY_SEND_CAP };
+  }
+
+  // Conditional increment: only succeeds if sent_count hasn't moved past the
+  // cap since the read above (still narrows but doesn't eliminate the race
+  // under extreme concurrency — acceptable here since sends are a manual,
+  // one-at-a-time staff action, not a bulk-fire path).
+  const { data: updated, error: updateError } = await supabase
+    .from('neighborhood_send_daily_counter')
+    .update({ sent_count: (row?.sent_count || 0) + 1, updated_at: new Date().toISOString() })
+    .eq('send_date', dateKey)
+    .lt('sent_count', DAILY_SEND_CAP)
+    .select('sent_count')
+    .single();
+  if (updateError || !updated) {
+    return { allowed: false, sentToday: row?.sent_count || DAILY_SEND_CAP, cap: DAILY_SEND_CAP };
+  }
+  return { allowed: true, sentToday: updated.sent_count, cap: DAILY_SEND_CAP };
 }
 
 async function logEvent(supabase, leadId, eventType, actor, detail) {
@@ -130,6 +197,27 @@ export default function createLeadsRouter(deps) {
       res.json({ runs: data || [] });
     } catch (error) {
       console.error('[Leads] runs error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // GET /api/leads/send-limit — today's send count vs. the daily cap, for
+  // the "X of Y sent today" banner in the UI.
+  // ---------------------------------------------------------------------
+  router.get('/leads/send-limit', async (_req, res) => {
+    try {
+      const supabase = getSupabase();
+      const dateKey = todayDateKey();
+      const { data, error } = await supabase
+        .from('neighborhood_send_daily_counter')
+        .select('sent_count')
+        .eq('send_date', dateKey)
+        .maybeSingle();
+      if (error) throw error;
+      res.json({ date: dateKey, sentToday: data?.sent_count || 0, cap: DAILY_SEND_CAP, remaining: Math.max(0, DAILY_SEND_CAP - (data?.sent_count || 0)) });
+    } catch (error) {
+      console.error('[Leads] send-limit error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -306,6 +394,44 @@ export default function createLeadsRouter(deps) {
   });
 
   // ---------------------------------------------------------------------
+  // PATCH /api/leads/:id/contact — staff manually fills in send-to contact
+  // info from the "Needs Email" queue page: email (required to unblock a
+  // send), plus optional name/title/phone/company when NYC Open Data didn't
+  // have them. Writes to the *_manual columns (contact_title,
+  // contact_name_manual, contact_phone_manual, contact_company_manual) so
+  // the automated PLUTO/HPD-sourced fields are never overwritten — the
+  // manual entry is layered on top, and the UI/report prefer it when set.
+  // ---------------------------------------------------------------------
+  router.patch('/leads/:id/contact', async (req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { email, name, title, phone, company } = req.body || {};
+      if (email !== undefined && email !== null && email !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim())) {
+        return res.status(400).json({ error: 'That does not look like a valid email address.' });
+      }
+
+      const patch = {
+        contact_entered_by: req.camelotUser?.email || req.camelotUser?.id || 'unknown',
+        contact_entered_at: new Date().toISOString(),
+      };
+      if (email !== undefined) patch.contact_email = String(email).trim() || null;
+      if (name !== undefined) patch.contact_name_manual = String(name).trim() || null;
+      if (title !== undefined) patch.contact_title = String(title).trim() || null;
+      if (phone !== undefined) patch.contact_phone_manual = String(phone).trim() || null;
+      if (company !== undefined) patch.contact_company_manual = String(company).trim() || null;
+
+      const { data: updated, error } = await supabase.from('neighborhood_leads').update(patch).eq('id', req.params.id).select().single();
+      if (error) throw error;
+
+      await logEvent(supabase, req.params.id, 'contact_entered_manually', patch.contact_entered_by, { email: patch.contact_email, name, title, phone, company });
+      res.json({ lead: updated });
+    } catch (error) {
+      console.error('[Leads] manual contact entry error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------
   // POST /api/leads/:id/approve — required before /send will work
   // ---------------------------------------------------------------------
   router.post('/leads/:id/approve', async (req, res) => {
@@ -363,6 +489,21 @@ export default function createLeadsRouter(deps) {
 
       const resendKey = getResendApiKey();
       if (!resendKey) return res.status(400).json({ error: 'Email sending is not configured (RESEND_API_KEY missing).' });
+
+      // Daily send cap (per David, Aug 2026) — claimed BEFORE calling Resend
+      // so we never send an email we then fail to count. If Resend itself
+      // fails after the slot is claimed, that's one slot "spent" on a
+      // failed attempt, which is the safer failure mode for a compliance
+      // cap (undercounting real sends is the risk to avoid, not overcounting).
+      const slot = await claimDailySendSlot(supabase);
+      if (!slot.allowed) {
+        return res.status(429).json({
+          error: `Daily send limit reached (${slot.sentToday}/${slot.cap} sent today). This keeps our sending domain's reputation healthy — more sends will unlock tomorrow.`,
+          code: 'DAILY_SEND_CAP_REACHED',
+          sentToday: slot.sentToday,
+          cap: slot.cap,
+        });
+      }
 
       const attachments = [{ filename: attachmentFilename, content: attachmentBase64 }];
       if (attachment2Base64 && attachment2Filename) {
@@ -480,7 +621,206 @@ export default function createLeadsRouter(deps) {
     }
   });
 
+  // ---------------------------------------------------------------------
+  // POST /api/leads/daily-report/run — manually trigger today's daily
+  // report email (the same job also runs automatically once a day — see
+  // startDailyReportScheduler at the bottom of this file). Safe to call
+  // more than once in a day: it's idempotent per calendar date via the
+  // neighborhood_daily_reports.report_date unique constraint, so re-running
+  // it just re-sends today's report rather than double-counting anything.
+  // ---------------------------------------------------------------------
+  router.post('/leads/daily-report/run', async (_req, res) => {
+    try {
+      const result = await runDailyReport({ getResendApiKey, getResendFromAddress, force: true });
+      res.json(result);
+    } catch (error) {
+      console.error('[Leads] manual daily report run error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return router;
+}
+
+// ---------------------------------------------------------------------------
+// Daily report — once a day, email info@camelot.nyc (a) which intro emails
+// went out today and to whom, and (b) a CSV of leads still waiting on a
+// human to add a contact email (the "Needs Email" queue). Per David, Aug
+// 2026. Runs automatically (see startDailyReportScheduler) and can also be
+// triggered manually via POST /api/leads/daily-report/run.
+// ---------------------------------------------------------------------------
+
+function csvEscape(value) {
+  const s = value === null || value === undefined ? '' : String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function buildNeedsEmailCsv(rows) {
+  const header = ['Address', 'Borough', 'Units', 'Owner', 'Management Company', 'Contact Name', 'Title', 'Discovered', 'BBL'];
+  const lines = [header.join(',')];
+  for (const r of rows) {
+    lines.push([
+      r.address, r.borough, r.units_total, r.owner_name,
+      r.contact_company_manual || r.management_company,
+      r.contact_name_manual || r.management_contact_name,
+      r.contact_title || r.management_contact_role,
+      r.discovered_at ? new Date(r.discovered_at).toISOString().slice(0, 10) : '',
+      r.bbl,
+    ].map(csvEscape).join(','));
+  }
+  return lines.join('\n');
+}
+
+async function runDailyReport({ getResendApiKey, getResendFromAddress, force = false }) {
+  const supabase = getSupabase();
+  const dateKey = todayDateKey();
+  const dayStart = `${dateKey}T00:00:00.000Z`;
+  const dayEnd = `${dateKey}T23:59:59.999Z`;
+
+  // Idempotency: skip (unless force=true, i.e. a manual re-run) if today's
+  // report already went out — protects against double-sends if the server
+  // restarts mid-day and the scheduler's setInterval fires again.
+  if (!force) {
+    const { data: existing } = await supabase
+      .from('neighborhood_daily_reports')
+      .select('id, status')
+      .eq('report_date', dateKey)
+      .maybeSingle();
+    if (existing) {
+      return { status: 'skipped', reason: 'already_sent_today', reportDate: dateKey };
+    }
+  }
+
+  const [{ data: sentToday, error: sentError }, { data: needsEmail, error: needsError }] = await Promise.all([
+    supabase
+      .from('neighborhood_leads')
+      .select('address, borough, units_total, contact_email, management_contact_name, sent_at, sent_by')
+      .gte('sent_at', dayStart)
+      .lte('sent_at', dayEnd)
+      .order('sent_at', { ascending: true }),
+    supabase
+      .from('neighborhood_leads')
+      .select('address, borough, units_total, owner_name, management_company, management_contact_name, management_contact_role, contact_title, contact_name_manual, contact_company_manual, discovered_at, bbl')
+      .or('contact_email.is.null,contact_email.eq.')
+      .order('discovered_at', { ascending: false })
+      .limit(2000),
+  ]);
+  if (sentError) throw sentError;
+  if (needsError) throw needsError;
+
+  const sentRows = sentToday || [];
+  const needsRows = needsEmail || [];
+
+  const sentCount = sentRows.length;
+  const needsEmailCount = needsRows.length;
+
+  const sentTableRows = sentRows.length
+    ? sentRows.map((r) => `<tr>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${r.address || ''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${r.contact_email || ''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${r.management_contact_name || ''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${r.sent_by || ''}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #eee;">${r.sent_at ? new Date(r.sent_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="5" style="padding:10px;color:#888;">No intro emails were sent today.</td></tr>`;
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:680px;margin:0 auto;color:#1a1a1a;">
+    <h2 style="font-size:18px;margin:0 0 4px;">Neighborhood Leads — Daily Report</h2>
+    <p style="font-size:13px;color:#555;margin:0 0 20px;">${new Date(dateKey).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+
+    <h3 style="font-size:14px;margin:0 0 8px;">Sent today: ${sentCount}</h3>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;border-collapse:collapse;margin-bottom:24px;">
+      <thead>
+        <tr style="background:#f5f0e5;text-align:left;">
+          <th style="padding:6px 10px;">Address</th>
+          <th style="padding:6px 10px;">Sent To</th>
+          <th style="padding:6px 10px;">Contact</th>
+          <th style="padding:6px 10px;">Sent By</th>
+          <th style="padding:6px 10px;">Time</th>
+        </tr>
+      </thead>
+      <tbody>${sentTableRows}</tbody>
+    </table>
+
+    <h3 style="font-size:14px;margin:0 0 8px;">Needs a human to add an email: ${needsEmailCount}</h3>
+    <p style="font-size:12px;color:#555;margin:0 0 12px;">
+      Full list attached as a CSV. Enter emails (and name/title/phone/company where known) on the
+      <strong>Needs Email</strong> page in Camelot OS, then approve and send from there like any other lead.
+    </p>
+  </div>`;
+
+  let resendMessageId = null;
+  let sendStatus = 'sent';
+  let errorMessage = null;
+  try {
+    const resendKey = getResendApiKey();
+    if (!resendKey) throw new Error('RESEND_API_KEY not configured — cannot send daily report.');
+    const csv = buildNeedsEmailCsv(needsRows);
+    const csvBase64 = Buffer.from(csv, 'utf8').toString('base64');
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
+      body: JSON.stringify({
+        from: getResendFromAddress(),
+        to: [DAILY_REPORT_RECIPIENT],
+        subject: `Neighborhood Leads Daily Report — ${sentCount} sent, ${needsEmailCount} need an email (${dateKey})`,
+        html,
+        attachments: [{ filename: `Needs-Email-Queue_${dateKey}.csv`, content: csvBase64 }],
+      }),
+    });
+    const sendData = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(sendData?.message || `Resend returned ${resp.status}`);
+    resendMessageId = sendData.id;
+  } catch (err) {
+    sendStatus = 'failed';
+    errorMessage = err.message;
+    console.error('[Leads] daily report send failed:', err);
+  }
+
+  // Log the run (upsert so a forced manual re-run updates today's row
+  // instead of violating the report_date unique constraint).
+  await supabase.from('neighborhood_daily_reports').upsert({
+    report_date: dateKey,
+    sent_count: sentCount,
+    needs_email_count: needsEmailCount,
+    recipient: DAILY_REPORT_RECIPIENT,
+    resend_message_id: resendMessageId,
+    status: sendStatus,
+    error_message: errorMessage,
+  }, { onConflict: 'report_date' });
+
+  if (sendStatus === 'failed') throw new Error(errorMessage);
+  return { status: 'sent', reportDate: dateKey, sentCount, needsEmailCount, resendMessageId };
+}
+
+/**
+ * Starts the once-a-day report job. This is a single Render web service
+ * with no separate worker/cron dyno, so rather than add new infra this uses
+ * an in-process interval that wakes up every 30 minutes and fires the
+ * report once local server time crosses the target hour — guarded by the
+ * neighborhood_daily_reports.report_date unique constraint (via the
+ * "already sent today" check in runDailyReport) so it can't double-send
+ * even if the check interval overlaps a restart. Call once from server.js
+ * after the leads router is mounted.
+ */
+export function startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc = 21 }) {
+  const CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+  const tick = async () => {
+    try {
+      if (new Date().getUTCHours() !== hourUtc) return;
+      const result = await runDailyReport({ getResendApiKey, getResendFromAddress });
+      if (result.status === 'sent') {
+        console.log(`[Leads] daily report sent: ${result.sentCount} sent, ${result.needsEmailCount} need email.`);
+      }
+    } catch (err) {
+      console.error('[Leads] daily report scheduler tick failed:', err.message);
+    }
+  };
+  setInterval(() => { void tick(); }, CHECK_INTERVAL_MS);
+  // Also check shortly after boot in case the server restarts near the
+  // target hour and would otherwise miss that day's window.
+  setTimeout(() => { void tick(); }, 60_000);
+  console.log(`[Leads] daily report scheduler started (target hour: ${hourUtc}:00 UTC, checks every 30 min).`);
 }
 
 // ---------------------------------------------------------------------------

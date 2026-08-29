@@ -40,6 +40,7 @@ const TemplateBilling = lazy(() => import('@/pages/TemplateBilling'));
 const Templates = lazy(() => import('@/pages/Templates'));
 const PartnerPitches = lazy(() => import('@/pages/PartnerPitches'));
 const NeighborhoodLeads = lazy(() => import('@/pages/NeighborhoodLeads'));
+const NeedsEmail = lazy(() => import('@/pages/NeedsEmail'));
 const TradedNY = lazy(() => import('@/pages/TradedNY'));
 const CostCuttingTool = lazy(() => import('@/pages/CostCuttingTool'));
 const CostBeatReportBuilder = lazy(() => import('@/pages/CostBeatReportBuilder'));
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/report-center" element={page(ReportCenter)} />
           <Route path="/partner-pitches" element={page(PartnerPitches)} />
           <Route path="/neighborhood-leads" element={page(NeighborhoodLeads)} />
+          <Route path="/needs-email" element={page(NeedsEmail)} />
           <Route path="/portfolio" element={page(Portfolio)} />
           <Route path="/cost-cutting" element={page(CostCuttingTool)} />
           <Route path="/cost-beat-report" element={page(CostBeatReportBuilder)} />

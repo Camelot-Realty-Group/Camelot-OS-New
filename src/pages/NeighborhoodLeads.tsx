@@ -20,10 +20,12 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Search, RefreshCw, Users, Building2, Mail, CheckCircle2, Send,
   Clock, Link2, Filter, ChevronDown, ChevronUp, Edit3, MapPin, LogIn, LogOut, ShieldAlert,
+  HelpCircle, UserSearch, Gauge, ArrowRight,
 } from 'lucide-react';
 import { authenticatedApiFetch } from '@/lib/api-auth';
 import { generatePdfBase64 } from '@/lib/pdf-generator';
@@ -397,6 +399,20 @@ export default function NeighborhoodLeads() {
   const [sendEmailOverride, setSendEmailOverride] = useState<Record<number, string>>({});
   const [lastRun, setLastRun] = useState<RunSummary | null>(null);
   const [migrationMissing, setMigrationMissing] = useState(false);
+  const [sendLimit, setSendLimit] = useState<{ sentToday: number; cap: number; remaining: number } | null>(null);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
+
+  const loadSendLimit = useCallback(async () => {
+    try {
+      const resp = await authenticatedApiFetch('/api/leads/send-limit');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      setSendLimit({ sentToday: data.sentToday, cap: data.cap, remaining: data.remaining });
+    } catch {
+      // Non-critical — the banner just won't show a count; the server
+      // still enforces the cap on send regardless.
+    }
+  }, []);
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -423,6 +439,7 @@ export default function NeighborhoodLeads() {
   }, [statusFilter, boroughFilter, minUnits, searchTerm]);
 
   useEffect(() => { void loadLeads(); }, [loadLeads]);
+  useEffect(() => { void loadSendLimit(); }, [loadSendLimit]);
 
   const runSearch = async () => {
     setSearching(true);
@@ -571,10 +588,16 @@ export default function NeighborhoodLeads() {
       });
       const data = await resp.json();
       toast.dismiss(`send-${lead.id}`);
-      if (!resp.ok) throw new Error(data?.error || 'Send failed');
+      if (!resp.ok) {
+        if (data?.code === 'DAILY_SEND_CAP_REACHED') {
+          setSendLimit({ sentToday: data.sentToday, cap: data.cap, remaining: 0 });
+        }
+        throw new Error(data?.error || 'Send failed');
+      }
       setLeads((prev) => prev.map((l) => (l.id === lead.id ? data.lead : l)));
       const hsNote = data.hubspot?.status === 'ok' ? ' — pushed to HubSpot, 4-day follow-up scheduled' : '';
       toast.success(`Sent to ${to}${hsNote}`);
+      void loadSendLimit();
     } catch (err: any) {
       toast.dismiss(`send-${lead.id}`);
       toast.error(err?.message || 'Send failed');
@@ -638,6 +661,91 @@ export default function NeighborhoodLeads() {
 
       <main className="px-8 py-8">
         <SessionBar />
+
+        {/* How This Works — plain-English explainer, collapsed by default */}
+        <div className="bg-white rounded-2xl border border-[#A89035]/40 mb-6 overflow-hidden">
+          <button
+            onClick={() => setHowItWorksOpen((v) => !v)}
+            className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-slate-50"
+          >
+            <span className="w-9 h-9 rounded-xl bg-camelot-gold/15 text-camelot-gold flex items-center justify-center shrink-0">
+              <HelpCircle size={18} />
+            </span>
+            <span className="flex-1">
+              <span className="text-sm font-bold text-slate-900">How this page works</span>
+              <span className="text-xs text-slate-500 block">A simple, step-by-step explanation — click to {howItWorksOpen ? 'hide' : 'read'}</span>
+            </span>
+            {howItWorksOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+          </button>
+          {howItWorksOpen && (
+            <div className="px-5 pb-6 pt-1 border-t border-slate-100 text-sm text-slate-700 leading-relaxed space-y-4 max-w-3xl">
+              <p>
+                Think of this page like a fishing net for new buildings to manage. It goes out and looks at every
+                building in New York City that the city itself has on record — how many apartments it has, who owns
+                it, who manages it — and brings back a list of ones that might want Camelot&rsquo;s help.
+              </p>
+              <ol className="list-decimal pl-5 space-y-2">
+                <li><strong>Search.</strong> Click &ldquo;Run Search.&rdquo; The page asks New York City&rsquo;s own records for every building with enough apartments in it (10 or more, by default). This can find thousands of buildings at once.</li>
+                <li><strong>Look at one.</strong> Click on any building in the list to open it up. You&rsquo;ll see who owns it, who manages it, and — if we could find one — an email address for them.</li>
+                <li><strong>Write the letter.</strong> Click &ldquo;Generate Draft.&rdquo; The computer writes a friendly introduction email for that specific building, using David&rsquo;s letter as the template. You can edit it by hand if you want to change anything.</li>
+                <li><strong>Check it.</strong> Click &ldquo;Approve Draft.&rdquo; This is a safety switch — nothing can be emailed out until a person says the letter looks good.</li>
+                <li><strong>Send it.</strong> Click &ldquo;Send Intro Email + Deck.&rdquo; The email goes out with two attachments: the Camelot overview brochure and a PDF copy of the letter itself.</li>
+                <li><strong>Everything gets tracked automatically.</strong> The moment an email is sent, it&rsquo;s also added to HubSpot (our sales tracker) as a new contact and deal, and a reminder is created to follow up in 4 days.</li>
+              </ol>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-amber-900 flex items-center gap-1.5"><Gauge size={14} /> Why we only send a limited number of emails per day</p>
+                <p>
+                  Email providers (like Gmail) watch how a company sends mail. If we suddenly sent hundreds of cold
+                  emails in one day, Gmail and other providers could start marking Camelot&rsquo;s emails as spam —
+                  for everyone, including regular business emails like invoices and tenant notices. To avoid that,
+                  this page only allows a small, safe number of new-lead emails per day (see the counter above the
+                  search box). That number can be raised slowly over time as our sending reputation builds up.
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-slate-800 flex items-center gap-1.5"><UserSearch size={14} /> What happens when we don&rsquo;t have an email address?</p>
+                <p>
+                  New York City&rsquo;s public records almost never include an email address — only a name and
+                  sometimes a title. When that happens, the building goes into the{' '}
+                  <Link to="/needs-email" className="text-camelot-gold font-semibold underline">Needs Email</Link>{' '}
+                  queue instead of being sent automatically. A person can look up the right email address and type it
+                  in there, and once it&rsquo;s entered, that lead can be sent just like any other.
+                </p>
+              </div>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-slate-800">Every evening, a report goes to info@camelot.nyc</p>
+                <p>
+                  It lists every email that went out that day (and who it went to), plus a spreadsheet of every
+                  building that&rsquo;s still waiting for someone to add an email address.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Daily send limit + Needs Email queue link */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          {sendLimit && (
+            <div className={`flex items-center gap-2 text-xs font-semibold rounded-lg px-3 py-2 border ${
+              sendLimit.remaining === 0
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : sendLimit.remaining <= 5
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            }`}>
+              <Gauge size={14} />
+              {sendLimit.sentToday} of {sendLimit.cap} emails sent today
+              {sendLimit.remaining === 0 && ' — limit reached, more unlock tomorrow'}
+            </div>
+          )}
+          <Link
+            to="/needs-email"
+            className="flex items-center gap-2 text-xs font-bold rounded-lg px-3 py-2 border border-camelot-gold/40 bg-camelot-gold/10 text-camelot-gold hover:bg-camelot-gold/20"
+          >
+            <UserSearch size={14} /> Needs Email queue <ArrowRight size={12} />
+          </Link>
+        </div>
+
         {/* Search controls */}
         <div className="bg-white rounded-2xl border border-[#A89035]/40 p-5 shadow-sm mb-6">
           <div className="flex flex-wrap items-end gap-3">

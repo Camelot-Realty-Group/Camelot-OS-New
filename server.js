@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 import portfolioRoutes from './src/api/portfolio-routes.mjs';
-import createLeadsRouter from './src/api/leads-routes.mjs';
+import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1764,6 +1764,13 @@ app.use('/api', requireApiUser, createLeadsRouter({
   getResendApiKey,
   getResendFromAddress,
 }));
+
+// Once-a-day "who did we email + who still needs an email" report to
+// info@camelot.nyc (per David, Aug 2026). Target hour is 21:00 UTC (~5 PM
+// ET / 4 PM EDT-adjacent — end of business in New York) so the report
+// covers a full day's sends. See startDailyReportScheduler in
+// src/api/leads-routes.mjs for how the once-a-day guard works.
+startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc: 21 });
 
 // Serve fingerprinted assets with long-lived caching, but never cache the SPA
 // document itself. This prevents an obsolete dashboard shell from surviving a

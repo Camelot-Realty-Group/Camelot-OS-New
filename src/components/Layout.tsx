@@ -37,6 +37,7 @@ import {
   TrendingDown,
   Building2,
   Users,
+  UserSearch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/store';
@@ -90,6 +91,7 @@ const navigation: NavSection[] = [
       { label: 'Engagement Reports', href: '/report-center', icon: <Crown size={18} /> },
       { label: 'Partner Pitch Decks', href: '/partner-pitches', icon: <Briefcase size={18} /> },
       { label: 'Neighborhood Leads', href: '/neighborhood-leads', icon: <Users size={18} /> },
+      { label: 'Needs Email', href: '/needs-email', icon: <UserSearch size={18} /> },
     ],
   },
   {

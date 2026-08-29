@@ -26,9 +26,29 @@ import {
   Clock, Link2, Filter, ChevronDown, ChevronUp, Edit3, MapPin, LogIn, LogOut, ShieldAlert,
 } from 'lucide-react';
 import { authenticatedApiFetch } from '@/lib/api-auth';
-import { generateNeighborProspectReport } from '@/lib/neighbor-prospect-report';
 import { generatePdfBase64 } from '@/lib/pdf-generator';
 import { useAuth } from '@/hooks/useAuth';
+
+// Static "Intro to Camelot OS" one-pager (David's brand deck, Aug 2026) — sent
+// as the primary attachment on every Neighborhood Leads intro email. Replaces
+// the old per-lead generateNeighborProspectReport() PDF, which was unreliable
+// in production; this is a fixed, pre-built file served from /public, so
+// there's no per-send report rendering to fail.
+const INTRO_DECK_URL = '/documents/Camelot-Intro-to-Camelot-OS.pdf';
+const INTRO_DECK_FILENAME = 'Camelot-Intro-to-Camelot-OS.pdf';
+
+async function fetchStaticPdfBase64(url: string): Promise<string> {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Could not load ${url} (${resp.status})`);
+  const buf = await resp.arrayBuffer();
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
 
 interface Lead {
   id: number;
@@ -505,42 +525,10 @@ export default function NeighborhoodLeads() {
     }
     setBusyId(lead.id);
     try {
-      toast.loading('Rendering report PDF…', { id: `send-${lead.id}` });
-      const nearest = lead.nearest_camelot_buildings && lead.nearest_camelot_buildings.length > 0
-        ? lead.nearest_camelot_buildings
-        : ['a nearby Camelot-managed building']; // report still needs to render even for a lead found via pure city-wide search with no anchor match
-      const reportHtml = generateNeighborProspectReport({
-        prospectAddress: lead.address,
-        prospectBorough: lead.borough || '',
-        prospectBbl: lead.bbl,
-        bldgClass: lead.bldg_class || undefined,
-        unitsTotal: lead.units_total || undefined,
-        numFloors: lead.num_floors || undefined,
-        yearBuilt: lead.year_built || undefined,
-        zipCode: lead.zip_code || undefined,
-        ownerName: lead.owner_name || undefined,
-        relationship: lead.relationship || 'same_block',
-        nearestCamelotBuildings: nearest,
-        contactName: lead.management_contact_name || lead.owner_name || undefined,
-        contactCompany: lead.management_company || undefined,
-        mailingAddress: lead.mailing_address || undefined,
-        mailingZip: lead.mailing_zip || undefined,
-      });
+      toast.loading('Attaching intro deck…', { id: `send-${lead.id}` });
       const addressSlug = lead.address.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
-      const filename = `Camelot-Neighbor-Report_${addressSlug}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      // Outer safety-net timeout: generatePdfBase64() already races its own
-      // internal html2pdf.js capture against a 45s deadline, but that guard
-      // can only fire between JS ticks — if the underlying library call
-      // never yields back to the event loop (observed live: button stuck on
-      // "Rendering report PDF…" well past 45s with zero network activity),
-      // the inner timeout literally cannot preempt it. This outer race
-      // guarantees the Send button always recovers within ~60s regardless.
-      const attachmentBase64 = await Promise.race([
-        generatePdfBase64(reportHtml, filename),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('PDF generation is taking unusually long. Please try again — if this keeps happening, use a shorter report or contact support.')), 60000)
-        ),
-      ]);
+      const filename = INTRO_DECK_FILENAME;
+      const attachmentBase64 = await fetchStaticPdfBase64(INTRO_DECK_URL);
 
       // Also render a PDF copy of the branded email letter itself (per
       // David's request, Aug 2026), so the recipient — and our own records

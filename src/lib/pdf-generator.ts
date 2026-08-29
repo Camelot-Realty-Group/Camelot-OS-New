@@ -383,18 +383,29 @@ export async function downloadAsPDF(html: string, filename: string): Promise<Pdf
  * sendCamelotEmail() instead of only ever being saved locally.
  */
 export async function generatePdfBase64(html: string, filename: string): Promise<string> {
+  console.log('[pdf-debug] 1: importing html2pdf.js');
   const html2pdf = (await import('html2pdf.js')).default;
+  console.log('[pdf-debug] 2: html2pdf.js imported, building frame');
   const { frame, target, isSlideDeck } = await buildPdfFrame(html);
+  console.log('[pdf-debug] 3: frame built, waiting for settle');
   try {
     await waitForFrameSettled(frame);
+    console.log('[pdf-debug] 4: frame settled, starting html2pdf capture');
     const win = frame.contentWindow!;
     let blob: Blob;
     try {
+      const h2pInstance = html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight));
+      console.log('[pdf-debug] 5: html2pdf instance created, calling outputPdf');
       blob = await raceTimeout(
-        html2pdf().from(target).set(pdfOptions(filename, isSlideDeck, win.innerWidth, win.innerHeight)).outputPdf('blob'),
+        h2pInstance.outputPdf('blob').then((b: Blob) => {
+          console.log('[pdf-debug] 6: outputPdf resolved, size=', b?.size);
+          return b;
+        }),
         45000
       );
+      console.log('[pdf-debug] 7: raceTimeout resolved');
     } catch (err) {
+      console.log('[pdf-debug] ERROR caught:', err);
       if (err instanceof PdfRenderTimeoutError) {
         throw new Error('PDF generation timed out while preparing the email attachment.');
       }

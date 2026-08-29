@@ -19,15 +19,16 @@
  *   src/api/leads-routes.mjs
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
 import {
   Search, RefreshCw, Users, Building2, Mail, CheckCircle2, Send,
-  Clock, Link2, Filter, ChevronDown, ChevronUp, Edit3, MapPin,
+  Clock, Link2, Filter, ChevronDown, ChevronUp, Edit3, MapPin, LogIn, LogOut, ShieldAlert,
 } from 'lucide-react';
 import { authenticatedApiFetch } from '@/lib/api-auth';
 import { generateNeighborProspectReport } from '@/lib/neighbor-prospect-report';
 import { generatePdfBase64 } from '@/lib/pdf-generator';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Lead {
   id: number;
@@ -132,7 +133,84 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 }
 
+/**
+ * SessionBar — minimal sign-in widget scoped to this page.
+ *
+ * The app has no global login screen (useAuth.signin() existed but was never
+ * wired to any UI before this) yet /api/leads/* is gated server-side by
+ * requireApiUser, which needs a real Supabase Auth session. Rather than
+ * build app-wide auth here, this gives staff a way to actually sign in so
+ * Run Search / Send work, without touching every other page's routing.
+ * (Per David, Aug 2026 — see requireApiUser in server.js.)
+ */
+function SessionBar() {
+  const { isAuthenticated, currentUser, isLoading, signin, signout, error } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSignIn = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const { error: signinError } = await signin(email, password);
+    setSubmitting(false);
+    if (!signinError) {
+      toast.success('Signed in');
+      setPassword('');
+    } else {
+      toast.error(signinError);
+    }
+  };
+
+  if (isLoading) return null;
+
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center gap-3 text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-3 py-2 mb-4">
+        <CheckCircle2 size={14} />
+        <span>Signed in as <strong>{currentUser?.email}</strong> — Run Search and Send are enabled.</span>
+        <button onClick={() => void signout()} className="ml-auto flex items-center gap-1 font-semibold hover:underline">
+          <LogOut size={12} /> Sign out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSignIn} className="flex flex-wrap items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-3 py-2 mb-4">
+      <ShieldAlert size={14} className="flex-shrink-0" />
+      <span className="font-semibold mr-2">Sign in required to search or send</span>
+      <input
+        type="email"
+        required
+        placeholder="you@camelot.nyc"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="border rounded px-2 py-1 text-xs w-48"
+      />
+      <input
+        type="password"
+        required
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="border rounded px-2 py-1 text-xs w-40"
+      />
+      <button
+        type="submit"
+        disabled={submitting}
+        className="flex items-center gap-1 px-3 py-1 rounded bg-amber-800 text-white font-semibold disabled:opacity-50"
+      >
+        {submitting ? <RefreshCw size={12} className="animate-spin" /> : <LogIn size={12} />}
+        Sign in
+      </button>
+      {error && <span className="text-red-700">{error}</span>}
+    </form>
+  );
+}
+
 export default function NeighborhoodLeads() {
+  const { isAuthenticated } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -370,6 +448,7 @@ export default function NeighborhoodLeads() {
       </div>
 
       <main className="px-8 py-8">
+        <SessionBar />
         {/* Search controls */}
         <div className="bg-white rounded-2xl border border-[#A89035]/40 p-5 shadow-sm mb-6">
           <div className="flex flex-wrap items-end gap-3">
@@ -385,7 +464,8 @@ export default function NeighborhoodLeads() {
             </div>
             <button
               onClick={() => void runSearch()}
-              disabled={searching}
+              disabled={searching || !isAuthenticated}
+              title={!isAuthenticated ? 'Sign in above to run a search' : undefined}
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold bg-[#5B4A1F] text-white hover:bg-[#473916] disabled:opacity-50"
             >
               {searching ? <RefreshCw size={15} className="animate-spin" /> : <Search size={15} />}

@@ -186,20 +186,18 @@ function pdfOptions(filename: string, isSlideDeck: boolean, windowWidth: number,
       logging: false,
       imageTimeout: 12000,
       removeContainer: true,
-      // Use the browser's native SVG <foreignObject> text/layout engine
-      // instead of html2canvas's own DOM-walking text renderer. The manual
-      // renderer is known to collapse inter-word spaces and vertical
-      // margin/padding under certain font-metric/line-height combinations
-      // (confirmed here: a report that rendered pixel-perfect when the
-      // exact same srcdoc HTML was displayed directly in an iframe came out
-      // of html2canvas with every word run together and no section
-      // spacing). foreignObjectRendering delegates layout to the browser
-      // itself, which is what already renders the source correctly, so it
-      // eliminates this whole class of bug. Safe here because the capture
-      // target is always our own same-origin, CORS-clean iframe document
-      // (see buildPdfFrame) — the one case foreignObjectRendering can't
-      // handle reliably (cross-origin/tainted content) never applies.
-      foreignObjectRendering: true,
+      // foreignObjectRendering: true was tried here to fix a word/margin-
+      // collapse rendering bug (see git history), but live testing showed
+      // it can make html2canvas hang indefinitely on some captures (send
+      // button stuck on "Rendering report PDF..." past the 45s internal
+      // timeout, because a native rendering stall inside the browser can't
+      // be preempted by a JS-level Promise.race). A broken/unreliable send
+      // button is worse than the original formatting bug, so this is back
+      // to the manual DOM-walking renderer (the default/safe path) until a
+      // fix that doesn't risk hanging is found — e.g. only enabling
+      // foreignObjectRendering for templates confirmed not to trigger the
+      // stall, or pre-flighting image loads more aggressively first.
+      foreignObjectRendering: false,
       // Belt-and-suspenders: the target lives in its own isolated iframe
       // document (see buildPdfFrame) rather than being injected into the
       // live app's DOM, so html2canvas never has to clone the full

@@ -142,18 +142,25 @@ async function performCostAnalysis(buildingCode, supabase) {
   const now = new Date().toISOString();
 
   try {
-    // Fetch building data
-    const { data: building, error: buildingErr } = await supabase
-      .from('buildings')
-      .select('*')
-      .eq('mds_code', buildingCode)
-      .single();
+    // Fetch building data (optional — use defaults if not found)
+    let building = null;
+    let unitCount = 50; // default
 
-    if (buildingErr || !building) {
-      throw new Error(`Building ${buildingCode} not found`);
+    try {
+      const { data: bldg, error: buildingErr } = await supabase
+        .from('buildings')
+        .select('*')
+        .eq('mds_code', buildingCode)
+        .single();
+
+      if (bldg && !buildingErr) {
+        building = bldg;
+        unitCount = Number(building.units) || 50;
+      }
+    } catch (err) {
+      console.warn('[Cost Analysis] Building lookup failed, using defaults:', err.message);
+      // Continue with defaults
     }
-
-    const unitCount = Number(building.units) || 50; // default for calculations
 
     // Generate opportunities based on building profile
     const opportunities = SAVINGS_TEMPLATES.map((template, idx) => ({
@@ -179,10 +186,10 @@ async function performCostAnalysis(buildingCode, supabase) {
     // Build analysis record
     const analysis = {
       id: analysisId,
-      building_id: building.id,
+      building_id: building?.id || null,
       building_code: buildingCode,
-      building_name: building.building_name || buildingCode,
-      address: building.address || '',
+      building_name: building?.building_name || buildingCode,
+      address: building?.address || '',
       analysis_date: now,
       identified_savings: totalSavings,
       savings_percentage: Math.min(savingsPercentage, 25), // cap at 25%

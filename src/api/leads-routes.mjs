@@ -18,6 +18,14 @@
  * POST /api/hubspot/pipelines/ensure-neighborhood-leads — idempotently create the dedicated HubSpot pipeline
  * POST /api/leads/daily-report/run          — manually trigger today's daily report email (also runs automatically, see startDailyReportScheduler)
  *
+ * Call Queue + SMS consent (per David, Aug 2026 — see call-scripts.mjs):
+ * GET  /api/leads/call-queue                — owner-verified (is_owner_contact=true), already-sent leads ready for a follow-up call
+ * POST /api/leads/:id/calls                 — log a call attempt (human or ai_voice); AI attempts are hard-refused outside Mon-Fri 9am-5pm ET
+ * GET  /api/leads/:id/ai-call-prompt        — fully-built AI voice-agent system prompt for one lead (for an external calling connection)
+ * POST /api/leads/:id/sms-consent/request   — mark that an opt-in was requested for a phone number
+ * POST /api/leads/:id/sms-consent/opt-in    — record affirmative SMS opt-in (required before any text send — no cold texting)
+ * POST /api/leads/:id/sms-consent/opt-out   — record STOP/opt-out
+ *
  * All routes sit behind requireApiUser (mounted the same way as
  * /api/portfolio in server.js) — HubSpot/Resend/NYC Open Data credentials
  * are server-only.
@@ -41,6 +49,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { runCitywideLeadSearch } from './leads-search.mjs';
+import { HUMAN_CALL_SCRIPT, buildAiVoiceCallPrompt, buildSmsOptInConfirmation } from './call-scripts.mjs';
 
 /* global console, process, setInterval, setTimeout, Buffer */
 
@@ -72,6 +81,33 @@ function getSupabase() {
 /** Today's date key (UTC calendar day) used for the daily send cap + report log. */
 function todayDateKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Business-hours gate for AI-voice calls (per David, Aug 2026): Mon-Fri,
+ * 9:00 AM-5:00 PM ONLY. Human-placed calls are not gated here — a staff
+ * member exercises their own judgment on timing; this specifically
+ * constrains the AI-initiated call path, where there is no human in the
+ * loop to catch a bad-timing mistake.
+ *
+ * Uses `tz` (IANA zone, e.g. 'America/New_York') as the reference clock —
+ * defaults to Eastern (Camelot's own business hours) when the recipient's
+ * local time zone isn't known, since NYC property records don't carry one.
+ * This is a conservative default, not a guarantee of the recipient's actual
+ * local time — see dataGaps-style disclosure in the Call Queue UI.
+ */
+function isWithinAiCallingHours(date = new Date(), tz = 'America/New_York') {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric',
+    hour12: false,
+    weekday: 'short',
+  }).formatToParts(date);
+  const weekday = parts.find((p) => p.type === 'weekday')?.value;
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value);
+  const isWeekday = !['Sat', 'Sun'].includes(weekday);
+  const isBusinessHour = hour >= 9 && hour < 17;
+  return isWeekday && isBusinessHour;
 }
 
 /**
@@ -635,6 +671,216 @@ export default function createLeadsRouter(deps) {
       res.json(result);
     } catch (error) {
       console.error('[Leads] manual daily report run error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // GET /api/leads/call-queue — owner-verified leads ready for a follow-up
+  // call: intro email already sent, is_owner_contact = true, and no
+  // do_not_call_requested outcome on file. This is the ONLY population the
+  // Call Queue page and any AI-calling connection may draw from — never a
+  // cold, unsent, or non-owner lead.
+  // ---------------------------------------------------------------------
+  router.get('/leads/call-queue', async (_req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { data: leads, error } = await supabase
+        .from('neighborhood_leads')
+        .select('*')
+        .eq('is_owner_contact', true)
+        .not('sent_at', 'is', null)
+        .order('sent_at', { ascending: true })
+        .limit(500);
+      if (error) throw error;
+
+      const leadIds = (leads || []).map((l) => l.id);
+      let callsByLead = new Map();
+      if (leadIds.length > 0) {
+        const { data: calls } = await supabase
+          .from('neighborhood_lead_calls')
+          .select('*')
+          .in('lead_id', leadIds)
+          .order('created_at', { ascending: false });
+        callsByLead = new Map();
+        for (const c of calls || []) {
+          if (!callsByLead.has(c.lead_id)) callsByLead.set(c.lead_id, []);
+          callsByLead.get(c.lead_id).push(c);
+        }
+      }
+
+      const queue = (leads || [])
+        .map((lead) => ({ ...lead, calls: callsByLead.get(lead.id) || [] }))
+        // Exclude anyone who has ever asked not to be contacted again.
+        .filter((lead) => !lead.calls.some((c) => c.outcome === 'do_not_call_requested'));
+
+      res.json({
+        queue,
+        total: queue.length,
+        aiCallingWithinHoursNow: isWithinAiCallingHours(),
+        humanScript: HUMAN_CALL_SCRIPT,
+      });
+    } catch (error) {
+      console.error('[Leads] call-queue error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // POST /api/leads/:id/calls — log a call attempt (human or AI). Human
+  // calls may be logged any time (a rep's own judgment). AI-initiated calls
+  // are hard-blocked outside Mon-Fri 9am-5pm — the server refuses to log a
+  // *new* ai_voice call attempt (status: 'pending'/'scheduled') outside that
+  // window, since that's also the trigger point an external AI-calling
+  // connection (e.g. Wing) would hit before actually placing the call.
+  // ---------------------------------------------------------------------
+  router.post('/leads/:id/calls', async (req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { data: lead, error: leadError } = await supabase.from('neighborhood_leads').select('*').eq('id', req.params.id).single();
+      if (leadError || !lead) return res.status(404).json({ error: 'Lead not found.' });
+      if (!lead.is_owner_contact) {
+        return res.status(409).json({ error: 'This lead is not a verified owner/board contact (is_owner_contact=false) — calls may only be logged for verified owner contacts.' });
+      }
+
+      const { call_type, outcome, notes, scheduled_for } = req.body || {};
+      if (!call_type || !['human', 'ai_voice'].includes(call_type)) {
+        return res.status(400).json({ error: "call_type must be 'human' or 'ai_voice'." });
+      }
+
+      const isNewAiAttempt = call_type === 'ai_voice' && (!outcome || outcome === 'pending');
+      if (isNewAiAttempt && !isWithinAiCallingHours()) {
+        return res.status(409).json({
+          error: 'AI voice calls may only be placed Monday-Friday, 9:00 AM-5:00 PM (Eastern). This request falls outside that window and has been refused.',
+          code: 'OUTSIDE_CALLING_HOURS',
+        });
+      }
+
+      const caller = req.camelotUser?.email || req.camelotUser?.id || (call_type === 'ai_voice' ? 'ai_voice_agent' : 'unknown');
+      const { data: callRow, error: insertError } = await supabase
+        .from('neighborhood_lead_calls')
+        .insert({
+          lead_id: req.params.id,
+          call_type,
+          caller,
+          scheduled_for: scheduled_for || null,
+          called_at: outcome && outcome !== 'pending' ? new Date().toISOString() : null,
+          outcome: outcome || 'pending',
+          notes: notes || null,
+        })
+        .select()
+        .single();
+      if (insertError) throw insertError;
+
+      await logEvent(supabase, req.params.id, 'call_logged', caller, { call_type, outcome: callRow.outcome });
+
+      // do_not_call_requested must immediately and permanently suppress
+      // future contact — reflected on the lead itself, not just the call log,
+      // so every other surface (Needs Email, send flow, SMS) can check one flag.
+      if (outcome === 'do_not_call_requested') {
+        await supabase.from('neighborhood_leads').update({ status: 'lost' }).eq('id', req.params.id);
+        await logEvent(supabase, req.params.id, 'do_not_call_requested', caller, null);
+      }
+
+      res.json({ call: callRow });
+    } catch (error) {
+      console.error('[Leads] call log error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // GET /api/leads/:id/ai-call-prompt — the fully-built AI voice-agent
+  // system prompt for this specific lead (used by an AI-calling connection,
+  // e.g. Wing/Emergent, to actually place the call). Refuses outside
+  // calling hours for the same reason POST /calls does.
+  // ---------------------------------------------------------------------
+  router.get('/leads/:id/ai-call-prompt', async (req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { data: lead, error } = await supabase.from('neighborhood_leads').select('*').eq('id', req.params.id).single();
+      if (error || !lead) return res.status(404).json({ error: 'Lead not found.' });
+      if (!lead.is_owner_contact) {
+        return res.status(409).json({ error: 'This lead is not a verified owner/board contact — refusing to generate a call prompt.' });
+      }
+      if (!isWithinAiCallingHours()) {
+        return res.status(409).json({ error: 'Outside AI calling hours (Mon-Fri 9am-5pm ET).', code: 'OUTSIDE_CALLING_HOURS' });
+      }
+      const prompt = buildAiVoiceCallPrompt({
+        leadAddress: lead.address,
+        ownerOrContactName: lead.management_contact_name || lead.dob_owner_name || lead.owner_name,
+      });
+      res.json({ prompt, leadId: lead.id, address: lead.address });
+    } catch (error) {
+      console.error('[Leads] ai-call-prompt error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // SMS consent — no cold texting. A text may only be sent once
+  // consent_status = 'opted_in' for that (lead, phone) pair.
+  // ---------------------------------------------------------------------
+  router.post('/leads/:id/sms-consent/request', async (req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { phone } = req.body || {};
+      if (!phone) return res.status(400).json({ error: 'phone is required.' });
+      const { data: row, error } = await supabase
+        .from('neighborhood_lead_sms_consent')
+        .upsert({ lead_id: req.params.id, phone, consent_status: 'requested', requested_at: new Date().toISOString() }, { onConflict: 'lead_id,phone' })
+        .select()
+        .single();
+      if (error) throw error;
+      res.json({ consent: row });
+    } catch (error) {
+      console.error('[Leads] sms-consent request error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  router.post('/leads/:id/sms-consent/opt-in', async (req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { phone, source } = req.body || {};
+      if (!phone) return res.status(400).json({ error: 'phone is required.' });
+      const { data: row, error } = await supabase
+        .from('neighborhood_lead_sms_consent')
+        .upsert({
+          lead_id: req.params.id,
+          phone,
+          consent_status: 'opted_in',
+          consent_source: source || 'unspecified',
+          consented_at: new Date().toISOString(),
+        }, { onConflict: 'lead_id,phone' })
+        .select()
+        .single();
+      if (error) throw error;
+      await logEvent(supabase, req.params.id, 'sms_opted_in', 'system', { phone, source });
+      res.json({ consent: row, confirmationMessage: buildSmsOptInConfirmation({ leadAddress: '' }) });
+    } catch (error) {
+      console.error('[Leads] sms-consent opt-in error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  router.post('/leads/:id/sms-consent/opt-out', async (req, res) => {
+    try {
+      const supabase = getSupabase();
+      const { phone } = req.body || {};
+      if (!phone) return res.status(400).json({ error: 'phone is required.' });
+      const { data: row, error } = await supabase
+        .from('neighborhood_lead_sms_consent')
+        .update({ consent_status: 'opted_out', opted_out_at: new Date().toISOString() })
+        .eq('lead_id', req.params.id)
+        .eq('phone', phone)
+        .select()
+        .single();
+      if (error) throw error;
+      await logEvent(supabase, req.params.id, 'sms_opted_out', 'system', { phone });
+      res.json({ consent: row });
+    } catch (error) {
+      console.error('[Leads] sms-consent opt-out error:', error);
       res.status(500).json({ error: error.message });
     }
   });

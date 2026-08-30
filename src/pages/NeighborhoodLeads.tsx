@@ -67,6 +67,11 @@ interface Lead {
   management_company: string | null;
   management_contact_name: string | null;
   management_contact_role: string | null;
+  agent_contact_name: string | null;
+  is_owner_contact: boolean;
+  dob_owner_name: string | null;
+  dob_owner_business_name: string | null;
+  dob_filer_phone: string | null;
   super_name: string | null;
   board_contact_name: string | null;
   mailing_address: string | null;
@@ -246,6 +251,7 @@ function buildIntroDraft(lead: Lead): { subject: string; bodyHtml: string } {
       ${p(`There&rsquo;s absolutely no pressure to make a change. Even if you&rsquo;re simply interested in comparing management approaches, reviewing vendor costs, or understanding what a transition to another management company might look like, I&rsquo;d be happy to spend 20 minutes with you.`)}
       ${p(`We can meet in person or by Zoom, whichever is easiest.`)}
       ${p(`If it&rsquo;s easier, feel free to grab a time directly on my calendar &mdash; pick whatever works for you and I&rsquo;ll follow up with a Google Meet, Zoom, or phone link right away.`)}
+      ${p(`<span style="font-size:12px;color:#666;">Prefer text? Reply to this email with YES, or text START to (646) 523-9068, and we&rsquo;ll follow up by text instead &mdash; reply STOP anytime to opt out.</span>`)}
       ${p(`Best,`)}
     </td>
   </tr>
@@ -719,6 +725,19 @@ export default function NeighborhoodLeads() {
                   building that&rsquo;s still waiting for someone to add an email address.
                 </p>
               </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-emerald-900 flex items-center gap-1.5">Owners only &mdash; never management companies</p>
+                <p>
+                  Buildings are sometimes registered with the city under a management company&rsquo;s name instead of
+                  the owner&rsquo;s. This page only treats a contact as safe to email once it can tell that contact is
+                  the actual owner or a board member &mdash; never a management company acting on the owner&rsquo;s
+                  behalf. A green &ldquo;Verified Owner&rdquo; badge on a building means that check passed; the
+                  management company (if any) is still shown for reference, but is never used as a send target.
+                  Verified-owner buildings that already got an intro email also become eligible for a short,
+                  no-pressure follow-up call or text on the{' '}
+                  <Link to="/call-queue" className="text-camelot-gold font-semibold underline">Call Queue</Link> page.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -743,6 +762,12 @@ export default function NeighborhoodLeads() {
             className="flex items-center gap-2 text-xs font-bold rounded-lg px-3 py-2 border border-camelot-gold/40 bg-camelot-gold/10 text-camelot-gold hover:bg-camelot-gold/20"
           >
             <UserSearch size={14} /> Needs Email queue <ArrowRight size={12} />
+          </Link>
+          <Link
+            to="/call-queue"
+            className="flex items-center gap-2 text-xs font-bold rounded-lg px-3 py-2 border border-camelot-gold/40 bg-camelot-gold/10 text-camelot-gold hover:bg-camelot-gold/20"
+          >
+            <Users size={14} /> Call Queue (owner-verified follow-ups) <ArrowRight size={12} />
           </Link>
         </div>
 
@@ -864,13 +889,33 @@ export default function NeighborhoodLeads() {
                             </div>
                           </div>
                           <div className="bg-white rounded-xl border border-slate-200 p-4 text-sm space-y-1.5">
-                            <div className="font-bold text-slate-700 text-xs uppercase tracking-wide mb-2">Ownership &amp; Contacts</div>
-                            <div><span className="text-slate-500">Owner:</span> {lead.owner_name || '—'}</div>
-                            <div><span className="text-slate-500">Mgmt Co:</span> {lead.management_company || '—'}</div>
-                            <div><span className="text-slate-500">Mgmt Contact:</span> {lead.management_contact_name || '—'} {lead.management_contact_role ? `(${lead.management_contact_role})` : ''}</div>
+                            <div className="font-bold text-slate-700 text-xs uppercase tracking-wide mb-2 flex items-center justify-between">
+                              <span>Ownership &amp; Contacts</span>
+                              {lead.is_owner_contact ? (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Verified Owner — safe to email</span>
+                              ) : (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">No verified owner contact</span>
+                              )}
+                            </div>
+                            <div><span className="text-slate-500">Owner (PLUTO):</span> {lead.owner_name || '—'}</div>
+                            <div>
+                              <span className="text-slate-500">Owner Contact:</span>{' '}
+                              {lead.is_owner_contact ? (
+                                <span className="font-semibold text-emerald-800">{lead.management_contact_name} ({lead.management_contact_role})</span>
+                              ) : (
+                                <span className="text-slate-400">— none verified yet</span>
+                              )}
+                            </div>
+                            {lead.dob_owner_name && !lead.is_owner_contact && (
+                              <div><span className="text-slate-500">DOB Permit Owner:</span> {lead.dob_owner_name} <span className="text-xs text-slate-400">(corroborating signal)</span></div>
+                            )}
+                            <div className="pt-1 border-t border-slate-100 mt-1">
+                              <span className="text-slate-500">Management Co. (NOT emailed):</span> {lead.management_company || '—'} {lead.agent_contact_name && <span className="text-xs text-slate-400">— {lead.agent_contact_name}</span>}
+                            </div>
                             <div><span className="text-slate-500">Super:</span> {lead.super_name || '— (not on file)'}</div>
                             <div><span className="text-slate-500">Board Contact:</span> {lead.board_contact_name || '— (not published by NYC Open Data)'}</div>
                             <div><span className="text-slate-500">Mailing Address:</span> {lead.mailing_address || '—'}</div>
+                            {lead.dob_filer_phone && <div><span className="text-slate-500">DOB Filer Phone:</span> {lead.dob_filer_phone} <span className="text-xs text-amber-600">(filing agent's phone — not confirmed as the owner's)</span></div>}
                             <div>
                               <span className="text-slate-500">Email:</span>{' '}
                               {lead.contact_email ? (

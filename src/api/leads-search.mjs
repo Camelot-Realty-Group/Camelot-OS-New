@@ -18,16 +18,41 @@
  *   PLUTO (property facts)                 — 64uk-42ks
  *   HPD Multiple Dwelling Registrations     — tesw-yqqr
  *   HPD Registration Contacts               — feu5-w2e2
+ *   DOB Permit Issuance (owner section)     — ipu4-2q9a
  *
  * No fabrication: every field either comes directly from a live NYC Open
- * Data response, or is left null. Contact-priority order matches the
- * Neighbor Expansion campaign: Agent > HeadOfficer/CorporateOwner >
- * IndividualOwner. SiteManager-type HPD contacts (closest public-data proxy
- * for a building super) are captured separately into `super_name` when
- * present; condo/co-op board contacts are not published anywhere in NYC
- * Open Data, so `board_contact_name` stays null unless a later enrichment
- * step (Apollo/Prospeo/manual) fills it in — this is disclosed to the UI via
- * the `dataGaps` field on each run result, not silently hidden.
+ * Data response, or is left null.
+ *
+ * OWNER-VS-AGENT CONTACT POLICY (per David, Aug 2026 — REVISED): outbound
+ * email must go ONLY to actual property owners/board members, never to a
+ * third-party management company acting as an HPD "Agent" contact. HPD's
+ * contact `type` field cleanly distinguishes these:
+ *   Owner-side (emailable):  HeadOfficer, CorporateOwner, IndividualOwner
+ *   Not owner-side (do NOT email): Agent (a management company's registered
+ *     contact — captured separately for reference/CC only, never as a send
+ *     target), SiteManager (building super, captured into `super_name`).
+ * `is_owner_contact` is true only when management_contact_name was sourced
+ * from an owner-side HPD type. `management_company` / `agent_contact_name`
+ * capture the Agent-type contact separately when present, clearly labeled
+ * as NOT an owner and never used as an email recipient by the UI/routes.
+ * (Prior to Aug 2026 this pipeline preferred Agent > HeadOfficer/CorporateOwner
+ * > IndividualOwner — i.e. it preferred the management company over the real
+ * owner. That was backwards and has been corrected below.)
+ *
+ * DOB Permit Issuance owner section (owner_s_business_name, owner_s_first_name,
+ * owner_s_last_name, owner_s_business_type) is queried as a second,
+ * corroborating owner-identity signal — filed directly by/for the property
+ * owner on a permit application, independent of HPD's registration data.
+ * permittee_s_phone__ on the same dataset is the filing agent/expediter's
+ * phone, NOT reliably the owner's — captured as `dob_filer_phone` and
+ * labeled as such, never presented as the owner's direct line.
+ *
+ * SiteManager-type HPD contacts (closest public-data proxy for a building
+ * super) are captured separately into `super_name` when present; condo/co-op
+ * board contacts are not published anywhere in NYC Open Data, so
+ * `board_contact_name` stays null unless a later enrichment step
+ * (Apollo/Prospeo/manual) fills it in — this is disclosed to the UI via the
+ * `dataGaps` field on each run result, not silently hidden.
  */
 
 /* global fetch, console */
@@ -36,6 +61,11 @@ const SOCRATA_BASE = 'https://data.cityofnewyork.us/resource';
 const PLUTO_DATASET = '64uk-42ks';
 const HPD_REG_DATASET = 'tesw-yqqr';
 const HPD_CONTACTS_DATASET = 'feu5-w2e2';
+const DOB_PERMIT_DATASET = 'ipu4-2q9a';
+
+/** HPD contact types that represent the actual property owner/board side —
+ * the ONLY types this pipeline will ever surface as an email-send target. */
+const OWNER_SIDE_HPD_TYPES = new Set(['HeadOfficer', 'CorporateOwner', 'IndividualOwner']);
 
 const BOROUGH_CODE_TO_LETTER = { 1: 'MN', 2: 'BX', 3: 'BK', 4: 'QN', 5: 'SI' };
 const BOROUGH_NAME_TO_CODE = { MANHATTAN: 1, BRONX: 2, BROOKLYN: 3, QUEENS: 4, 'STATEN ISLAND': 5 };
@@ -143,10 +173,13 @@ export async function searchPlutoCitywide({ minUnits = 10, borough = null, limit
  * borough+block+lot (HPD registrations are looked up by BBL components, not
  * by BBL string directly, in this dataset).
  *
- * Priority: Agent > HeadOfficer > CorporateOwner > IndividualOwner.
- * SiteManager-type contacts are captured into `super_name` as the closest
- * public-data proxy for an on-site super (NYC Open Data does not publish a
- * dedicated "superintendent" field).
+ * Owner priority (REVISED Aug 2026 — see file header): HeadOfficer >
+ * CorporateOwner > IndividualOwner. Agent-type contacts (a third-party
+ * management company) are NEVER selected as the primary/emailable contact —
+ * they're captured separately into `agent_contact_name`/`management_company`
+ * for reference only. SiteManager-type contacts are captured into
+ * `super_name` as the closest public-data proxy for an on-site super (NYC
+ * Open Data does not publish a dedicated "superintendent" field).
  */
 export async function enrichWithHpdContacts(leads, { batchSize = 25, onProgress } = {}) {
   const boroCodeMap = { MN: 1, BX: 2, BK: 3, QN: 4, SI: 5 };
@@ -229,18 +262,36 @@ export async function enrichWithHpdContacts(leads, { batchSize = 25, onProgress 
         const indivOwner = contacts.find((c) => c.type === 'IndividualOwner');
         const siteManager = contacts.find((c) => c.type === 'SiteManager');
 
-        const best = agent || headOfficer || corpOwner || indivOwner || null;
+        // Owner-side only — Agent is deliberately excluded from `best`.
+        const best = headOfficer || corpOwner || indivOwner || null;
         if (best) {
           const personName = [best.firstname, best.lastname].filter(Boolean).join(' ').trim();
-          lead.management_company = best.corporationname || null;
           lead.management_contact_name = personName || best.corporationname || null;
           lead.management_contact_role = best.type;
-          lead.contact_confidence = agent ? 'hpd_agent' : 'hpd_owner';
+          lead.is_owner_contact = OWNER_SIDE_HPD_TYPES.has(best.type);
+          lead.contact_confidence = 'hpd_owner';
           const mailingParts = [best.businesshousenumber, best.businessstreetname].filter(Boolean).join(' ');
           lead.mailing_address = [mailingParts, best.businessapartment].filter(Boolean).join(', ') || null;
           lead.mailing_zip = best.businesszip || null;
         } else {
+          lead.is_owner_contact = false;
           lead.contact_confidence = 'owner_name_only';
+        }
+
+        // Agent (management company) — captured separately, NEVER used as
+        // the email-send target. UI/routes must treat this as reference/CC
+        // info only.
+        if (agent) {
+          lead.management_company = agent.corporationname || null;
+          lead.agent_contact_name = [agent.firstname, agent.lastname].filter(Boolean).join(' ').trim() || agent.corporationname || null;
+          // If HPD has no owner-side contact at all, don't leave
+          // management_contact_name blank while a management company sits
+          // right there unlabeled — surface it, but is_owner_contact stays
+          // false so it's never mistaken for an owner downstream.
+          if (!best) {
+            lead.management_contact_name = lead.agent_contact_name;
+            lead.management_contact_role = 'Agent';
+          }
         }
 
         if (siteManager) {
@@ -255,9 +306,74 @@ export async function enrichWithHpdContacts(leads, { batchSize = 25, onProgress 
   // Any lead never touched above (no HPD registration match at all).
   for (const lead of leads) {
     if (!lead.contact_confidence) lead.contact_confidence = 'owner_name_only';
+    if (lead.is_owner_contact === undefined) lead.is_owner_contact = false;
   }
 
   return leads;
+}
+
+/**
+ * Resolve DOB Permit Issuance owner-section data for a batch of leads, as a
+ * second, corroborating owner-identity signal alongside HPD (see file
+ * header for the policy). Queried by house-number + street name, since DOB
+ * permits don't carry BBL directly. Best-effort — a lead with no matching
+ * permit in the lookback window is left untouched, not fabricated.
+ *
+ * Only ever fills gaps or adds a corroborating flag; never overwrites an
+ * HPD-sourced owner-side contact.
+ */
+export async function enrichWithDobPermitOwner(leads, { batchSize = 20, lookbackYears = 5, onProgress } = {}) {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - lookbackYears);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  for (let i = 0; i < leads.length; i += batchSize) {
+    const batch = leads.slice(i, i + batchSize);
+    await Promise.all(batch.map(async (lead) => {
+      const houseNum = parseHouseNumber(lead.address);
+      const streetName = normalizeStreetName(lead.address).toUpperCase();
+      if (!houseNum || !streetName || !lead.borough) return;
+
+      try {
+        const rows = await socrataGet(DOB_PERMIT_DATASET, {
+          $select: 'owner_s_business_name,owner_s_first_name,owner_s_last_name,owner_s_business_type,permittee_s_phone__,issuance_date',
+          $where: `house__ = '${String(houseNum)}' AND upper(street_name) = '${streetName.replace(/'/g, "''")}' AND borough = '${boroughNameForDob(lead.borough)}' AND issuance_date >= '${cutoffStr}T00:00:00.000'`,
+          $order: 'issuance_date DESC',
+          $limit: '5',
+        });
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        const best = rows[0];
+        const ownerName = [best.owner_s_first_name, best.owner_s_last_name].filter(Boolean).join(' ').trim();
+        if (best.owner_s_business_name) lead.dob_owner_business_name = best.owner_s_business_name;
+        if (ownerName) lead.dob_owner_name = ownerName;
+        if (best.owner_s_business_type) lead.dob_owner_business_type = best.owner_s_business_type;
+        // Filing agent/expediter's phone — explicitly NOT presented as the
+        // owner's direct line (see file header).
+        if (best.permittee_s_phone__) lead.dob_filer_phone = best.permittee_s_phone__;
+
+        // Corroboration: if HPD gave us no owner-side name at all but DOB
+        // did, use it as a fallback owner-side contact (still real data,
+        // still owner-section-sourced, just from DOB instead of HPD).
+        if (!lead.is_owner_contact && (ownerName || best.owner_s_business_name)) {
+          lead.management_contact_name = ownerName || best.owner_s_business_name;
+          lead.management_contact_role = 'DOB Permit Owner';
+          lead.is_owner_contact = true;
+          lead.contact_confidence = lead.contact_confidence === 'owner_name_only' ? 'dob_owner' : lead.contact_confidence;
+        }
+      } catch (err) {
+        console.error(`[LeadsSearch] DOB permit owner lookup failed for ${lead.address}:`, err.message);
+      }
+    }));
+    if (onProgress) onProgress({ processed: Math.min(i + batchSize, leads.length), total: leads.length });
+  }
+  return leads;
+}
+
+/** PLUTO/lead `borough` is a 2-letter code (MN/BK/QN/BX/SI); DOB Permit
+ * Issuance's `borough` field uses full names. */
+function boroughNameForDob(letterCode) {
+  const map = { MN: 'MANHATTAN', BK: 'BROOKLYN', QN: 'QUEENS', BX: 'BRONX', SI: 'STATEN ISLAND' };
+  return map[letterCode] || letterCode;
 }
 
 const STREET_ABBREV = {
@@ -449,6 +565,13 @@ export async function runCitywideLeadSearch({ minUnits = 10, borough = null, lim
   const runId = `run_${new Date().toISOString().replace(/[:.]/g, '-')}`;
   const plutoResults = await searchPlutoCitywide({ minUnits, borough, limit, onPage: onProgress });
   await enrichWithHpdContacts(plutoResults, { onProgress });
+  // Corroborating owner signal from DOB permit filings — best-effort, fills
+  // gaps only, never overwrites an HPD-sourced owner contact. Skipped above
+  // ~2000 leads in one run to keep search latency reasonable; those leads
+  // still have full HPD-sourced data, just no DOB cross-check this run.
+  if (plutoResults.length <= 2000) {
+    await enrichWithDobPermitOwner(plutoResults, { onProgress });
+  }
 
   let anchorResolution = null;
   if (anchorBuildings.length > 0) {
@@ -475,6 +598,12 @@ export async function runCitywideLeadSearch({ minUnits = 10, borough = null, lim
     management_company: r.management_company || null,
     management_contact_name: r.management_contact_name || null,
     management_contact_role: r.management_contact_role || null,
+    agent_contact_name: r.agent_contact_name || null,
+    is_owner_contact: r.is_owner_contact === true,
+    dob_owner_name: r.dob_owner_name || null,
+    dob_owner_business_name: r.dob_owner_business_name || null,
+    dob_owner_business_type: r.dob_owner_business_type || null,
+    dob_filer_phone: r.dob_filer_phone || null,
     super_name: r.super_name || null,
     board_contact_name: null, // not published in NYC Open Data — see dataGaps
     mailing_address: r.mailing_address || null,
@@ -501,6 +630,8 @@ export async function runCitywideLeadSearch({ minUnits = 10, borough = null, lim
     'HPD does not publish phone numbers — only mailing addresses and, for Agent-type contacts, a named person or company.',
     'super_name is populated only when HPD\'s SiteManager contact type is present for a registration — not every building has one on file.',
     'contact_email is never populated by this pipeline — HPD/PLUTO have no email field. Use the Apollo/Prospeo enrichment step, or manual lookup, before sending.',
+    'Owner policy (Aug 2026): outbound email only ever targets is_owner_contact=true leads (HPD HeadOfficer/CorporateOwner/IndividualOwner, or a DOB permit owner-section match). Agent-type HPD contacts (management companies) are captured into management_company/agent_contact_name for reference only and are never a send target.',
+    'dob_filer_phone (from DOB Permit Issuance) is the filing agent/expediter\'s phone number, not a confirmed direct line to the owner — treat as a lead to verify, not a ready-to-call number.',
   ];
   if (anchorResolution) {
     dataGaps.push(`Anchor geocoding: ${anchorResolution.resolved}/${anchorResolution.attempted} Camelot-managed buildings resolved to a PLUTO BBL for neighbor matching (Spire has no BBL data, so this is address-matched each run). ${anchorResolution.unresolved.length} could not be geocoded confidently — see anchorResolution.unresolved for reasons.`);

@@ -160,14 +160,14 @@ export default function CostBeatReportBuilder() {
     // PDF text extraction (basic - requires pdf-parse or similar in production)
     if (ext === 'pdf') {
       // For now, show placeholder text extraction message
-      toast.info('PDF processing: extracting text...');
+      toast.loading('PDF processing: extracting text...');
       // In production, use a PDF library like pdfjs-dist or pdf-parse
       return [];
     }
 
     // Image OCR (JPEG, PNG) - placeholder for production OCR
     if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
-      toast.info('Image processing: running OCR...');
+      toast.loading('Image processing: running OCR...');
       // In production, use Tesseract.js or similar
       return [];
     }

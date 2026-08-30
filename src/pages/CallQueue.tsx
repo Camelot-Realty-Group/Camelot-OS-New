@@ -19,15 +19,56 @@
  *   src/api/call-scripts.mjs
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Phone, RefreshCw, Building2, MapPin, ArrowLeft, PhoneCall, Bot, User,
   Clock, ShieldAlert, MessageSquare, ChevronDown, ChevronUp,
-  FileText,
+  FileText, CheckCircle2, LogIn,
 } from 'lucide-react';
 import { authenticatedApiFetch } from '@/lib/api-auth';
+import { useAuth } from '@/hooks/useAuth';
+
+/** Minimal sign-in bar, same pattern as NeighborhoodLeads.tsx's SessionBar —
+ * /api/leads/* routes are gated server-side by requireApiUser. */
+function SignInBar() {
+  const { isAuthenticated, currentUser, isLoading, signin, signout, error } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSignIn = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    const { error: signinError } = await signin(email, password);
+    setSubmitting(false);
+    if (!signinError) { toast.success('Signed in'); setPassword(''); } else { toast.error(signinError); }
+  };
+
+  if (isLoading) return null;
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center gap-3 text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-3 py-2 mb-4">
+        <CheckCircle2 size={14} />
+        <span>Signed in as <strong>{currentUser?.email}</strong>.</span>
+        <button onClick={() => void signout()} className="ml-auto font-semibold hover:underline">Sign out</button>
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={handleSignIn} className="flex flex-wrap items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-3 py-2 mb-4">
+      <ShieldAlert size={14} className="flex-shrink-0" />
+      <span className="font-semibold mr-2">Sign in required to load the call queue</span>
+      <input type="email" required placeholder="you@camelot.nyc" value={email} onChange={(e) => setEmail(e.target.value)} className="border rounded px-2 py-1 text-xs w-48" />
+      <input type="password" required placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="border rounded px-2 py-1 text-xs w-40" />
+      <button type="submit" disabled={submitting} className="flex items-center gap-1 px-3 py-1 rounded bg-amber-800 text-white font-semibold disabled:opacity-50">
+        {submitting ? <RefreshCw size={12} className="animate-spin" /> : <LogIn size={12} />} Sign in
+      </button>
+      {error && <span className="text-red-700">{error}</span>}
+    </form>
+  );
+}
 
 interface CallLog {
   id: number;
@@ -70,7 +111,9 @@ const OUTCOME_LABELS: Record<string, { label: string; cls: string }> = {
 export default function CallQueue() {
   const [queue, setQueue] = useState<QueueLead[]>([]);
   const [loading, setLoading] = useState(false);
-  const [withinHours, setWithinHours] = useState(true);
+  // Defaults to false (safe/conservative) until the server confirms
+  // otherwise — never show "AI calls allowed" before we actually know.
+  const [withinHours, setWithinHours] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
@@ -168,6 +211,7 @@ export default function CallQueue() {
       </div>
 
       <main className="px-8 py-8">
+        <SignInBar />
         <div className={`flex items-center gap-2 text-xs font-semibold rounded-lg px-3 py-2 border mb-6 ${
           withinHours ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'
         }`}>

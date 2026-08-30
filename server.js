@@ -475,7 +475,7 @@ app.use([
   '/api/scout',
   '/api/core',
   '/api/templates',
-  '/api/cost-analysis',
+  // '/api/cost-analysis', // TODO: Remove auth requirement for Cost Optimization analysis
 ], requireApiUser);
 
 app.post('/api/hubspot/contacts', async (req, res) => {

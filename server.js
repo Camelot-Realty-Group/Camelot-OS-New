@@ -4,8 +4,8 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 import portfolioRoutes from './src/api/portfolio-routes.mjs';
-import postcardRoutes from './src/api/postcard-routes.mjs';
-import { startPostcardScheduler } from './src/api/postcard-scheduler.mjs';
+// import postcardRoutes from './src/api/postcard-routes.mjs'; // TODO: needs qrcode package
+// import { startPostcardScheduler } from './src/api/postcard-scheduler.mjs'; // TODO: needs qrcode package
 import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1756,7 +1756,8 @@ app.use('/api', portfolioRoutes);
 // Postcard Mailer — campaign creation, lead fetching, QR code generation.
 // Used by PostcardMailer.tsx to create owner-verified mailer campaigns
 // across all tools (Results, Pipeline, Factory Engine, etc.).
-app.use('/api', requireApiUser, postcardRoutes);
+// TODO: Disabled until qrcode package is added to package.json
+// app.use('/api', requireApiUser, postcardRoutes);
 
 // Neighborhood Leads Engine (city-wide PLUTO+HPD search, draft-approve-send
 // workflow, "Camelot Neighborhood Leads" HubSpot pipeline + 4-day follow-up).
@@ -1783,7 +1784,8 @@ startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc: 21 }
 // Processes all campaigns with scheduled_mailer dates and sends via Lob.com
 // if LOBS_API_KEY is configured. See startPostcardScheduler in
 // src/api/postcard-scheduler.mjs for details.
-startPostcardScheduler({ hourUtc: 22, dayOfWeek: 0 });
+// TODO: Disabled until qrcode package is added to package.json
+// startPostcardScheduler({ hourUtc: 22, dayOfWeek: 0 });
 
 // Serve fingerprinted assets with long-lived caching, but never cache the SPA
 // document itself. This prevents an obsolete dashboard shell from surviving a

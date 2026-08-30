@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 import portfolioRoutes from './src/api/portfolio-routes.mjs';
+import postcardRoutes from './src/api/postcard-routes.mjs';
 import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1750,6 +1751,11 @@ app.use(costCuttingRoutes);
 // which is why /api/portfolio/sync 404'd and the `buildings` table stayed
 // empty despite the sync engine, migration, and UI all being in place.
 app.use('/api', portfolioRoutes);
+
+// Postcard Mailer — campaign creation, lead fetching, QR code generation.
+// Used by PostcardMailer.tsx to create owner-verified mailer campaigns
+// across all tools (Results, Pipeline, Factory Engine, etc.).
+app.use('/api', requireApiUser, postcardRoutes);
 
 // Neighborhood Leads Engine (city-wide PLUTO+HPD search, draft-approve-send
 // workflow, "Camelot Neighborhood Leads" HubSpot pipeline + 4-day follow-up).

@@ -94,6 +94,7 @@ const navigation: NavSection[] = [
       { label: 'Neighborhood Leads', href: '/neighborhood-leads', icon: <Users size={18} /> },
       { label: 'Needs Email', href: '/needs-email', icon: <UserSearch size={18} /> },
       { label: 'Call Queue', href: '/call-queue', icon: <Phone size={18} /> },
+      { label: 'Postcard Mailer', href: '/postcard-mailer', icon: <Mail size={18} /> },
     ],
   },
   {

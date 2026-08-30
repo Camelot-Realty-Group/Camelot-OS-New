@@ -21,6 +21,58 @@ import QRCode from 'qrcode';
 const router = Router();
 
 /**
+ * Send postcard batch to Lob.com API
+ * Lob handles printing, addressing, and USPS postage
+ */
+async function sendToLob(leads, templateData) {
+  const lobApiKey = process.env.LOBS_API_KEY;
+  if (!lobApiKey) {
+    throw new Error('LOBS_API_KEY not configured');
+  }
+
+  const postcards = await Promise.all(
+    leads.map(async (lead) => {
+      const qrCodeDataUrl = await QRCode.toDataURL(
+        `https://camelot-os.onrender.com/leads/${lead.id}/get-a-quote?source=postcard`,
+        { errorCorrectionLevel: 'H', width: 200 }
+      );
+
+      return {
+        front: templateData.front_html_with_qr(lead, qrCodeDataUrl),
+        back: templateData.back_html || '<div></div>',
+        to: {
+          name: lead.owner_name || lead.management_contact_name || 'Property Owner',
+          address_line1: lead.mailing_address || lead.address,
+          address_city: 'New York',
+          address_state: 'NY',
+          address_zip: lead.mailing_zip || '10001',
+        },
+        mail_type: 'usps_first_class',
+        metadata: {
+          lead_id: String(lead.id),
+          campaign_id: templateData.campaign_id,
+        },
+      };
+    })
+  );
+
+  const response = await fetch('https://api.lob.com/v1/postcards', {
+    method: 'POST',
+    auth: `${lobApiKey}:`,
+    body: JSON.stringify({
+      messages: postcards,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Lob API error: ${response.status} ${error}`);
+  }
+
+  return await response.json();
+}
+
+/**
  * POST /api/campaigns/create
  * Create a new postcard mailer campaign
  */
@@ -186,14 +238,52 @@ router.post('/postcard/send-campaign', requireApiUser, async (req, res) => {
 
     // If Lob integration is enabled and requested
     if (use_lob && process.env.LOBS_API_KEY) {
-      // TODO: Implement Lob API integration
-      // For now, return placeholder response
-      return res.json({
-        status: 'queued_for_lob',
-        campaign_id,
-        lead_count: leads.length,
-        message: 'Lob integration coming soon',
-      });
+      try {
+        const templateData = {
+          campaign_id,
+          front_html_with_qr: (lead, qrDataUrl) => `
+            <div style="width: 100%; height: 100%; padding: 20px; text-align: center; font-family: sans-serif; background: white;">
+              <img src="/images/camelot-gold-logo.png" style="height: 40px; margin-bottom: 20px;" />
+              <h2 style="color: #8B6F47; margin: 10px 0;">Your Property Deserves Better</h2>
+              <p style="font-size: 12px; margin: 10px 0;">Camelot optimizes NYC properties for cost savings and compliance.</p>
+              <img src="${qrDataUrl}" style="width: 150px; height: 150px; margin: 20px auto; display: block; border: 2px solid #ccc;" />
+              <p style="font-size: 10px; margin-top: 10px;">Scan for your free quote</p>
+            </div>
+          `,
+          back_html: `
+            <div style="width: 100%; height: 100%; padding: 20px; font-family: sans-serif; background: white;">
+              <h3 style="color: #8B6F47; margin: 0 0 10px 0;">Schedule Your Review</h3>
+              <p style="font-size: 11px; margin: 5px 0;">Visit: camelot.nyc<br/>Email: info@camelot.nyc<br/>Phone: (646) 523-9068</p>
+            </div>
+          `,
+        };
+
+        const lobResult = await sendToLob(leads, templateData);
+
+        // Update campaign status in Supabase
+        await supabase
+          .from('outreach_campaigns')
+          .update({
+            status: 'sent',
+            hubspot_sync_at: new Date().toISOString(),
+          })
+          .eq('id', campaign_id);
+
+        return res.json({
+          status: 'sent_via_lob',
+          campaign_id,
+          lead_count: leads.length,
+          lob_batch_id: lobResult.id,
+          estimated_cost: leads.length * 1.7,
+          estimated_delivery: '5-10 business days',
+        });
+      } catch (lobError) {
+        console.error('Lob API error:', lobError);
+        return res.status(500).json({
+          error: 'Failed to send via Lob',
+          details: lobError.message,
+        });
+      }
     }
 
     // Generate CSV for manual upload

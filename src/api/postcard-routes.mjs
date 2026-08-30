@@ -14,11 +14,28 @@
 
 import { Router } from 'express';
 import { requireApiUser } from './middleware-auth.mjs';
-import { supabase } from './supabase-client.mjs';
-import { enrichContact } from './contact-intelligence.mjs';
+import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 
 const router = Router();
+
+// Lazy Supabase initialization
+let supabaseInstance = null;
+function getSupabase() {
+  if (!supabaseInstance) {
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      || process.env.SUPABASE_ANON_KEY
+      || process.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase is not configured');
+    }
+    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return supabaseInstance;
+}
 
 /**
  * Send postcard batch to Lob.com API

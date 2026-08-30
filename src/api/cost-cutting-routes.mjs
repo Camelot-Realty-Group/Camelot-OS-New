@@ -138,7 +138,7 @@ const SAVINGS_TEMPLATES = [
  * Analyze building expenses and return cost-cutting opportunities
  */
 async function performCostAnalysis(buildingCode, supabase) {
-  const analysisId = `analysis_${crypto.randomBytes(8).toString('hex')}`;
+  const analysisId = Math.floor(Math.random() * 9007199254740991); // Numeric ID for BIGINT column
   const now = new Date().toISOString();
 
   try {

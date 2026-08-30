@@ -233,11 +233,8 @@ async function performCostAnalysis(buildingCode, supabase) {
     console.log(`[Cost Analysis] Analysis ${analysisId} complete: $${totalSavings} savings identified`);
 
     return {
-      id: analysis.id,
-      building_code: buildingCode,
-      status: 'completed',
-      identified_savings: analysis.identified_savings,
-      opportunities_count: opportunities.length,
+      analysis,
+      opportunities,
     };
   } catch (err) {
     console.error(`[Cost Analysis] Analysis failed for ${buildingCode}:`, err);
@@ -280,11 +277,12 @@ router.post('/cost-analysis/run', async (req, res) => {
     }
 
     // Option 2: Run synchronously (wait for completion)
-    const analysis = await performCostAnalysis(buildingCode, supabase);
+    const result = await performCostAnalysis(buildingCode, supabase);
 
     res.json({
       status: 'completed',
-      analysis,
+      analysis: result.analysis,
+      opportunities: result.opportunities,
     });
 
   } catch (error) {

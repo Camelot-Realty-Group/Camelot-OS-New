@@ -154,27 +154,10 @@ export default function CostCuttingTool() {
         throw new Error(result.error || `Analysis failed: ${response.statusText}`);
       }
 
-      // Fetch the analysis from database
-      if (result.analysis?.id) {
-        const { data: analysisData, error: err } = await supabase
-          .from('cost_savings_analysis')
-          .select('*')
-          .eq('id', result.analysis.id)
-          .single();
-
-        if (err) throw err;
-        setAnalysis(analysisData);
-
-        // Fetch opportunities
-        const { data: oppsData, error: oppErr } = await supabase
-          .from('savings_opportunities')
-          .select('*')
-          .eq('analysis_id', result.analysis.id)
-          .order('potential_annual_savings', { ascending: false });
-
-        if (oppErr) throw oppErr;
-        setOpportunities(oppsData || []);
-
+      // Use data directly from backend response
+      if (result.analysis) {
+        setAnalysis(result.analysis);
+        setOpportunities(result.opportunities || []);
         setSuccessMessage('Analysis complete! Review the opportunities below.');
       }
     } catch (err) {

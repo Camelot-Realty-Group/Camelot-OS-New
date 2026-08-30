@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 import portfolioRoutes from './src/api/portfolio-routes.mjs';
 import postcardRoutes from './src/api/postcard-routes.mjs';
+import { startPostcardScheduler } from './src/api/postcard-scheduler.mjs';
 import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1777,6 +1778,12 @@ app.use('/api', requireApiUser, createLeadsRouter({
 // covers a full day's sends. See startDailyReportScheduler in
 // src/api/leads-routes.mjs for how the once-a-day guard works.
 startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc: 21 });
+
+// Weekly postcard batch scheduler — runs Sunday 22:00 UTC (5 PM ET).
+// Processes all campaigns with scheduled_mailer dates and sends via Lob.com
+// if LOBS_API_KEY is configured. See startPostcardScheduler in
+// src/api/postcard-scheduler.mjs for details.
+startPostcardScheduler({ hourUtc: 22, dayOfWeek: 0 });
 
 // Serve fingerprinted assets with long-lived caching, but never cache the SPA
 // document itself. This prevents an obsolete dashboard shell from surviving a

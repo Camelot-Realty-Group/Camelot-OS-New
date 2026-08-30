@@ -1745,7 +1745,7 @@ app.post('/api/templates/generate', async (req, res) => {
 });
 
 // Cost-Cutting Analysis Routes
-app.use(costCuttingRoutes);
+app.use('/api', costCuttingRoutes);
 
 // Portfolio Sync Routes (Spire MDS -> Supabase, RealtyMX enrichment)
 // NOTE: this router was built in a prior session but never mounted here,

@@ -354,11 +354,278 @@ router.get('/cost-analysis/:analysisId', async (req, res) => {
 // ============================================================================
 
 router.post('/cost-analysis/:analysisId/send-proposal', async (req, res) => {
-  res.status(501).json({
-    error: 'Cost proposal delivery is not configured',
-    code: 'PROPOSAL_DELIVERY_UNAVAILABLE',
-  });
+  try {
+    const { analysisId } = req.params;
+    const { recipientEmail } = req.body || {};
+
+    if (!recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Valid recipientEmail is required' });
+    }
+
+    const supabase = getSupabase();
+    const now = new Date().toISOString();
+
+    // Fetch analysis
+    const { data: analysis, error: analysisError } = await supabase
+      .from('cost_savings_analysis')
+      .select('*')
+      .eq('id', analysisId)
+      .single();
+
+    if (analysisError || !analysis) {
+      return res.status(404).json({ error: 'Analysis not found' });
+    }
+
+    // Fetch opportunities
+    const { data: opportunities, error: oppError } = await supabase
+      .from('savings_opportunities')
+      .select('*')
+      .eq('analysis_id', analysisId);
+
+    if (oppError) {
+      console.warn('[Cost Analysis] Opportunities fetch error:', oppError);
+    }
+
+    // Generate HTML proposal email
+    const htmlProposal = generateProposalHTML(analysis, opportunities || []);
+
+    // Get Resend API key and from address
+    const resendApiKey = process.env.RESEND_API_KEY || '';
+    const resendFromAddress = process.env.RESEND_FROM_ADDRESS || 'Camelot Property Management <onboarding@resend.dev>';
+
+    if (!resendApiKey) {
+      return res.status(500).json({
+        error: 'Email delivery is not configured. Add RESEND_API_KEY to environment.',
+        code: 'RESEND_NOT_CONFIGURED',
+      });
+    }
+
+    // Send via Resend
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({
+        from: resendFromAddress,
+        to: recipientEmail,
+        subject: `Cost-Cutting Analysis Proposal: ${analysis.building_name}`,
+        html: htmlProposal,
+        text: generateProposalText(analysis, opportunities || []),
+      }),
+    });
+
+    const resendData = await resendResponse.json().catch(() => ({}));
+
+    if (!resendResponse.ok) {
+      console.error('[Cost Analysis] Resend send error:', resendResponse.status, resendData);
+      return res.status(resendResponse.status).json({
+        error: resendData?.message || `Email delivery failed (${resendResponse.status})`,
+        code: 'EMAIL_SEND_FAILED',
+      });
+    }
+
+    // Store proposal record in database
+    const proposal = {
+      id: Math.floor(Math.random() * 9007199254740991),
+      analysis_id: analysisId,
+      recipient_email: recipientEmail,
+      proposal_sent_at: now,
+      response_status: 'pending',
+      resend_email_id: resendData.id || null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    try {
+      const { error: propStoreErr } = await supabase
+        .from('proposals')
+        .insert([proposal]);
+
+      if (propStoreErr) {
+        console.warn('[Cost Analysis] Could not store proposal record:', propStoreErr.message);
+        // Don't fail — email was sent successfully
+      }
+    } catch (err) {
+      console.warn('[Cost Analysis] Proposal storage error:', err.message);
+      // Don't fail — email was sent successfully
+    }
+
+    // Update analysis proposal_status
+    try {
+      await supabase
+        .from('cost_savings_analysis')
+        .update({ proposal_status: 'sent', updated_at: now })
+        .eq('id', analysisId);
+    } catch (err) {
+      console.warn('[Cost Analysis] Could not update analysis status:', err.message);
+    }
+
+    console.log(`[Cost Analysis] Proposal sent for analysis ${analysisId} to ${recipientEmail}`);
+
+    res.json({
+      ok: true,
+      message: `Proposal sent to ${recipientEmail}`,
+      resendEmailId: resendData.id,
+    });
+
+  } catch (error) {
+    console.error('[Cost Analysis] Send proposal error:', error);
+    res.status(500).json({
+      error: error.message || 'Failed to send proposal',
+      code: 'SEND_PROPOSAL_ERROR',
+    });
+  }
 });
+
+/**
+ * Generate HTML proposal email
+ */
+function generateProposalHTML(analysis, opportunities) {
+  const opportunitiesHTML = opportunities
+    .slice(0, 5) // Show top 5
+    .map((opp, idx) => `
+      <tr style="border-bottom: 1px solid #e0e0e0;">
+        <td style="padding: 10px; text-align: left; font-size: 13px;">${opp.category}</td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">${opp.difficulty}</td>
+        <td style="padding: 10px; text-align: center; font-size: 13px;">${opp.timeline_months} month${opp.timeline_months !== 1 ? 's' : ''}</td>
+        <td style="padding: 10px; text-align: right; font-size: 13px; color: #16a34a; font-weight: bold;">$${opp.potential_annual_savings?.toLocaleString()}</td>
+      </tr>
+    `)
+    .join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #162B5E 0%, #1e3a8a 100%); color: white; padding: 30px; text-align: center; border-radius: 8px; margin-bottom: 30px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; }
+        .section { margin-bottom: 25px; }
+        .section h2 { color: #162B5E; font-size: 18px; border-bottom: 2px solid #A9814A; padding-bottom: 8px; }
+        .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .metric { background: #f9fafb; padding: 15px; border-radius: 6px; border-left: 4px solid #A9814A; }
+        .metric-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #162B5E; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f3f4f6; padding: 10px; text-align: left; font-size: 12px; font-weight: 600; color: #162B5E; text-transform: uppercase; }
+        .footer { background: #f9fafb; padding: 20px; border-radius: 6px; font-size: 12px; color: #666; margin-top: 30px; border: 1px solid #e5e7eb; }
+        .footer p { margin: 5px 0; }
+        .cta-button { display: inline-block; background: #16a34a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; margin-top: 15px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Cost-Cutting Analysis</h1>
+          <p>${analysis.building_name}</p>
+        </div>
+
+        <div class="section">
+          <h2>Proposal Summary</h2>
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Annual Savings Identified</div>
+              <div class="metric-value">$${analysis.identified_savings?.toLocaleString()}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Savings Percentage</div>
+              <div class="metric-value">${analysis.savings_percentage}%</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Engagement Fee (One-time)</div>
+              <div class="metric-value">$${analysis.fee_one_time?.toLocaleString()}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Confidence Score</div>
+              <div class="metric-value">${analysis.confidence_score}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Identified Opportunities (Top 5)</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Opportunity</th>
+                <th>Difficulty</th>
+                <th>Timeline</th>
+                <th style="text-align: right;">Annual Savings</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${opportunitiesHTML || '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #999;">No opportunities identified</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>Next Steps</h2>
+          <p>We've completed a comprehensive analysis of ${analysis.building_name}'s operating expenses and identified concrete, achievable cost-cutting opportunities. Our engagement fee is <strong>$${analysis.fee_one_time?.toLocaleString()}</strong> one-time.</p>
+          <p>To proceed with implementation, please reply to this email or contact us directly at <strong>contact@camelot.nyc</strong>.</p>
+        </div>
+
+        <div class="footer">
+          <p><strong>Camelot Property Management Services</strong></p>
+          <p>New York, NY | contact@camelot.nyc | (212) 555-0100</p>
+          <p style="margin-top: 15px; font-size: 11px; color: #999;">This proposal is confidential and intended only for the addressee. If you are not the intended recipient, please disregard.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Generate plain-text proposal email
+ */
+function generateProposalText(analysis, opportunities) {
+  let text = `
+COST-CUTTING ANALYSIS PROPOSAL
+${analysis.building_name}
+
+SUMMARY
+-------
+Annual Savings Identified: $${analysis.identified_savings?.toLocaleString()}
+Savings Percentage: ${analysis.savings_percentage}%
+Engagement Fee (One-time): $${analysis.fee_one_time?.toLocaleString()}
+Confidence Score: ${analysis.confidence_score}%
+
+IDENTIFIED OPPORTUNITIES (Top 5)
+--------------------------------
+  `;
+
+  opportunities.slice(0, 5).forEach((opp, idx) => {
+    text += `\n${idx + 1}. ${opp.category}
+   Difficulty: ${opp.difficulty}
+   Timeline: ${opp.timeline_months} months
+   Annual Savings: $${opp.potential_annual_savings?.toLocaleString()}
+   Reasoning: ${opp.reasoning}`;
+  });
+
+  text += `
+
+NEXT STEPS
+----------
+We've completed a comprehensive analysis of ${analysis.building_name}'s operating expenses.
+To proceed, please reply to this email or contact us at contact@camelot.nyc.
+
+---
+Camelot Property Management Services
+New York, NY | contact@camelot.nyc | (212) 555-0100
+
+This proposal is confidential and intended only for the addressee.
+  `;
+
+  return text;
+}
 
 // ============================================================================
 // POST /api/cost-analysis/:analysisId/accept

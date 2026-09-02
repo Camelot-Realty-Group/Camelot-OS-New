@@ -64,6 +64,180 @@ const COST_MAP: Record<string, [number, number]> = {
   'ECB': [1500, 5000],
 };
 
+/**
+ * How-to-resolve guidance, keyed the same way as PLAYER_MAP/COST_MAP.
+ * Sources: NYC HPD "Penalties and Fees" (nyc.gov/site/hpd/services-and-information/penalties-and-fees.page)
+ * and standard DOB/OATH cure procedures.
+ */
+export const RESOLUTION_GUIDE: Record<string, { label: string; steps: string[]; companies: string[] }> = {
+  'LEAD': {
+    label: 'Lead-Based Paint Hazard',
+    steps: [
+      'Retain an EPA/NYC-certified lead inspector to test and confirm the hazard location.',
+      'Hire an EPA RRP-certified lead abatement or remediation contractor to remove/encapsulate.',
+      'File the required HPD lead-based paint work application before starting work.',
+      'Submit certification of correction with dust-clearance test results to HPD.',
+    ],
+    companies: ['Certified Lead Inspector', 'EPA RRP-Certified Remediation Contractor', 'DOB Expeditor'],
+  },
+  'GAS': {
+    label: 'Gas Line / Gas Leak',
+    steps: [
+      'Call the gas utility (Con Edison / National Grid) immediately if an active leak is suspected.',
+      'Retain a Licensed Master Plumber to inspect, repair, and pressure-test the gas line.',
+      'File a DOB gas-work permit (PW1) if piping is altered or replaced.',
+      'Schedule the utility restoration inspection and certify correction with HPD/DOB.',
+    ],
+    companies: ['Licensed Master Plumber', 'Gas Utility (Con Edison / National Grid)', 'DOB Expeditor'],
+  },
+  'HEAT': {
+    label: 'Heat / Hot Water',
+    steps: [
+      'Dispatch an HVAC/boiler technician same-day — heat/hot-water violations carry the steepest daily penalties.',
+      'Confirm boiler is operational and fuel supply is not interrupted; check for citywide/utility outages.',
+      'If the boiler requires replacement, get emergency quotes from two contractors and notify HPD of the repair timeline.',
+      'Certify correction with HPD promptly — penalties keep accruing daily until certified.',
+    ],
+    companies: ['HVAC Contractor', 'Licensed Boiler Technician', 'Fuel/Utility Provider'],
+  },
+  'FIRE': {
+    label: 'Fire Safety',
+    steps: [
+      'Contact FDNY-registered Fire Safety Director/contractor to assess the specific code section cited.',
+      'Repair or replace fire safety equipment (alarms, extinguishers, self-closing doors, sprinklers) as required.',
+      'Schedule FDNY re-inspection and file DOB correction paperwork where applicable.',
+    ],
+    companies: ['Fire Safety Director', 'FDNY-Registered Contractor', 'DOB Expeditor'],
+  },
+  'MOLD': {
+    label: 'Mold',
+    steps: [
+      'Identify and fix the underlying moisture source (leak, ventilation, plumbing) before remediation.',
+      'Hire a licensed mold remediation contractor for removal and post-remediation clearance testing.',
+      'Certify correction with HPD once clearance testing confirms the space is clear.',
+    ],
+    companies: ['Mold Remediation Contractor', 'Plumber (source repair)', 'Environmental Testing Lab'],
+  },
+  'PEST': {
+    label: 'Pest Infestation',
+    steps: [
+      'Engage a licensed pest control company for inspection and a treatment plan (often multi-visit).',
+      'Address building-wide conditions (waste storage, sealing entry points) alongside unit-level treatment.',
+      'Certify correction with HPD after the exterminator confirms the infestation is resolved.',
+    ],
+    companies: ['Licensed Pest Control Company', 'Superintendent (building-wide prep)'],
+  },
+  'PLUMB': {
+    label: 'Plumbing',
+    steps: [
+      'Dispatch a licensed plumber to diagnose and repair the leak, drain, or fixture issue.',
+      'For structural/riser work, file a DOB plumbing permit before starting.',
+      'Certify correction with HPD once repairs are verified.',
+    ],
+    companies: ['Licensed Plumber', 'DOB Expeditor (if permit required)'],
+  },
+  'ELECT': {
+    label: 'Electrical',
+    steps: [
+      'Engage a licensed electrician to inspect and repair the wiring, panel, or fixture cited.',
+      'File a DOB electrical permit if work goes beyond like-for-like repair.',
+      'Schedule electrical inspection sign-off and certify correction.',
+    ],
+    companies: ['Licensed Electrician', 'DOB Expeditor (if permit required)'],
+  },
+  'DOB': {
+    label: 'DOB Building Code Violation',
+    steps: [
+      'Retain a Registered Architect or Professional Engineer to assess the cited condition and design the fix.',
+      'File the appropriate DOB application (Alt-1/Alt-2/EWO) and obtain permits before starting work.',
+      'Complete the work, schedule DOB inspection, and file for violation dismissal once approved.',
+    ],
+    companies: ['Registered Architect / P.E.', 'DOB Expeditor', 'Licensed General Contractor'],
+  },
+  'ECB': {
+    label: 'ECB / OATH Penalty',
+    steps: [
+      'Confirm the scheduled hearing date — defaulting on an ECB hearing results in an automatic penalty judgment.',
+      'Retain counsel or an expeditor experienced with OATH hearings to appear (or file a written answer/adjournment).',
+      'If the underlying condition is already corrected, request mitigation of the penalty at the hearing (commonly reduces the fine).',
+      'Pay or settle the balance promptly once resolved — unpaid ECB judgments become liens on the property.',
+    ],
+    companies: ['Attorney (OATH/ECB hearings)', 'DOB Expeditor'],
+  },
+  'DEFAULT': {
+    label: 'General Violation',
+    steps: [
+      'Assign a property manager to confirm the exact cited condition and correction deadline.',
+      'Engage the appropriate licensed trade to perform the repair.',
+      'Certify correction with the issuing agency (HPD/DOB) before the deadline to avoid civil penalties.',
+    ],
+    companies: ['Property Manager', 'Licensed Contractor'],
+  },
+};
+
+function resolutionKeyFor(desc: string, source: string, vClass: string): string {
+  const d = desc.toUpperCase();
+  for (const key of Object.keys(RESOLUTION_GUIDE)) {
+    if (key === 'DEFAULT' || key === 'DOB' || key === 'ECB') continue;
+    if (d.includes(key)) return key;
+  }
+  if (source === 'DOB') return 'DOB';
+  if (source === 'ECB') return 'ECB';
+  return 'DEFAULT';
+}
+
+/**
+ * Current (post-Dec 8, 2023) NYC HPD civil penalty schedule.
+ * Source: nyc.gov/site/hpd/services-and-information/penalties-and-fees.page
+ * Returns an initial fine range plus a per-day accrual range once the
+ * violation is past its cure deadline, and the estimated amount accrued
+ * to date if overdue.
+ */
+function estimateHPDPenalty(vClass: string, desc: string, isOverdue: boolean, cureDeadline: string | null): {
+  initialLow: number; initialHigh: number; dailyLow: number; dailyHigh: number; accruedLow: number; accruedHigh: number;
+} {
+  const d = desc.toUpperCase();
+  const isHeat = d.includes('HEAT') || d.includes('HOT WATER');
+  const isLead = d.includes('LEAD');
+  let initialLow = 0, initialHigh = 0, dailyLow = 0, dailyHigh = 0;
+
+  if (vClass === 'A') {
+    initialLow = 50; initialHigh = 150; dailyLow = 25; dailyHigh = 25;
+  } else if (vClass === 'B') {
+    initialLow = 75; initialHigh = 500; dailyLow = 25; dailyHigh = 125;
+  } else if (vClass === 'C') {
+    if (isLead) {
+      initialLow = 0; initialHigh = 0; dailyLow = 250; dailyHigh = 250; // capped at $10,000 — not modeled per-day cap here
+    } else if (isHeat) {
+      initialLow = 350; initialHigh = 1250; dailyLow = 350; dailyHigh = 1250;
+    } else {
+      initialLow = 150; initialHigh = 1200; dailyLow = 50; dailyHigh = 1200;
+    }
+  }
+
+  let accruedLow = 0, accruedHigh = 0;
+  if (isOverdue && cureDeadline) {
+    const daysPast = Math.max(0, Math.floor((Date.now() - new Date(cureDeadline).getTime()) / 86400000));
+    accruedLow = initialLow + daysPast * dailyLow;
+    accruedHigh = initialHigh + daysPast * dailyHigh;
+    if (isLead) { accruedLow = Math.min(accruedLow, 10000); accruedHigh = Math.min(accruedHigh, 10000); }
+  }
+
+  return { initialLow, initialHigh, dailyLow, dailyHigh, accruedLow, accruedHigh };
+}
+
+function parseSocrataDate(yyyymmdd: string): string | null {
+  if (!yyyymmdd || yyyymmdd.length < 8) return null;
+  const y = yyyymmdd.slice(0, 4), m = yyyymmdd.slice(4, 6), d = yyyymmdd.slice(6, 8);
+  return `${y}-${m}-${d}`;
+}
+
+function parseSocrataTime(hhmm: string): string | null {
+  if (!hhmm) return null;
+  const padded = hhmm.padStart(4, '0');
+  return `${padded.slice(0, 2)}:${padded.slice(2, 4)}`;
+}
+
 export interface ViolationResult {
   source: string;
   violationClass: string;
@@ -80,6 +254,33 @@ export interface ViolationResult {
   players: string[];
   costLow: number;
   costHigh: number;
+  /** Resolution guidance key (LEAD/GAS/HEAT/FIRE/MOLD/PEST/PLUMB/ELECT/DOB/ECB/DEFAULT) */
+  resolutionKey: string;
+  /** ECB/OATH hearing date, ISO yyyy-mm-dd, when the record has a scheduled hearing */
+  hearingDate: string | null;
+  /** ECB/OATH hearing time, 24h "HH:mm" NYC local */
+  hearingTime: string | null;
+  hearingStatus: string | null;
+  /** Real assessed penalty figures for ECB records (from NYC Open Data) */
+  penaltyImposed: number | null;
+  amountPaid: number | null;
+  balanceDue: number | null;
+  /** Estimated civil-penalty accrual for HPD records, per the current HPD schedule */
+  penaltyAccruedLow: number | null;
+  penaltyAccruedHigh: number | null;
+  penaltyDailyLow: number | null;
+  penaltyDailyHigh: number | null;
+}
+
+export interface UpcomingHearing {
+  source: string;
+  violationId: string;
+  description: string;
+  hearingDate: string;
+  hearingTime: string | null;
+  hearingStatus: string | null;
+  balanceDue: number | null;
+  isPast: boolean;
 }
 
 export interface ViolationSummary {
@@ -98,6 +299,15 @@ export interface ViolationSummary {
   costHigh: number;
   players: string[];
   violations: ViolationResult[];
+  /** Scheduled ECB/OATH hearings, sorted soonest first */
+  upcomingHearings: UpcomingHearing[];
+  /** Real penalties assessed to date across open ECB records */
+  totalPenaltiesAssessed: number;
+  /** Real outstanding balance across open ECB records */
+  totalBalanceDue: number;
+  /** Estimated accrued HPD civil penalties across overdue open records (low/high) */
+  totalHPDAccruedLow: number;
+  totalHPDAccruedHigh: number;
 }
 
 async function fetchNYCData(url: string, params: Record<string, string>): Promise<any[]> {
@@ -221,6 +431,8 @@ export async function searchViolations(address: string, borough: string): Promis
       } catch { /* ignore */ }
     }
 
+    const hpdPenalty = estimateHPDPenalty(vClass, desc, isOpen && isOverdue, cureDeadline);
+
     violations.push({
       source: 'HPD',
       violationClass: vClass,
@@ -235,6 +447,17 @@ export async function searchViolations(address: string, borough: string): Promis
       inspectionDate: inspDate,
       cureDeadline,
       players: getPlayers(desc, vClass),
+      resolutionKey: resolutionKeyFor(desc, 'HPD', vClass),
+      hearingDate: null,
+      hearingTime: null,
+      hearingStatus: null,
+      penaltyImposed: null,
+      amountPaid: null,
+      balanceDue: null,
+      penaltyAccruedLow: (isOpen && isOverdue) ? hpdPenalty.accruedLow : null,
+      penaltyAccruedHigh: (isOpen && isOverdue) ? hpdPenalty.accruedHigh : null,
+      penaltyDailyLow: hpdPenalty.dailyLow,
+      penaltyDailyHigh: hpdPenalty.dailyHigh,
       ...(() => { const c = getCost(desc, 'HPD'); return { costLow: c[0], costHigh: c[1] }; })(),
     });
   }
@@ -259,15 +482,31 @@ export async function searchViolations(address: string, borough: string): Promis
       inspectionDate: v.issue_date || '',
       cureDeadline: null,
       players: PLAYER_MAP['DOB'],
+      resolutionKey: 'DOB',
+      hearingDate: null,
+      hearingTime: null,
+      hearingStatus: null,
+      penaltyImposed: null,
+      amountPaid: null,
+      balanceDue: null,
+      penaltyAccruedLow: null,
+      penaltyAccruedHigh: null,
+      penaltyDailyLow: null,
+      penaltyDailyHigh: null,
       costLow: COST_MAP['DOB'][0],
       costHigh: COST_MAP['DOB'][1],
     });
   }
 
-  // Process ECB
+  // Process ECB — this dataset carries real hearing dates/times and real assessed penalties.
   for (const v of ecbData) {
-    const status = (v.violation_status || v.status || '').toUpperCase();
+    const status = (v.ecb_violation_status || v.violation_status || v.status || '').toUpperCase();
     const isOpen = !status.includes('RESOLVE') && !status.includes('DISMISS') && !status.includes('PAID');
+    const hearingDate = parseSocrataDate(v.hearing_date || '');
+    const hearingTime = parseSocrataTime(v.hearing_time || '');
+    const penaltyImposed = v.penality_imposed != null ? Number(v.penality_imposed) || 0 : null;
+    const amountPaid = v.amount_paid != null ? Number(v.amount_paid) || 0 : null;
+    const balanceDue = v.balance_due != null ? Number(v.balance_due) || 0 : null;
 
     violations.push({
       source: 'ECB',
@@ -276,13 +515,24 @@ export async function searchViolations(address: string, borough: string): Promis
       severityLabel: 'ECB PENALTY',
       violationId: v.ecb_violation_number || v.isn_dob_bis_viol || '',
       unit: 'Building',
-      description: v.violation_description || v.infraction_codes || '',
-      status: isOpen ? 'OPEN' : status,
+      description: v.violation_description || v.infraction_code1 || v.infraction_codes || '',
+      status: isOpen ? (v.hearing_status || 'OPEN') : status,
       isOpen,
       isOverdue: isOpen,
-      inspectionDate: v.violation_date || '',
+      inspectionDate: v.issue_date || v.violation_date || '',
       cureDeadline: null,
       players: PLAYER_MAP['ECB'],
+      resolutionKey: 'ECB',
+      hearingDate,
+      hearingTime,
+      hearingStatus: v.hearing_status || null,
+      penaltyImposed,
+      amountPaid,
+      balanceDue,
+      penaltyAccruedLow: null,
+      penaltyAccruedHigh: null,
+      penaltyDailyLow: null,
+      penaltyDailyHigh: null,
       costLow: COST_MAP['ECB'][0],
       costHigh: COST_MAP['ECB'][1],
     });
@@ -298,6 +548,21 @@ export async function searchViolations(address: string, borough: string): Promis
   const hpdOpen = openViolations.filter(v => v.source === 'HPD');
   const allPlayers = new Set<string>();
   openViolations.forEach(v => v.players.forEach(p => allPlayers.add(p)));
+
+  const nowISO = now.toISOString().split('T')[0];
+  const upcomingHearings: UpcomingHearing[] = violations
+    .filter(v => v.hearingDate)
+    .map(v => ({
+      source: v.source,
+      violationId: v.violationId,
+      description: v.description,
+      hearingDate: v.hearingDate as string,
+      hearingTime: v.hearingTime,
+      hearingStatus: v.hearingStatus,
+      balanceDue: v.balanceDue,
+      isPast: (v.hearingDate as string) < nowISO,
+    }))
+    .sort((a, b) => a.hearingDate.localeCompare(b.hearingDate));
 
   return {
     address,
@@ -315,5 +580,10 @@ export async function searchViolations(address: string, borough: string): Promis
     costHigh: openViolations.reduce((s, v) => s + v.costHigh, 0),
     players: Array.from(allPlayers).sort(),
     violations,
+    upcomingHearings,
+    totalPenaltiesAssessed: openViolations.reduce((s, v) => s + (v.penaltyImposed || 0), 0),
+    totalBalanceDue: openViolations.reduce((s, v) => s + (v.balanceDue || 0), 0),
+    totalHPDAccruedLow: openViolations.reduce((s, v) => s + (v.penaltyAccruedLow || 0), 0),
+    totalHPDAccruedHigh: openViolations.reduce((s, v) => s + (v.penaltyAccruedHigh || 0), 0),
   };
 }

@@ -5,7 +5,9 @@ import {
   RESOLUTION_GUIDE,
 } from '@/lib/nyc-violations';
 import { buildICS, downloadICS, googleCalendarLink, outlookCalendarLink, type CalEvent } from '@/lib/calendar-export';
-import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
+import { DAVID_GOLDOFF_SIGNATURE_TEXT, DAVID_GOLDOFF_SIGNATURE } from '@/lib/camelot-signature';
+import { wrapCamelotEmailHtml } from '@/lib/camelot-email-branding';
+import { sendCamelotEmail, getEmailConfigStatus } from '@/lib/pdf-generator';
 import { authenticatedApiFetch } from '@/lib/api-auth';
 import { getRegionByArea } from '@/lib/regions';
 import toast from 'react-hot-toast';
@@ -67,6 +69,36 @@ function cityToBorough(city: string | null | undefined): string {
   const region = getRegionByArea(city!.trim());
   if (region && NYC_BOROUGHS.has(region.name.toUpperCase())) return region.name.toUpperCase();
   return 'MANHATTAN';
+}
+
+/** Official NYC public lookup portals — same HPD Online URL already used elsewhere in this
+ *  codebase (src/lib/camelot-report.ts). DOB/ECB don't expose a reliable violation-ID deep
+ *  link without a BBL (which these records don't carry), so we link the portal itself and
+ *  let the recipient search by the violation/ECB number we include in the report. */
+const VIOLATION_PORTALS: Record<string, { label: string; url: string }> = {
+  HPD: { label: 'HPD Online (search by address; open violations show under "Violations")', url: 'https://hpdonline.nyc.gov/hpdonline/' },
+  DOB: { label: 'DOB Building Information System — BIS (search by address or violation number)', url: 'https://a810-bisweb.nyc.gov/bisweb/bispi00.jsp' },
+  ECB: { label: 'OATH/ECB Case Status (search by ECB/OATH violation number or address)', url: 'https://www.nyc.gov/site/oath/help-center/case-status.page' },
+};
+
+/** Groups a violation list by source and returns one line per open violation with its
+ *  official lookup portal link, for use in both the emailed report and the PDF. */
+function buildViolationLinksLines(violations: ViolationResult[]): string[] {
+  const bySource = new Map<string, ViolationResult[]>();
+  for (const v of violations) {
+    if (!v.isOpen) continue;
+    if (!bySource.has(v.source)) bySource.set(v.source, []);
+    bySource.get(v.source)!.push(v);
+  }
+  const lines: string[] = [];
+  for (const [source, vs] of bySource) {
+    const portal = VIOLATION_PORTALS[source];
+    if (!portal) continue;
+    lines.push(`${source} \u2014 ${portal.label}: ${portal.url}`);
+    const ids = vs.map(v => v.violationId).filter(Boolean);
+    if (ids.length) lines.push(`  ${source} violation number(s) to search: ${ids.join(', ')}`);
+  }
+  return lines;
 }
 
 /** Plain-English one-paragraph summary of a single violation for the expanded detail view. */
@@ -278,6 +310,49 @@ export default function Violations() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [guestEmailsInput, setGuestEmailsInput] = useState('');
   const [showSharePanel, setShowSharePanel] = useState(false);
+  const [showEmailPanel, setShowEmailPanel] = useState(false);
+  const [emailRecipientName, setEmailRecipientName] = useState('');
+  const [emailRecipientAddress, setEmailRecipientAddress] = useState('');
+  const [emailSenderChoice, setEmailSenderChoice] = useState<'david' | 'other'>('david');
+  const [otherSenderName, setOtherSenderName] = useState('');
+  const [otherSenderTitle, setOtherSenderTitle] = useState('');
+  const [otherSenderEmail, setOtherSenderEmail] = useState('');
+  const [emailConfigStatus, setEmailConfigStatus] = useState<{ resendConfigured: boolean } | null>(null);
+  const [sendingRealEmail, setSendingRealEmail] = useState(false);
+
+  useEffect(() => {
+    // Check once whether real (Resend-backed) sending is configured, so the
+    // "Send Now" button can show an honest state instead of pretending to work.
+    getEmailConfigStatus().then(setEmailConfigStatus).catch(() => setEmailConfigStatus(null));
+  }, []);
+
+  /** Display name of whoever is currently selected to send/sign the report. */
+  const currentSenderName = () => emailSenderChoice === 'david' ? DAVID_GOLDOFF_SIGNATURE.name : (otherSenderName.trim() || 'Camelot Property Management');
+  /** Reply-to / from-identity email of the currently selected sender. */
+  const currentSenderEmail = () => emailSenderChoice === 'david' ? DAVID_GOLDOFF_SIGNATURE.email : (otherSenderEmail.trim() || DAVID_GOLDOFF_SIGNATURE.email);
+  /** Plain-text signature block for the currently selected sender. */
+  const currentSenderSignatureText = () => emailSenderChoice === 'david'
+    ? DAVID_GOLDOFF_SIGNATURE_TEXT
+    : [otherSenderName.trim() || '(sender name)', otherSenderTitle.trim(), 'Camelot Property Management Services Corp.', otherSenderEmail.trim() ? `Email: ${otherSenderEmail.trim()}` : ''].filter(Boolean).join('\n');
+  /** HTML signature block (for the real branded send) for the currently selected sender. */
+  const currentSenderSignatureHtml = () => {
+    if (emailSenderChoice === 'david') {
+      return `<div style="margin-top:22px;font-family:Arial,Helvetica,sans-serif;color:#1a1f36;line-height:1.5">`
+        + `<div style="font-size:14px;font-weight:700">${DAVID_GOLDOFF_SIGNATURE.name}</div>`
+        + `<div style="font-size:12px;color:#555">${DAVID_GOLDOFF_SIGNATURE.title} \u2014 Camelot Property Management Services Corp.</div>`
+        + `<div style="font-size:12px;margin-top:4px">${DAVID_GOLDOFF_SIGNATURE.phone}</div>`
+        + `<div style="font-size:12px">Email: <a href="mailto:${DAVID_GOLDOFF_SIGNATURE.email}" style="color:#a8853a">${DAVID_GOLDOFF_SIGNATURE.email}</a> &nbsp;\u00b7&nbsp; <a href="https://${DAVID_GOLDOFF_SIGNATURE.web}" style="color:#a8853a">${DAVID_GOLDOFF_SIGNATURE.web}</a></div>`
+        + `</div>`;
+    }
+    const name = otherSenderName.trim() || '(sender name)';
+    const title = otherSenderTitle.trim();
+    const email = otherSenderEmail.trim();
+    return `<div style="margin-top:22px;font-family:Arial,Helvetica,sans-serif;color:#1a1f36;line-height:1.5">`
+      + `<div style="font-size:14px;font-weight:700">${name}</div>`
+      + (title ? `<div style="font-size:12px;color:#555">${title} \u2014 Camelot Property Management Services Corp.</div>` : `<div style="font-size:12px;color:#555">Camelot Property Management Services Corp.</div>`)
+      + (email ? `<div style="font-size:12px">Email: <a href="mailto:${email}" style="color:#a8853a">${email}</a></div>` : '')
+      + `</div>`;
+  };
 
   useEffect(() => {
     // Pull the real, Spire MDS-synced managed portfolio (not the Scout prospecting list) —
@@ -395,8 +470,8 @@ export default function Violations() {
     toast.success('Calendar file downloaded and Gmail opened \u2014 attach the .ics file before sending');
   };
 
-  const generatePDF = () => {
-    if (!result) return;
+  const generatePDF = (silent?: boolean): string | undefined => {
+    if (!result) return undefined;
     const openV = filteredViolations.filter(v => v.isOpen);
     const reportDate = new Date().toISOString().split('T')[0];
     const cleanAddr = result.address.replace(/\s+/g, '-');
@@ -502,23 +577,27 @@ export default function Violations() {
       + 'Generated from NYC Open Data (HPD, DOB, ECB). Verify details with issuing agency.<br>'
       + `Report generated: ${new Date().toISOString().substring(0,19)} UTC`
       + '</div></body></html>';
+    if (silent) return html;
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); }
     toast.success('Report opened \u2014 use Print to save as PDF, email, or print');
   };
 
-  const emailReport = () => {
-    if (!result) return;
+  /** Shared plain-text report body used by both the Gmail draft and the real branded send (as the `text` fallback). */
+  const buildReportBodyText = (recipientName: string, signatureText: string): string => {
+    if (!result) return '';
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const subject = encodeURIComponent(`Violation & Resolution Report: ${result.address}, ${result.borough}`);
-    const nl = '%0A';
     const hearingLines = result.upcomingHearings.length > 0
       ? `\n\nUPCOMING HEARINGS\n${'\u2501'.repeat(30)}\n` + result.upcomingHearings.map(h =>
           `  \u2022 ${h.hearingDate}${h.hearingTime ? ' @ ' + h.hearingTime : ''} \u2014 ${h.source} #${h.violationId}${h.isPast ? ' (PAST \u2014 confirm status)' : ''}`
         ).join('\n')
       : '';
-    const body = encodeURIComponent(
-      `Dear ___,`
+    const linkLines = buildViolationLinksLines(result.violations);
+    const linksSection = linkLines.length > 0
+      ? `\n\nVIOLATION RECORDS \u2014 OFFICIAL LOOKUP\n${'\u2501'.repeat(30)}\n` + linkLines.join('\n')
+      : '';
+    const greeting = recipientName.trim() ? `Dear ${recipientName.trim()},` : 'Dear Sir or Madam,';
+    return greeting
       + `\n\nPlease find attached the Violation & Resolution Report for ${result.address}, ${result.borough}, prepared by Camelot Property Management Services Corp.`
       + `\n\nREPORT SUMMARY\n${'\u2501'.repeat(30)}`
       + `\nProperty: ${result.address}, ${result.borough}`
@@ -547,13 +626,76 @@ export default function Violations() {
       + `\n  Phase 3 (Weeks 9+): Clear remaining Class A violations through scheduled maintenance`
       + `\n\nPROFESSIONALS NEEDED\n${'\u2501'.repeat(30)}`
       + `\n` + result.players.map(p => `  \u2022 ${p}`).join('\n')
+      + linksSection
       + `\n\nPlease review the attached PDF for the complete violation-by-violation breakdown, including specific descriptions, unit locations, cure deadlines, hearing dates, cost estimates, and resolution steps.`
       + `\n\nWe are available to discuss a resolution strategy at your convenience.`
       + `\n\nBest regards,`
-      + `\n\n${DAVID_GOLDOFF_SIGNATURE_TEXT}`
-    );
-    window.open(`https://mail.google.com/mail/?view=cm&su=${subject}&body=${body}`, '_blank');
+      + `\n\n${signatureText}`;
+  };
+
+  /** "Open in Gmail" — a plain-text draft the user reviews and sends themselves. Fast, no backend config required. */
+  const emailReport = () => {
+    if (!result) return;
+    if (!emailRecipientAddress.trim() && !emailRecipientName.trim()) {
+      toast.error('Enter who this report is addressed to first');
+      return;
+    }
+    const subject = encodeURIComponent(`Violation & Resolution Report: ${result.address}, ${result.borough}`);
+    const to = encodeURIComponent(emailRecipientAddress.trim());
+    const body = encodeURIComponent(buildReportBodyText(emailRecipientName, currentSenderSignatureText()));
+    window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${subject}&body=${body}`, '_blank');
     toast.success('Gmail opened \u2014 attach the downloaded PDF report');
+    setShowEmailPanel(false);
+  };
+
+  /** "Send Branded Email Now" — an actual delivery via Camelot OS's Resend-backed endpoint, wrapped in the default Camelot header/footer letterhead. */
+  const sendBrandedEmailNow = async () => {
+    if (!result) return;
+    if (!emailRecipientAddress.trim()) { toast.error('Enter a recipient email address'); return; }
+    if (!emailConfigStatus?.resendConfigured) {
+      toast.error('Real sending isn\'t configured yet \u2014 add RESEND_API_KEY in Render, or use "Open in Gmail" for now.', { id: 'violations-send', duration: 6000 });
+      return;
+    }
+    const plainText = buildReportBodyText(emailRecipientName, currentSenderSignatureText());
+    const linkLines = buildViolationLinksLines(result.violations);
+    const bodyParagraphs = plainText
+      .split('\n\n')
+      .map(block => {
+        const escaped = block.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const linked = escaped.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#a8853a">$1</a>');
+        return `<p style="margin:0 0 14px;white-space:pre-line;font-size:14px;">${linked}</p>`;
+      })
+      .join('');
+    const bodyHtml = bodyParagraphs + currentSenderSignatureHtml();
+    const html = wrapCamelotEmailHtml({
+      bodyHtml,
+      eyebrow: `Violation &amp; Resolution Report \u2014 ${result.address}, ${result.borough}`,
+      preheaderText: `${result.totalOpen} open violation(s), ${linkLines.length ? 'with official record lookup links' : ''} for ${result.address}`,
+    });
+    const subject = `Violation & Resolution Report: ${result.address}, ${result.borough}`;
+    const reportHtml = generatePDF(true);
+    const cleanAddr = result.address.replace(/\s+/g, '-');
+    setSendingRealEmail(true);
+    toast.loading('Sending branded report...', { id: 'violations-send' });
+    try {
+      const res = await sendCamelotEmail({
+        to: emailRecipientAddress.trim(),
+        subject,
+        html,
+        text: plainText,
+        replyTo: currentSenderEmail(),
+        reportHtml: reportHtml,
+        attachmentFilename: `${cleanAddr}_CamelotOS_ViolationReport.pdf`,
+      });
+      if (!res.ok) {
+        toast.error(res.error || 'Send failed', { id: 'violations-send' });
+      } else {
+        toast.success(`Sent to ${emailRecipientAddress.trim()}`, { id: 'violations-send' });
+        setShowEmailPanel(false);
+      }
+    } finally {
+      setSendingRealEmail(false);
+    }
   };
 
   const exportCSV = () => {
@@ -672,10 +814,10 @@ export default function Violations() {
                 <p className="text-gray-400 text-sm">{result.borough} · Scanned {new Date().toLocaleDateString()}</p>
               </div>
               <div className="flex gap-2">
-                <button onClick={generatePDF} className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 hover:bg-red-500/30 text-sm">
+                <button onClick={() => generatePDF()} className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 hover:bg-red-500/30 text-sm">
                   <Printer size={14} /> PDF / Print
                 </button>
-                <button onClick={emailReport} className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/30 text-sm">
+                <button onClick={() => setShowEmailPanel(s => !s)} className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/30 text-sm">
                   <Mail size={14} /> Email Report
                 </button>
                 <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-300 hover:bg-white/10 text-sm">
@@ -698,6 +840,96 @@ export default function Violations() {
               <StatCard icon={DollarSign} label="ECB Balance Due" value={formatCurrency(result.totalBalanceDue)} color="red" />
               <StatCard icon={DollarSign} label="Est. Resolution Cost" value={`${formatCurrency(result.costLow)}\u2013${formatCurrency(result.costHigh)}`} color="orange" />
             </div>
+
+            {showEmailPanel && (() => {
+              const links = buildViolationLinksLines(result.violations);
+              return (
+                <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-lg space-y-3">
+                  <h4 className="text-sm font-semibold text-white flex items-center gap-2"><Mail size={14} className="text-camelot-gold" /> Email This Report</h4>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-gray-400 text-xs mb-1 block">Addressed to (recipient name)</label>
+                      <input
+                        type="text"
+                        value={emailRecipientName}
+                        onChange={e => setEmailRecipientName(e.target.value)}
+                        placeholder="e.g. Board President, Jane Smith"
+                        className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs mb-1 block">Recipient email</label>
+                      <input
+                        type="email"
+                        value={emailRecipientAddress}
+                        onChange={e => setEmailRecipientAddress(e.target.value)}
+                        placeholder="recipient@example.com"
+                        className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-3 items-end">
+                    <div>
+                      <label className="text-gray-400 text-xs mb-1 block">Send &amp; sign as</label>
+                      <select
+                        value={emailSenderChoice}
+                        onChange={e => setEmailSenderChoice(e.target.value as 'david' | 'other')}
+                        className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white outline-none"
+                      >
+                        <option value="david">{DAVID_GOLDOFF_SIGNATURE.name} ({DAVID_GOLDOFF_SIGNATURE.title})</option>
+                        <option value="other">Someone else…</option>
+                      </select>
+                    </div>
+                    {emailSenderChoice === 'other' && (
+                      <>
+                        <div>
+                          <label className="text-gray-400 text-xs mb-1 block">Sender name</label>
+                          <input type="text" value={otherSenderName} onChange={e => setOtherSenderName(e.target.value)} placeholder="Full name" className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none" />
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-xs mb-1 block">Sender title</label>
+                          <input type="text" value={otherSenderTitle} onChange={e => setOtherSenderTitle(e.target.value)} placeholder="e.g. Property Manager" className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {emailSenderChoice === 'other' && (
+                    <div>
+                      <label className="text-gray-400 text-xs mb-1 block">Sender email (used as reply-to)</label>
+                      <input type="email" value={otherSenderEmail} onChange={e => setOtherSenderEmail(e.target.value)} placeholder="name@camelot.nyc" className="w-full md:w-1/2 px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none" />
+                    </div>
+                  )}
+                  {links.length > 0 && (
+                    <div className="text-xs text-gray-400">
+                      <span className="text-gray-300 font-medium">Official violation record links included in this report:</span>
+                      <ul className="mt-1 space-y-0.5">
+                        {Object.keys(VIOLATION_PORTALS).filter(src => result.violations.some(v => v.isOpen && v.source === src)).map(src => (
+                          <li key={src}>
+                            <ExternalLink size={10} className="inline mr-1 -mt-0.5" />
+                            {src}: <a href={VIOLATION_PORTALS[src].url} target="_blank" rel="noreferrer" className="text-camelot-gold hover:underline">{VIOLATION_PORTALS[src].url}</a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button onClick={emailReport} className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 text-sm">
+                      <Mail size={14} /> Open in Gmail
+                    </button>
+                    <button
+                      onClick={sendBrandedEmailNow}
+                      disabled={sendingRealEmail || !emailConfigStatus?.resendConfigured}
+                      title={emailConfigStatus?.resendConfigured ? 'Sends now with the default Camelot header/footer, via Resend' : 'Add RESEND_API_KEY in Render to enable real sending'}
+                      className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50', emailConfigStatus?.resendConfigured ? 'bg-camelot-gold text-camelot-navy hover:bg-camelot-gold/90' : 'bg-white/5 text-gray-500 border border-white/10')}
+                    >
+                      {sendingRealEmail ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                      Send Branded Email Now{!emailConfigStatus?.resendConfigured ? ' (setup needed)' : ''}
+                    </button>
+                    <button onClick={() => setShowEmailPanel(false)} className="px-3 py-2 text-gray-400 hover:text-white text-sm">Cancel</button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Players Needed */}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, Fragment } from 'react';
 import { cn, formatCurrency } from '@/lib/utils';
 import {
   searchViolations, type ViolationSummary, type ViolationResult, type UpcomingHearing,
@@ -6,7 +6,8 @@ import {
 } from '@/lib/nyc-violations';
 import { buildICS, downloadICS, googleCalendarLink, outlookCalendarLink, type CalEvent } from '@/lib/calendar-export';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT } from '@/lib/camelot-signature';
-import { useBuildings } from '@/hooks/useBuildings';
+import { authenticatedApiFetch } from '@/lib/api-auth';
+import { getRegionByArea } from '@/lib/regions';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle, Shield, Search, Loader2, RefreshCw,
@@ -41,6 +42,111 @@ function StatCard({ icon: Icon, label, value, sub, color = 'gold' }: {
       <div className="text-2xl font-bold text-white">{value}</div>
       {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
     </div>
+  );
+}
+
+/** Real MDS-synced managed building, as returned by GET /api/portfolio (portfolio_overview). */
+interface PortfolioBuildingLite {
+  id: number;
+  building_name: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+}
+
+const NYC_BOROUGHS = new Set(['MANHATTAN', 'BROOKLYN', 'QUEENS', 'BRONX', 'STATEN ISLAND']);
+
+/** Spire's `city` field is a USPS mailing city, not always the borough (Queens especially
+ *  uses neighborhood names like "Astoria" or "Flushing"). Resolve it to one of the five
+ *  NYC boroughs the violations search expects. */
+function cityToBorough(city: string | null | undefined): string {
+  const c = (city || '').trim().toUpperCase();
+  if (!c) return 'MANHATTAN';
+  if (c === 'NEW YORK' || c === 'NEW YORK CITY' || c === 'NYC') return 'MANHATTAN';
+  if (NYC_BOROUGHS.has(c)) return c;
+  const region = getRegionByArea(city!.trim());
+  if (region && NYC_BOROUGHS.has(region.name.toUpperCase())) return region.name.toUpperCase();
+  return 'MANHATTAN';
+}
+
+/** Plain-English one-paragraph summary of a single violation for the expanded detail view. */
+function summarizeViolation(v: ViolationResult): string {
+  const parts: string[] = [];
+  const sev = v.source === 'HPD' ? `HPD Class ${v.violationClass} (${v.severityLabel})` : `${v.source} ${v.severityLabel}`;
+  parts.push(`${sev} violation${v.unit && v.unit !== 'Building' ? ` in unit ${v.unit}` : ' at the building'}${v.isOpen ? ', currently OPEN' : ', now CLOSED'}.`);
+  if (v.inspectionDate) parts.push(`Issued ${v.inspectionDate}.`);
+  if (v.cureDeadline) {
+    parts.push(v.isOverdue
+      ? `Correction was due ${v.cureDeadline} and is now overdue.`
+      : `Correction is due by ${v.cureDeadline}.`);
+  }
+  if (v.hearingDate) {
+    parts.push(`An ECB/OATH hearing is scheduled for ${v.hearingDate}${v.hearingTime ? ` at ${v.hearingTime}` : ''}${v.hearingStatus ? ` (status: ${v.hearingStatus})` : ''}.`);
+  }
+  if (v.penaltyImposed != null && v.penaltyImposed > 0) {
+    parts.push(`Penalty imposed: ${formatCurrency(v.penaltyImposed)}${v.amountPaid ? `, paid: ${formatCurrency(v.amountPaid)}` : ''}${v.balanceDue ? `, balance due: ${formatCurrency(v.balanceDue)}` : ''}.`);
+  } else if (v.isOverdue && (v.penaltyAccruedLow || v.penaltyAccruedHigh)) {
+    parts.push(`Estimated civil penalty accrued to date: ${formatCurrency(v.penaltyAccruedLow || 0)}\u2013${formatCurrency(v.penaltyAccruedHigh || 0)}, accruing roughly ${formatCurrency(v.penaltyDailyLow || 0)}\u2013${formatCurrency(v.penaltyDailyHigh || 0)} per day until corrected.`);
+  } else if (v.penaltyDailyLow || v.penaltyDailyHigh) {
+    parts.push(`If not corrected by the deadline, this class carries a civil penalty of roughly ${formatCurrency(v.penaltyDailyLow || 0)}\u2013${formatCurrency(v.penaltyDailyHigh || 0)} per day.`);
+  }
+  parts.push(`Estimated resolution cost: ${formatCurrency(v.costLow)}\u2013${formatCurrency(v.costHigh)}.`);
+  if (v.players?.length) parts.push(`Typically requires: ${v.players.join(', ')}.`);
+  return parts.join(' ');
+}
+
+function ViolationDetailPanel({ v }: { v: ViolationResult }) {
+  const guide = RESOLUTION_GUIDE[v.resolutionKey] || RESOLUTION_GUIDE.DEFAULT;
+  return (
+    <tr className="bg-white/[0.03] border-b border-white/10">
+      <td colSpan={9} className="px-4 py-4">
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 space-y-3">
+            <div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Summary</div>
+              <p className="text-sm text-gray-200 leading-relaxed">{summarizeViolation(v)}</p>
+            </div>
+            <div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Full Description</div>
+              <p className="text-sm text-gray-300">{v.description || '\u2014'}</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div><div className="text-gray-500">Violation ID</div><div className="text-gray-200">{v.violationId || '\u2014'}</div></div>
+              <div><div className="text-gray-500">Source / Class</div><div className="text-gray-200">{v.source} {v.violationClass}</div></div>
+              <div><div className="text-gray-500">Unit</div><div className="text-gray-200">{v.unit || 'Building'}</div></div>
+              <div><div className="text-gray-500">Inspection / Issue Date</div><div className="text-gray-200">{v.inspectionDate || '\u2014'}</div></div>
+              <div><div className="text-gray-500">Status</div><div className={cn(v.isOpen ? 'text-red-400' : 'text-green-400')}>{v.status}</div></div>
+              {v.cureDeadline && (
+                <div><div className="text-gray-500">Cure Deadline</div><div className={cn(v.isOverdue ? 'text-red-400 font-semibold' : 'text-gray-200')}>{v.cureDeadline}{v.isOverdue ? ' (overdue)' : ''}</div></div>
+              )}
+              {v.hearingDate && (
+                <div><div className="text-gray-500">Hearing</div><div className="text-purple-300">{v.hearingDate}{v.hearingTime ? ` @ ${v.hearingTime}` : ''}</div></div>
+              )}
+              {(v.penaltyImposed != null && v.penaltyImposed > 0) && (
+                <>
+                  <div><div className="text-gray-500">Penalty Imposed</div><div className="text-gray-200">{formatCurrency(v.penaltyImposed)}</div></div>
+                  <div><div className="text-gray-500">Balance Due</div><div className="text-red-400">{formatCurrency(v.balanceDue || 0)}</div></div>
+                </>
+              )}
+              <div><div className="text-gray-500">Est. Resolution Cost</div><div className="text-camelot-gold">{formatCurrency(v.costLow)} \u2013 {formatCurrency(v.costHigh)}</div></div>
+            </div>
+          </div>
+          <div className="bg-camelot-navy rounded-lg p-3 border border-white/10">
+            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">{guide.label} \u2014 How to Resolve</div>
+            <ul className="space-y-1 mb-3">
+              {guide.steps.map((s, i) => (
+                <li key={i} className="text-xs text-gray-300 flex gap-1.5"><span className="text-camelot-gold">{i + 1}.</span>{s}</li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap gap-1.5">
+              {guide.companies.map(c => (
+                <span key={c} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[11px] text-gray-300">{c}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -158,7 +264,8 @@ function DeadlineRow({ item, address, borough, guestEmails }: { item: DeadlineIt
 }
 
 export default function Violations() {
-  const { buildings, loadBuildings } = useBuildings();
+  const [buildings, setBuildings] = useState<PortfolioBuildingLite[]>([]);
+  const [buildingsError, setBuildingsError] = useState<string | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState('');
   const [address, setAddress] = useState('');
   const [borough, setBorough] = useState('BROOKLYN');
@@ -172,7 +279,25 @@ export default function Violations() {
   const [guestEmailsInput, setGuestEmailsInput] = useState('');
   const [showSharePanel, setShowSharePanel] = useState(false);
 
-  useEffect(() => { loadBuildings(); }, [loadBuildings]);
+  useEffect(() => {
+    // Pull the real, Spire MDS-synced managed portfolio (not the Scout prospecting list) —
+    // see src/pages/Portfolio.tsx for the canonical source of this data.
+    (async () => {
+      try {
+        const res = await authenticatedApiFetch('/api/portfolio');
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.message || body?.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        setBuildings(data?.buildings || []);
+        setBuildingsError(null);
+      } catch (err: any) {
+        setBuildings([]);
+        setBuildingsError(err?.message || 'Could not load the managed portfolio');
+      }
+    })();
+  }, []);
 
   const guestEmails = useMemo(
     () => guestEmailsInput.split(',').map(e => e.trim()).filter(Boolean),
@@ -180,7 +305,7 @@ export default function Violations() {
   );
 
   const sortedBuildings = useMemo(
-    () => [...buildings].sort((a, b) => (a.name || a.address).localeCompare(b.name || b.address)),
+    () => [...buildings].sort((a, b) => (a.building_name || a.address || '').localeCompare(b.building_name || b.address || '')),
     [buildings]
   );
 
@@ -204,9 +329,9 @@ export default function Violations() {
   const handleSelectBuilding = useCallback((id: string) => {
     setSelectedBuildingId(id);
     if (!id) return;
-    const b = buildings.find(bb => bb.id === id);
-    if (!b) return;
-    const boro = (b.borough || 'MANHATTAN').toUpperCase();
+    const b = buildings.find(bb => String(bb.id) === id);
+    if (!b || !b.address) return;
+    const boro = cityToBorough(b.city);
     setAddress(b.address);
     setBorough(boro);
     handleSearch(b.address, boro);
@@ -452,11 +577,11 @@ export default function Violations() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Shield className="text-camelot-gold" size={28} />
           Violation & Resolution Center
         </h1>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-slate-600 text-sm mt-1">
           Pick a building from the portfolio or search any NYC property to pull violations, hearings, penalties, and generate a resolution report
         </p>
       </div>
@@ -472,15 +597,18 @@ export default function Violations() {
               onChange={e => handleSelectBuilding(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-camelot-navy border border-white/10 rounded-lg text-white outline-none text-lg appearance-none"
             >
-              <option value="">Select a Camelot building\u2026 ({sortedBuildings.length} in portfolio)</option>
+              <option value="">{`Select a Camelot building\u2026 (${sortedBuildings.length} in portfolio)`}</option>
               {sortedBuildings.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.name ? `${b.name} \u2014 ${b.address}` : b.address}{b.borough ? `, ${b.borough}` : ''}
+                <option key={b.id} value={String(b.id)}>
+                  {b.building_name ? `${b.building_name} \u2014 ${b.address}` : b.address}{b.city ? `, ${b.city}` : ''}
                 </option>
               ))}
             </select>
             <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
+          {buildingsError && (
+            <p className="text-xs text-gray-500 mt-1.5">{`Couldn't load the managed portfolio automatically (${buildingsError}) \u2014 use the address field below instead.`}</p>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -590,7 +718,7 @@ export default function Violations() {
               <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Gavel size={14} className="text-camelot-gold" /> Upcoming Hearings & Deadlines
-                  <span className="text-xs text-gray-500 font-normal">\u2014 time-sensitive, don't let these slip</span>
+                  <span className="text-xs text-gray-500 font-normal">{'\u2014 time-sensitive, don\'t let these slip'}</span>
                 </h3>
                 <div className="flex items-center gap-2">
                   <button onClick={addAllToCalendar} className="flex items-center gap-2 px-3 py-1.5 bg-camelot-gold/20 text-camelot-gold rounded-lg hover:bg-camelot-gold/30 text-xs">
@@ -605,7 +733,7 @@ export default function Violations() {
               {showSharePanel && (
                 <div className="px-4 py-3 bg-white/5 border-b border-white/10 flex flex-col md:flex-row gap-3 md:items-end">
                   <div className="flex-1">
-                    <label className="text-gray-400 text-xs mb-1 block">Guest email(s), comma-separated \u2014 used for "Add to Google Calendar" invites and the emailed calendar</label>
+                    <label className="text-gray-400 text-xs mb-1 block">{'Guest email(s), comma-separated \u2014 used for "Add to Google Calendar" invites and the emailed calendar'}</label>
                     <input
                       type="text"
                       value={guestEmailsInput}
@@ -708,6 +836,7 @@ export default function Violations() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5">
+                  <th className="text-left px-4 py-3 text-gray-400 font-medium w-6"></th>
                   <th className="text-left px-4 py-3 text-gray-400 font-medium w-16">Source</th>
                   <th className="text-left px-4 py-3 text-gray-400 font-medium w-20">Class</th>
                   <th className="text-left px-4 py-3 text-gray-400 font-medium w-20">Unit</th>
@@ -719,15 +848,22 @@ export default function Violations() {
                 </tr>
               </thead>
               <tbody>
-                {filteredViolations.slice(0, 200).map((v, i) => (
+                {filteredViolations.slice(0, 200).map((v, i) => {
+                  const rowKey = `${v.source}-${v.violationId}-${i}`;
+                  const isExpanded = expandedId === rowKey;
+                  return (
+                  <Fragment key={rowKey}>
                   <tr
-                    key={`${v.source}-${v.violationId}-${i}`}
                     className={cn(
                       'border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors',
-                      v.isOverdue && v.isOpen && 'bg-red-500/5'
+                      v.isOverdue && v.isOpen && 'bg-red-500/5',
+                      isExpanded && 'bg-camelot-gold/5'
                     )}
-                    onClick={() => setExpandedId(expandedId === `${v.source}-${v.violationId}-${i}` ? null : `${v.source}-${v.violationId}-${i}`)}
+                    onClick={() => setExpandedId(isExpanded ? null : rowKey)}
                   >
+                    <td className="px-4 py-2 text-gray-500">
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </td>
                     <td className="px-4 py-2">
                       <span className={cn('px-2 py-0.5 rounded text-xs font-medium',
                         v.source === 'HPD' ? 'bg-purple-500/20 text-purple-400' :
@@ -755,7 +891,10 @@ export default function Violations() {
                     <td className="px-4 py-2 text-gray-300 text-xs">{formatCurrency(v.costLow)} - {formatCurrency(v.costHigh)}</td>
                     <td className="px-4 py-2 text-gray-400 text-xs">{v.players?.slice(0, 2).join(', ')}{v.players?.length > 2 ? ` +${v.players.length - 2}` : ''}</td>
                   </tr>
-                ))}
+                  {isExpanded && <ViolationDetailPanel v={v} />}
+                  </Fragment>
+                  );
+                })}
               </tbody>
             </table>
             {filteredViolations.length > 200 && (

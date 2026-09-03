@@ -2,8 +2,15 @@ import { useState, useCallback, useEffect, useMemo, Fragment } from 'react';
 import { cn, formatCurrency } from '@/lib/utils';
 import {
   searchViolations, type ViolationSummary, type ViolationResult, type UpcomingHearing,
-  RESOLUTION_GUIDE,
+  RESOLUTION_GUIDE, dismissalGuideFor,
 } from '@/lib/nyc-violations';
+import {
+  buildViolationKey, getViolationTracking, updateViolationTracking, addViolationNote, deleteViolationNote,
+  uploadViolationDocument, getViolationDocumentUrl, deleteViolationDocument, INTERNAL_STATUS_LABELS,
+  listAlertSubscriptions, createAlertSubscription, deleteAlertSubscription, runViolationMonitorNow, getAlertLog,
+  type ViolationTrackingRow, type ViolationNote, type ViolationDocument, type InternalStatus, type HearingOutcome,
+  type AlertSubscription, type AlertLogRow,
+} from '@/lib/violation-tracking';
 import { buildICS, downloadICS, googleCalendarLink, outlookCalendarLink, type CalEvent } from '@/lib/calendar-export';
 import { DAVID_GOLDOFF_SIGNATURE_TEXT, DAVID_GOLDOFF_SIGNATURE } from '@/lib/camelot-signature';
 import { wrapCamelotEmailHtml } from '@/lib/camelot-email-branding';
@@ -15,7 +22,7 @@ import {
   AlertTriangle, Shield, Search, Loader2, RefreshCw,
   AlertCircle, Clock, DollarSign, Users, Calendar, FileDown, Printer, Mail,
   Building2, MapPin, ChevronDown, ChevronUp, ExternalLink, CalendarPlus, Share2,
-  Gavel, Wrench, X,
+  Gavel, Wrench, X, EyeOff, MessageSquare, Paperclip, UploadCloud, Trash2, BellRing,
 } from 'lucide-react';
 
 const BOROUGHS = ['MANHATTAN', 'BROOKLYN', 'BRONX', 'QUEENS', 'STATEN ISLAND'];
@@ -94,7 +101,7 @@ function buildViolationLinksLines(violations: ViolationResult[]): string[] {
   for (const [source, vs] of bySource) {
     const portal = VIOLATION_PORTALS[source];
     if (!portal) continue;
-    lines.push(`${source} \u2014 ${portal.label}: ${portal.url}`);
+    lines.push(`${source} — ${portal.label}: ${portal.url}`);
     const ids = vs.map(v => v.violationId).filter(Boolean);
     if (ids.length) lines.push(`  ${source} violation number(s) to search: ${ids.join(', ')}`);
   }
@@ -118,17 +125,143 @@ function summarizeViolation(v: ViolationResult): string {
   if (v.penaltyImposed != null && v.penaltyImposed > 0) {
     parts.push(`Penalty imposed: ${formatCurrency(v.penaltyImposed)}${v.amountPaid ? `, paid: ${formatCurrency(v.amountPaid)}` : ''}${v.balanceDue ? `, balance due: ${formatCurrency(v.balanceDue)}` : ''}.`);
   } else if (v.isOverdue && (v.penaltyAccruedLow || v.penaltyAccruedHigh)) {
-    parts.push(`Estimated civil penalty accrued to date: ${formatCurrency(v.penaltyAccruedLow || 0)}\u2013${formatCurrency(v.penaltyAccruedHigh || 0)}, accruing roughly ${formatCurrency(v.penaltyDailyLow || 0)}\u2013${formatCurrency(v.penaltyDailyHigh || 0)} per day until corrected.`);
+    parts.push(`Estimated civil penalty accrued to date: ${formatCurrency(v.penaltyAccruedLow || 0)}–${formatCurrency(v.penaltyAccruedHigh || 0)}, accruing roughly ${formatCurrency(v.penaltyDailyLow || 0)}–${formatCurrency(v.penaltyDailyHigh || 0)} per day until corrected.`);
   } else if (v.penaltyDailyLow || v.penaltyDailyHigh) {
-    parts.push(`If not corrected by the deadline, this class carries a civil penalty of roughly ${formatCurrency(v.penaltyDailyLow || 0)}\u2013${formatCurrency(v.penaltyDailyHigh || 0)} per day.`);
+    parts.push(`If not corrected by the deadline, this class carries a civil penalty of roughly ${formatCurrency(v.penaltyDailyLow || 0)}–${formatCurrency(v.penaltyDailyHigh || 0)} per day.`);
   }
-  parts.push(`Estimated resolution cost: ${formatCurrency(v.costLow)}\u2013${formatCurrency(v.costHigh)}.`);
+  parts.push(`Estimated resolution cost: ${formatCurrency(v.costLow)}–${formatCurrency(v.costHigh)}.`);
   if (v.players?.length) parts.push(`Typically requires: ${v.players.join(', ')}.`);
   return parts.join(' ');
 }
 
-function ViolationDetailPanel({ v }: { v: ViolationResult }) {
+function ViolationDetailPanel({ v, address, borough, buildingId }: { v: ViolationResult; address: string; borough: string; buildingId: number | null }) {
   const guide = RESOLUTION_GUIDE[v.resolutionKey] || RESOLUTION_GUIDE.DEFAULT;
+  const dismissal = dismissalGuideFor(v.resolutionKey, v.source);
+  const key = useMemo(() => buildViolationKey(v.source, v.violationId, address), [v.source, v.violationId, address]);
+
+  const [loading, setLoading] = useState(true);
+  const [tracking, setTracking] = useState<ViolationTrackingRow | null>(null);
+  const [notes, setNotes] = useState<ViolationNote[]>([]);
+  const [documents, setDocuments] = useState<ViolationDocument[]>([]);
+  const [status, setStatus] = useState<InternalStatus>('new');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [assignedToEmail, setAssignedToEmail] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [hearingOutcome, setHearingOutcome] = useState<HearingOutcome | ''>('');
+  const [hearingOutcomeNotes, setHearingOutcomeNotes] = useState('');
+  const [savingTracking, setSavingTracking] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getViolationTracking(key)
+      .then(({ tracking: t, notes: n, documents: d }) => {
+        if (cancelled) return;
+        setTracking(t);
+        setStatus(t.internal_status || 'new');
+        setAssignedTo(t.assigned_to || '');
+        setAssignedToEmail(t.assigned_to_email || '');
+        setDueDate(t.due_date || '');
+        setHearingOutcome((t.hearing_outcome as HearingOutcome) || '');
+        setHearingOutcomeNotes(t.hearing_outcome_notes || '');
+        setNotes(n);
+        setDocuments(d);
+      })
+      .catch(() => { /* tracking layer is best-effort — the core violation data above still works */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [key]);
+
+  const saveTracking = async () => {
+    setSavingTracking(true);
+    try {
+      const { tracking: t } = await updateViolationTracking({
+        violationKey: key, buildingId, address, borough, source: v.source, violationId: v.violationId,
+        internalStatus: status, assignedTo, assignedToEmail, dueDate: dueDate || null,
+        hearingOutcome: hearingOutcome || null, hearingOutcomeNotes,
+        updatedBy: DAVID_GOLDOFF_SIGNATURE.name,
+      });
+      setTracking(t);
+      toast.success('Saved');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save');
+    } finally {
+      setSavingTracking(false);
+    }
+  };
+
+  const markNotMe = async () => {
+    setStatus('not_me');
+    setSavingTracking(true);
+    try {
+      const { tracking: t } = await updateViolationTracking({
+        violationKey: key, buildingId, address, borough, source: v.source, violationId: v.violationId,
+        internalStatus: 'not_me', updatedBy: DAVID_GOLDOFF_SIGNATURE.name,
+      });
+      setTracking(t);
+      onNotMe(key);
+      toast.success('Marked as not affiliated — hidden from default view');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to save');
+    } finally {
+      setSavingTracking(false);
+    }
+  };
+
+  const submitNote = async () => {
+    if (!noteText.trim()) return;
+    setSavingNote(true);
+    try {
+      const { note } = await addViolationNote(key, DAVID_GOLDOFF_SIGNATURE.name, noteText.trim());
+      setNotes(prev => [note, ...prev]);
+      setNoteText('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add note');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const removeNote = async (id: number) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+    try { await deleteViolationNote(id); } catch { /* already optimistically removed */ }
+  };
+
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const { document } = await uploadViolationDocument({ violationKey: key, file, uploadedBy: DAVID_GOLDOFF_SIGNATURE.name });
+        setDocuments(prev => [document, ...prev]);
+      }
+      toast.success(`${files.length} file(s) attached`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const viewDoc = async (id: number) => {
+    try {
+      const url = await getViolationDocumentUrl(id);
+      window.open(url, '_blank');
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not open file');
+    }
+  };
+
+  const removeDoc = async (id: number) => {
+    setDocuments(prev => prev.filter(d => d.id !== id));
+    try { await deleteViolationDocument(id); } catch { /* already optimistically removed */ }
+  };
+
   return (
     <tr className="bg-white/[0.03] border-b border-white/10">
       <td colSpan={9} className="px-4 py-4">
@@ -140,13 +273,13 @@ function ViolationDetailPanel({ v }: { v: ViolationResult }) {
             </div>
             <div>
               <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Full Description</div>
-              <p className="text-sm text-gray-300">{v.description || '\u2014'}</p>
+              <p className="text-sm text-gray-300">{v.description || '—'}</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-              <div><div className="text-gray-500">Violation ID</div><div className="text-gray-200">{v.violationId || '\u2014'}</div></div>
+              <div><div className="text-gray-500">Violation ID</div><div className="text-gray-200">{v.violationId || '—'}</div></div>
               <div><div className="text-gray-500">Source / Class</div><div className="text-gray-200">{v.source} {v.violationClass}</div></div>
               <div><div className="text-gray-500">Unit</div><div className="text-gray-200">{v.unit || 'Building'}</div></div>
-              <div><div className="text-gray-500">Inspection / Issue Date</div><div className="text-gray-200">{v.inspectionDate || '\u2014'}</div></div>
+              <div><div className="text-gray-500">Inspection / Issue Date</div><div className="text-gray-200">{v.inspectionDate || '—'}</div></div>
               <div><div className="text-gray-500">Status</div><div className={cn(v.isOpen ? 'text-red-400' : 'text-green-400')}>{v.status}</div></div>
               {v.cureDeadline && (
                 <div><div className="text-gray-500">Cure Deadline</div><div className={cn(v.isOverdue ? 'text-red-400 font-semibold' : 'text-gray-200')}>{v.cureDeadline}{v.isOverdue ? ' (overdue)' : ''}</div></div>
@@ -160,25 +293,284 @@ function ViolationDetailPanel({ v }: { v: ViolationResult }) {
                   <div><div className="text-gray-500">Balance Due</div><div className="text-red-400">{formatCurrency(v.balanceDue || 0)}</div></div>
                 </>
               )}
-              <div><div className="text-gray-500">Est. Resolution Cost</div><div className="text-camelot-gold">{formatCurrency(v.costLow)} \u2013 {formatCurrency(v.costHigh)}</div></div>
+              <div><div className="text-gray-500">Est. Resolution Cost</div><div className="text-camelot-gold">{formatCurrency(v.costLow)} – {formatCurrency(v.costHigh)}</div></div>
+            </div>
+
+            {/* Internal tracking: status, assignment, hearing outcome */}
+            <div className="bg-camelot-navy rounded-lg p-3 border border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-500 uppercase tracking-wide">Internal Tracking</div>
+                <button onClick={markNotMe} disabled={savingTracking} title="Hide this violation — not affiliated with our respondent" className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-red-400">
+                  <EyeOff size={11} /> Not Me
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[10px] text-gray-500 block mb-0.5">Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value as InternalStatus)} className="w-full px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white outline-none">
+                    {Object.entries(INTERNAL_STATUS_LABELS).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 block mb-0.5">Assigned To</label>
+                  <input type="text" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} placeholder="Name" className="w-full px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white placeholder-gray-500 outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 block mb-0.5">Assignee Email</label>
+                  <input type="email" value={assignedToEmail} onChange={e => setAssignedToEmail(e.target.value)} placeholder="name@camelot.nyc" className="w-full px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white placeholder-gray-500 outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500 block mb-0.5">Due Date</label>
+                  <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white outline-none" />
+                </div>
+              </div>
+              {v.hearingDate && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] text-gray-500 block mb-0.5">Hearing Outcome</label>
+                    <select value={hearingOutcome} onChange={e => setHearingOutcome(e.target.value as HearingOutcome)} className="w-full px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white outline-none">
+                      <option value="">Not yet known</option>
+                      <option value="pending">Pending</option>
+                      <option value="won">Won / Dismissed</option>
+                      <option value="settled">Settled</option>
+                      <option value="adjourned">Adjourned</option>
+                      <option value="default">Default Judgment</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] text-gray-500 block mb-0.5">Hearing Notes</label>
+                    <input type="text" value={hearingOutcomeNotes} onChange={e => setHearingOutcomeNotes(e.target.value)} placeholder="e.g. represented by counsel, penalty reduced to $X" className="w-full px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white placeholder-gray-500 outline-none" />
+                  </div>
+                </div>
+              )}
+              <button onClick={saveTracking} disabled={savingTracking || loading} className="px-3 py-1.5 bg-camelot-gold text-camelot-navy text-xs font-semibold rounded hover:bg-camelot-gold/90 disabled:opacity-50">
+                {savingTracking ? 'Saving...' : 'Save Tracking'}
+              </button>
+            </div>
+
+            {/* Notes thread */}
+            <div className="bg-camelot-navy rounded-lg p-3 border border-white/10">
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5"><MessageSquare size={12} /> Notes</div>
+              <div className="flex gap-2 mb-2">
+                <input type="text" value={noteText} onChange={e => setNoteText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitNote()} placeholder="Add a note for the team..." className="flex-1 px-2 py-1.5 bg-camelot-navy-light border border-white/10 rounded text-xs text-white placeholder-gray-500 outline-none" />
+                <button onClick={submitNote} disabled={savingNote || !noteText.trim()} className="px-3 py-1.5 bg-white/10 border border-white/20 rounded text-xs text-white hover:bg-white/20 disabled:opacity-50">Add</button>
+              </div>
+              {notes.length === 0 && !loading ? (
+                <p className="text-xs text-gray-500">No notes yet.</p>
+              ) : (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {notes.map(n => (
+                    <div key={n.id} className="text-xs bg-white/5 rounded px-2 py-1.5 flex items-start justify-between gap-2">
+                      <div>
+                        <span className="text-camelot-gold font-medium">{n.author}</span>{' '}
+                        <span className="text-gray-500">{new Date(n.created_at).toLocaleString()}</span>
+                        <p className="text-gray-300 mt-0.5">{n.body}</p>
+                      </div>
+                      <button onClick={() => removeNote(n.id)} className="text-gray-600 hover:text-red-400 shrink-0"><X size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Document / photo attachments */}
+            <div className="bg-camelot-navy rounded-lg p-3 border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-gray-500 uppercase tracking-wide flex items-center gap-1.5"><Paperclip size={12} /> Documents &amp; Photos</div>
+                <label className="flex items-center gap-1 text-[11px] text-camelot-gold hover:underline cursor-pointer">
+                  <UploadCloud size={12} /> {uploading ? 'Uploading...' : 'Attach file'}
+                  <input type="file" multiple onChange={onUpload} disabled={uploading} className="hidden" />
+                </label>
+              </div>
+              {documents.length === 0 ? (
+                <p className="text-xs text-gray-500">No files attached — attach the violation notice, proof of correction, permits, or photos.</p>
+              ) : (
+                <div className="space-y-1">
+                  {documents.map(d => (
+                    <div key={d.id} className="text-xs bg-white/5 rounded px-2 py-1.5 flex items-center justify-between gap-2">
+                      <button onClick={() => viewDoc(d.id)} className="text-gray-200 hover:text-camelot-gold truncate text-left">{d.filename}</button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-gray-500">{d.doc_type.replace(/_/g, ' ')}</span>
+                        <button onClick={() => removeDoc(d.id)} className="text-gray-600 hover:text-red-400"><Trash2 size={11} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="bg-camelot-navy rounded-lg p-3 border border-white/10">
-            <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">{guide.label} \u2014 How to Resolve</div>
-            <ul className="space-y-1 mb-3">
-              {guide.steps.map((s, i) => (
-                <li key={i} className="text-xs text-gray-300 flex gap-1.5"><span className="text-camelot-gold">{i + 1}.</span>{s}</li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap gap-1.5">
-              {guide.companies.map(c => (
-                <span key={c} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[11px] text-gray-300">{c}</span>
-              ))}
+          <div className="space-y-3">
+            <div className="bg-camelot-navy rounded-lg p-3 border border-white/10">
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">{guide.label} — How to Resolve</div>
+              <ul className="space-y-1 mb-3">
+                {guide.steps.map((s, i) => (
+                  <li key={i} className="text-xs text-gray-300 flex gap-1.5"><span className="text-camelot-gold">{i + 1}.</span>{s}</li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap gap-1.5">
+                {guide.companies.map(c => (
+                  <span key={c} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-[11px] text-gray-300">{c}</span>
+                ))}
+              </div>
+            </div>
+            <div className="bg-camelot-navy rounded-lg p-3 border border-camelot-gold/20">
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Dismissal &amp; Removal Paperwork</div>
+              <p className="text-xs text-gray-300 mb-1.5">{dismissal.formName}</p>
+              <a href={dismissal.formUrl} target="_blank" rel="noreferrer" className="text-xs text-camelot-gold hover:underline flex items-center gap-1 mb-2">
+                <ExternalLink size={11} /> Open official form / page
+              </a>
+              <div className="text-[11px] text-gray-400 mb-1"><span className="text-gray-500">Fee:</span> {dismissal.fee}</div>
+              <div className="text-[11px] text-gray-400"><span className="text-gray-500">Deadline:</span> {dismissal.deadline}</div>
             </div>
           </div>
         </div>
       </td>
     </tr>
+  );
+}
+
+/** Portfolio-wide monitoring & alert-subscription management — self-contained
+ *  so it can be toggled open without affecting the single-building report state. */
+function PortfolioAlertsPanel({ buildings, onClose }: { buildings: PortfolioBuildingLite[]; onClose: () => void }) {
+  const [subs, setSubs] = useState<AlertSubscription[]>([]);
+  const [log, setLog] = useState<AlertLogRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [scope, setScope] = useState<'portfolio' | 'building'>('portfolio');
+  const [buildingId, setBuildingId] = useState('');
+  const [notifyNew, setNotifyNew] = useState(true);
+  const [notifyStatus, setNotifyStatus] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [s, l] = await Promise.all([listAlertSubscriptions(), getAlertLog()]);
+      setSubs(s);
+      setLog(l);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to load alert settings');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const addSub = async () => {
+    if (!email.trim()) { toast.error('Enter an email address'); return; }
+    try {
+      await createAlertSubscription({
+        email: email.trim(), name: name.trim() || undefined, scope,
+        buildingId: scope === 'building' && buildingId ? Number(buildingId) : undefined,
+        notifyNewViolations: notifyNew, notifyStatusChanges: notifyStatus,
+      });
+      setEmail(''); setName(''); setBuildingId('');
+      toast.success('Subscribed');
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to add subscription');
+    }
+  };
+
+  const removeSub = async (id: number) => {
+    setSubs(prev => prev.filter(s => s.id !== id));
+    try { await deleteAlertSubscription(id); } catch { /* already optimistically removed */ }
+  };
+
+  const runNow = async () => {
+    setRunning(true);
+    toast.loading('Scanning portfolio for new violations, status changes, and upcoming hearings…', { id: 'run-monitor' });
+    try {
+      const result = await runViolationMonitorNow();
+      if (result.status === 'error') {
+        toast.error(result.error || 'Scan failed', { id: 'run-monitor' });
+      } else {
+        toast.success(`Scanned ${result.buildingsScanned ?? 0} building(s) — ${result.newViolationsFound ?? 0} new, ${result.statusChangesFound ?? 0} changed, ${result.hearingsFlagged ?? 0} hearing(s) flagged`, { id: 'run-monitor', duration: 6000 });
+      }
+      load();
+    } catch (err: any) {
+      toast.error(err?.message || 'Scan failed', { id: 'run-monitor' });
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="bg-camelot-navy-light rounded-xl p-6 border border-camelot-gold/20 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2"><BellRing size={16} className="text-camelot-gold" /> Portfolio-Wide Monitoring &amp; Alerts</h3>
+        <div className="flex items-center gap-2">
+          <button onClick={runNow} disabled={running} className="flex items-center gap-1.5 px-3 py-1.5 bg-camelot-gold text-camelot-navy text-xs font-semibold rounded-lg hover:bg-camelot-gold/90 disabled:opacity-50">
+            {running ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Run Scan Now
+          </button>
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-white"><X size={16} /></button>
+        </div>
+      </div>
+      <p className="text-xs text-gray-400">Scans every active building in the portfolio every 6 hours for brand-new violations, status changes, and hearings coming up within 14 days — and emails a digest to anyone subscribed below.</p>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <div className="text-xs text-gray-500 uppercase tracking-wide">Subscribe to Alerts</div>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@camelot.nyc" className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none" />
+          <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Name (optional)" className="w-full px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white placeholder-gray-500 outline-none" />
+          <div className="flex gap-2">
+            <select value={scope} onChange={e => setScope(e.target.value as 'portfolio' | 'building')} className="flex-1 px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white outline-none">
+              <option value="portfolio">Whole portfolio</option>
+              <option value="building">One building</option>
+            </select>
+            {scope === 'building' && (
+              <select value={buildingId} onChange={e => setBuildingId(e.target.value)} className="flex-1 px-3 py-2 bg-camelot-navy border border-white/10 rounded text-sm text-white outline-none">
+                <option value="">Select building…</option>
+                {buildings.map(b => <option key={b.id} value={String(b.id)}>{b.building_name || b.address}</option>)}
+              </select>
+            )}
+          </div>
+          <div className="flex gap-4 text-xs text-gray-300">
+            <label className="flex items-center gap-1.5"><input type="checkbox" checked={notifyNew} onChange={e => setNotifyNew(e.target.checked)} /> New violations</label>
+            <label className="flex items-center gap-1.5"><input type="checkbox" checked={notifyStatus} onChange={e => setNotifyStatus(e.target.checked)} /> Status changes</label>
+          </div>
+          <button onClick={addSub} className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-sm text-white hover:bg-white/20">Add Subscription</button>
+
+          {subs.length > 0 && (
+            <div className="space-y-1 pt-2">
+              {subs.map(s => (
+                <div key={s.id} className="flex items-center justify-between text-xs bg-white/5 rounded px-2 py-1.5">
+                  <span className="text-gray-300">{s.email} {s.name ? `(${s.name})` : ''} — {s.scope === 'building' ? (buildings.find(b => b.id === s.building_id)?.building_name || 'one building') : 'whole portfolio'}</span>
+                  <button onClick={() => removeSub(s.id)} className="text-gray-600 hover:text-red-400"><X size={12} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-xs text-gray-500 uppercase tracking-wide">Recent Scan History</div>
+          {loading ? (
+            <p className="text-xs text-gray-500">Loading…</p>
+          ) : log.length === 0 ? (
+            <p className="text-xs text-gray-500">No scans yet — click "Run Scan Now" or wait for the next scheduled scan.</p>
+          ) : (
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {log.map(l => (
+                <div key={l.id} className="text-xs bg-white/5 rounded px-2 py-1.5">
+                  <div className="flex justify-between text-gray-400">
+                    <span>{new Date(l.run_at).toLocaleString()}</span>
+                    {l.error ? <span className="text-red-400">Error</span> : <span className="text-green-400">OK</span>}
+                  </div>
+                  {!l.error ? (
+                    <div className="text-gray-300 mt-0.5">{l.buildings_scanned} scanned · {l.new_violations_found} new · {l.status_changes_found} changed · {l.hearings_flagged} hearings · {l.emails_sent} email(s) sent</div>
+                  ) : (
+                    <div className="text-red-400/80 mt-0.5">{l.error}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -242,7 +634,7 @@ function deadlineToCalEvent(item: DeadlineItem, address: string, borough: string
   return {
     id: item.id,
     title: `${label}: ${address}`,
-    description: `${item.description || 'Violation'} \u2014 ${item.source} #${item.violationId}${item.status ? ` \u2014 Status: ${item.status}` : ''}${item.balanceDue ? ` \u2014 Balance due: ${formatCurrency(item.balanceDue)}` : ''}\n\nPrepared by Camelot Property Management Services Corp.`,
+    description: `${item.description || 'Violation'} — ${item.source} #${item.violationId}${item.status ? ` — Status: ${item.status}` : ''}${item.balanceDue ? ` — Balance due: ${formatCurrency(item.balanceDue)}` : ''}\n\nPrepared by Camelot Property Management Services Corp.`,
     location: `${address}, ${borough}`,
     dateISO: item.dateISO,
     time: item.time,
@@ -263,15 +655,15 @@ function DeadlineRow({ item, address, borough, guestEmails }: { item: DeadlineIt
           {isHearing ? 'HEARING' : 'DEADLINE'}
         </span>
       </td>
-      <td className="px-4 py-2 text-xs text-gray-300">{item.source} #{item.violationId || '\u2014'}</td>
+      <td className="px-4 py-2 text-xs text-gray-300">{item.source} #{item.violationId || '—'}</td>
       <td className="px-4 py-2 text-xs text-gray-300 max-w-xs truncate">{item.description?.substring(0, 90)}</td>
       <td className="px-4 py-2 text-xs">
         <span className={cn('font-medium', item.isPast ? 'text-red-400' : 'text-white')}>
-          {item.dateISO}{item.time ? ` @ ${item.time}` : ''} {item.isPast && '\u26A0\uFE0F'}
+          {item.dateISO}{item.time ? ` @ ${item.time}` : ''} {item.isPast && '⚠️'}
         </span>
       </td>
-      <td className="px-4 py-2 text-xs text-gray-400">{item.status || '\u2014'}</td>
-      <td className="px-4 py-2 text-xs text-gray-300">{item.balanceDue ? formatCurrency(item.balanceDue) : '\u2014'}</td>
+      <td className="px-4 py-2 text-xs text-gray-400">{item.status || '—'}</td>
+      <td className="px-4 py-2 text-xs text-gray-300">{item.balanceDue ? formatCurrency(item.balanceDue) : '—'}</td>
       <td className="px-4 py-2">
         <div className="flex items-center gap-1.5">
           <a
@@ -303,6 +695,7 @@ export default function Violations() {
   const [borough, setBorough] = useState('BROOKLYN');
   const [isSearching, setIsSearching] = useState(false);
   const [result, setResult] = useState<ViolationSummary | null>(null);
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
   const [filterSource, setFilterSource] = useState('all');
   const [filterSeverity, setFilterSeverity] = useState('all');
   const [filterOpen, setFilterOpen] = useState(true);
@@ -311,6 +704,7 @@ export default function Violations() {
   const [guestEmailsInput, setGuestEmailsInput] = useState('');
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [showEmailPanel, setShowEmailPanel] = useState(false);
+  const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const [emailRecipientName, setEmailRecipientName] = useState('');
   const [emailRecipientAddress, setEmailRecipientAddress] = useState('');
   const [emailSenderChoice, setEmailSenderChoice] = useState<'david' | 'other'>('david');
@@ -339,9 +733,9 @@ export default function Violations() {
     if (emailSenderChoice === 'david') {
       return `<div style="margin-top:22px;font-family:Arial,Helvetica,sans-serif;color:#1a1f36;line-height:1.5">`
         + `<div style="font-size:14px;font-weight:700">${DAVID_GOLDOFF_SIGNATURE.name}</div>`
-        + `<div style="font-size:12px;color:#555">${DAVID_GOLDOFF_SIGNATURE.title} \u2014 Camelot Property Management Services Corp.</div>`
+        + `<div style="font-size:12px;color:#555">${DAVID_GOLDOFF_SIGNATURE.title} — Camelot Property Management Services Corp.</div>`
         + `<div style="font-size:12px;margin-top:4px">${DAVID_GOLDOFF_SIGNATURE.phone}</div>`
-        + `<div style="font-size:12px">Email: <a href="mailto:${DAVID_GOLDOFF_SIGNATURE.email}" style="color:#a8853a">${DAVID_GOLDOFF_SIGNATURE.email}</a> &nbsp;\u00b7&nbsp; <a href="https://${DAVID_GOLDOFF_SIGNATURE.web}" style="color:#a8853a">${DAVID_GOLDOFF_SIGNATURE.web}</a></div>`
+        + `<div style="font-size:12px">Email: <a href="mailto:${DAVID_GOLDOFF_SIGNATURE.email}" style="color:#a8853a">${DAVID_GOLDOFF_SIGNATURE.email}</a> &nbsp;·&nbsp; <a href="https://${DAVID_GOLDOFF_SIGNATURE.web}" style="color:#a8853a">${DAVID_GOLDOFF_SIGNATURE.web}</a></div>`
         + `</div>`;
     }
     const name = otherSenderName.trim() || '(sender name)';
@@ -349,7 +743,7 @@ export default function Violations() {
     const email = otherSenderEmail.trim();
     return `<div style="margin-top:22px;font-family:Arial,Helvetica,sans-serif;color:#1a1f36;line-height:1.5">`
       + `<div style="font-size:14px;font-weight:700">${name}</div>`
-      + (title ? `<div style="font-size:12px;color:#555">${title} \u2014 Camelot Property Management Services Corp.</div>` : `<div style="font-size:12px;color:#555">Camelot Property Management Services Corp.</div>`)
+      + (title ? `<div style="font-size:12px;color:#555">${title} — Camelot Property Management Services Corp.</div>` : `<div style="font-size:12px;color:#555">Camelot Property Management Services Corp.</div>`)
       + (email ? `<div style="font-size:12px">Email: <a href="mailto:${email}" style="color:#a8853a">${email}</a></div>` : '')
       + `</div>`;
   };
@@ -412,7 +806,23 @@ export default function Violations() {
     handleSearch(b.address, boro);
   }, [buildings, handleSearch]);
 
+  useEffect(() => {
+    if (!result || !result.violations.length) { setHiddenKeys(new Set()); return; }
+    let cancelled = false;
+    const keys = result.violations.map(v => buildViolationKey(v.source, v.violationId, result.address));
+    getBulkViolationStatuses(keys)
+      .then(statuses => {
+        if (cancelled) return;
+        const hidden = new Set(Object.entries(statuses).filter(([, s]) => s === 'not_me').map(([k]) => k));
+        setHiddenKeys(hidden);
+      })
+      .catch(() => { /* best-effort — if this fails, all violations just stay visible */ });
+    return () => { cancelled = true; };
+  }, [result]);
+
   const filteredViolations = (result?.violations || []).filter(v => {
+    if (!result) return false;
+    if (hiddenKeys.has(buildViolationKey(v.source, v.violationId, result.address))) return false;
     if (filterOpen && !v.isOpen) return false;
     if (filterSource !== 'all' && v.source !== filterSource) return false;
     if (filterSeverity !== 'all' && String(v.severityLevel) !== filterSeverity) return false;
@@ -447,27 +857,27 @@ export default function Violations() {
   const addAllToCalendar = () => {
     if (!result || deadlineItems.length === 0) { toast.error('No hearings or deadlines to add'); return; }
     const events = deadlineItems.map(d => deadlineToCalEvent(d, result.address, result.borough));
-    downloadICS(`${result.address.replace(/\s+/g, '-')}-compliance-calendar`, events, `Camelot OS \u2014 ${result.address} Compliance Calendar`);
-    toast.success(`${events.length} hearing/deadline(s) downloaded \u2014 import into Google, Outlook, or Apple Calendar`);
+    downloadICS(`${result.address.replace(/\s+/g, '-')}-compliance-calendar`, events, `Camelot OS — ${result.address} Compliance Calendar`);
+    toast.success(`${events.length} hearing/deadline(s) downloaded — import into Google, Outlook, or Apple Calendar`);
   };
 
   const shareCalendarByEmail = () => {
     if (!result || deadlineItems.length === 0) { toast.error('No hearings or deadlines to share'); return; }
     if (guestEmails.length === 0) { toast.error('Enter at least one email to share with'); return; }
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const subject = encodeURIComponent(`Compliance Calendar \u2014 ${result.address}, ${result.borough}`);
+    const subject = encodeURIComponent(`Compliance Calendar — ${result.address}, ${result.borough}`);
     const nl = '\n';
     const lines = deadlineItems.map(d =>
-      `  \u2022 ${d.dateISO}${d.time ? ' @ ' + d.time : ''} \u2014 ${d.kind === 'hearing' ? 'ECB/OATH HEARING' : d.source + ' correction deadline'} \u2014 ${d.source} #${d.violationId || 'N/A'}${d.isPast ? ' \u26A0\uFE0F PAST DUE' : ''}`
+      `  • ${d.dateISO}${d.time ? ' @ ' + d.time : ''} — ${d.kind === 'hearing' ? 'ECB/OATH HEARING' : d.source + ' correction deadline'} — ${d.source} #${d.violationId || 'N/A'}${d.isPast ? ' ⚠️ PAST DUE' : ''}`
     );
     const body = encodeURIComponent(
-      `Hi,${nl}${nl}Sharing the compliance calendar for ${result.address}, ${result.borough} \u2014 these dates are time-sensitive, please add them to your calendar.${nl}${nl}UPCOMING HEARINGS & DEADLINES${nl}${'\u2501'.repeat(30)}${nl}${lines.join(nl)}${nl}${nl}A .ics file with all of these dates (plus automatic reminders) is attached \u2014 open it to add every date to your calendar in one step, or use the individual "Add to Google Calendar" buttons in Camelot OS.${nl}${nl}Best,${nl}${nl}${DAVID_GOLDOFF_SIGNATURE_TEXT}`
+      `Hi,${nl}${nl}Sharing the compliance calendar for ${result.address}, ${result.borough} — these dates are time-sensitive, please add them to your calendar.${nl}${nl}UPCOMING HEARINGS & DEADLINES${nl}${'━'.repeat(30)}${nl}${lines.join(nl)}${nl}${nl}A .ics file with all of these dates (plus automatic reminders) is attached — open it to add every date to your calendar in one step, or use the individual "Add to Google Calendar" buttons in Camelot OS.${nl}${nl}Best,${nl}${nl}${DAVID_GOLDOFF_SIGNATURE_TEXT}`
     );
     // Download the ics for manual attachment (mirrors the app's existing PDF-attach pattern) then open Gmail.
     const events = deadlineItems.map(d => deadlineToCalEvent(d, result.address, result.borough));
-    downloadICS(`${result.address.replace(/\s+/g, '-')}-compliance-calendar`, events, `Camelot OS \u2014 ${result.address} Compliance Calendar`);
+    downloadICS(`${result.address.replace(/\s+/g, '-')}-compliance-calendar`, events, `Camelot OS — ${result.address} Compliance Calendar`);
     window.open(`https://mail.google.com/mail/?view=cm&su=${subject}&body=${body}`, '_blank');
-    toast.success('Calendar file downloaded and Gmail opened \u2014 attach the .ics file before sending');
+    toast.success('Calendar file downloaded and Gmail opened — attach the .ics file before sending');
   };
 
   const generatePDF = (silent?: boolean): string | undefined => {
@@ -506,7 +916,7 @@ export default function Violations() {
       + '<div class="hdr">'
       + '<div style="font-size:10px;color:#c5a253;font-weight:700;letter-spacing:2px">CAMELOT PROPERTY MANAGEMENT SERVICES CORP.</div>'
       + '<h1>VIOLATION &amp; RESOLUTION REPORT</h1>'
-      + `<h2>${result.address} \u2014 ${result.borough}</h2>`
+      + `<h2>${result.address} — ${result.borough}</h2>`
       + `<div class="meta">Report Date: ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>`
       + '</div>'
       + '<div style="display:flex;gap:8px;margin:12px 0;justify-content:flex-end" class="no-print">'
@@ -533,26 +943,26 @@ export default function Violations() {
       + `<div class="box"><div class="l">Hearings Scheduled</div><div class="v">${result.upcomingHearings.length}</div></div>`
       + '</div>'
       + '<h2>PLAYERS &amp; PROFESSIONALS NEEDED</h2>'
-      + `<div class="players">${result.players.map(p => '<div>\u2022 ' + p + '</div>').join('')}</div>`
+      + `<div class="players">${result.players.map(p => '<div>• ' + p + '</div>').join('')}</div>`
       + (deadlineItems.length > 0
         ? '<h2>UPCOMING HEARINGS &amp; DEADLINES</h2>'
           + '<table><tr><th>Type</th><th>Source</th><th>Description</th><th>Date</th><th>Status</th><th>Balance Due</th></tr>'
           + deadlineItems.map(d =>
             `<tr><td>${d.kind === 'hearing' ? 'ECB/OATH HEARING' : 'CORRECTION DEADLINE'}</td>`
-            + `<td>${d.source} #${d.violationId || '\u2014'}</td>`
+            + `<td>${d.source} #${d.violationId || '—'}</td>`
             + `<td>${(d.description || '').substring(0, 80)}</td>`
             + `<td class="${d.isPast ? 'overdue' : ''}">${d.dateISO}${d.time ? ' @ ' + d.time : ''}${d.isPast ? ' OVERDUE' : ''}</td>`
-            + `<td>${d.status || '\u2014'}</td>`
-            + `<td>${d.balanceDue ? '$' + d.balanceDue.toLocaleString() : '\u2014'}</td></tr>`
+            + `<td>${d.status || '—'}</td>`
+            + `<td>${d.balanceDue ? '$' + d.balanceDue.toLocaleString() : '—'}</td></tr>`
           ).join('')
           + '</table>'
-          + '<div style="font-size:8px;color:#888;margin:4px 0">Add these dates to your calendar (with automatic reminders) from the live Camelot OS Violation &amp; Resolution Center \u2014 look for the calendar icon next to each hearing/deadline.</div>'
+          + '<div style="font-size:8px;color:#888;margin:4px 0">Add these dates to your calendar (with automatic reminders) from the live Camelot OS Violation &amp; Resolution Center — look for the calendar icon next to each hearing/deadline.</div>'
         : '')
       + (resolutionGroups.length > 0
         ? '<h2>HOW TO RESOLVE &amp; REMEDY</h2>'
           + resolutionGroups.map(g =>
             '<div class="resgroup">'
-            + `<h4>${g.label} \u2014 ${g.count} violation${g.count > 1 ? 's' : ''} \u2014 Est. $${g.costLow.toLocaleString()}-$${g.costHigh.toLocaleString()}</h4>`
+            + `<h4>${g.label} — ${g.count} violation${g.count > 1 ? 's' : ''} — Est. $${g.costLow.toLocaleString()}-$${g.costHigh.toLocaleString()}</h4>`
             + `<ul>${g.steps.map(s => `<li>${s}</li>`).join('')}</ul>`
             + `<div style="font-size:9px;color:#555"><strong>Third parties needed:</strong> ${g.companies.join(', ')}</div>`
             + '</div>'
@@ -580,7 +990,7 @@ export default function Violations() {
     if (silent) return html;
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); }
-    toast.success('Report opened \u2014 use Print to save as PDF, email, or print');
+    toast.success('Report opened — use Print to save as PDF, email, or print');
   };
 
   /** Shared plain-text report body used by both the Gmail draft and the real branded send (as the `text` fallback). */
@@ -588,44 +998,44 @@ export default function Violations() {
     if (!result) return '';
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const hearingLines = result.upcomingHearings.length > 0
-      ? `\n\nUPCOMING HEARINGS\n${'\u2501'.repeat(30)}\n` + result.upcomingHearings.map(h =>
-          `  \u2022 ${h.hearingDate}${h.hearingTime ? ' @ ' + h.hearingTime : ''} \u2014 ${h.source} #${h.violationId}${h.isPast ? ' (PAST \u2014 confirm status)' : ''}`
+      ? `\n\nUPCOMING HEARINGS\n${'━'.repeat(30)}\n` + result.upcomingHearings.map(h =>
+          `  • ${h.hearingDate}${h.hearingTime ? ' @ ' + h.hearingTime : ''} — ${h.source} #${h.violationId}${h.isPast ? ' (PAST — confirm status)' : ''}`
         ).join('\n')
       : '';
     const linkLines = buildViolationLinksLines(result.violations);
     const linksSection = linkLines.length > 0
-      ? `\n\nVIOLATION RECORDS \u2014 OFFICIAL LOOKUP\n${'\u2501'.repeat(30)}\n` + linkLines.join('\n')
+      ? `\n\nVIOLATION RECORDS — OFFICIAL LOOKUP\n${'━'.repeat(30)}\n` + linkLines.join('\n')
       : '';
     const greeting = recipientName.trim() ? `Dear ${recipientName.trim()},` : 'Dear Sir or Madam,';
     return greeting
       + `\n\nPlease find attached the Violation & Resolution Report for ${result.address}, ${result.borough}, prepared by Camelot Property Management Services Corp.`
-      + `\n\nREPORT SUMMARY\n${'\u2501'.repeat(30)}`
+      + `\n\nREPORT SUMMARY\n${'━'.repeat(30)}`
       + `\nProperty: ${result.address}, ${result.borough}`
       + `\nReport Date: ${date}`
       + `\nTotal Violations Found: ${result.totalFound}`
       + `\nOpen Violations: ${result.totalOpen}`
-      + `\n  \u2022 HPD Class C (Immediately Hazardous): ${result.hpdClassC}`
-      + `\n  \u2022 HPD Class B (Hazardous): ${result.hpdClassB}`
-      + `\n  \u2022 HPD Class A (Non-Hazardous): ${result.hpdClassA}`
-      + `\n  \u2022 DOB Violations: ${result.dobOpen}`
-      + `\n  \u2022 ECB Violations: ${result.ecbOpen}`
+      + `\n  • HPD Class C (Immediately Hazardous): ${result.hpdClassC}`
+      + `\n  • HPD Class B (Hazardous): ${result.hpdClassB}`
+      + `\n  • HPD Class A (Non-Hazardous): ${result.hpdClassA}`
+      + `\n  • DOB Violations: ${result.dobOpen}`
+      + `\n  • ECB Violations: ${result.ecbOpen}`
       + `\nOverdue (Past Cure Deadline): ${result.overdue}`
       + `\nECB Penalties Assessed: $${result.totalPenaltiesAssessed.toLocaleString()}`
       + `\nECB Balance Due: $${result.totalBalanceDue.toLocaleString()}`
-      + `\nEstimated Resolution Cost: $${result.costLow.toLocaleString()} \u2013 $${result.costHigh.toLocaleString()}`
+      + `\nEstimated Resolution Cost: $${result.costLow.toLocaleString()} – $${result.costHigh.toLocaleString()}`
       + hearingLines
-      + `\n\nWHAT THIS REPORT CONTAINS\n${'\u2501'.repeat(30)}`
+      + `\n\nWHAT THIS REPORT CONTAINS\n${'━'.repeat(30)}`
       + `\nThis report provides a comprehensive analysis of all open violations issued by NYC agencies (HPD, DOB, ECB) for the above property. Each violation is classified by severity, with cure deadlines, scheduled hearings, estimated resolution costs, and the specific professionals required to resolve each item.`
-      + `\n\nRECOMMENDATIONS\n${'\u2501'.repeat(30)}`
-      + (result.hpdClassC > 0 ? `\n\u26A0\uFE0F IMMEDIATE ACTION REQUIRED: There are ${result.hpdClassC} Class C (Immediately Hazardous) violations that must be addressed within 24 hours of issuance. These may include lead paint hazards, gas leaks, heat/hot water failures, or fire safety issues.` : '')
-      + (result.overdue > 0 ? `\n\n\u26A0\uFE0F OVERDUE VIOLATIONS: ${result.overdue} violations are past their cure deadline. We recommend prioritizing these to avoid compounding fines and ECB hearings.` : '')
-      + (result.upcomingHearings.length > 0 ? `\n\n\u26A0\uFE0F TIME-SENSITIVE: ${result.upcomingHearings.length} ECB/OATH hearing(s) are on the calendar \u2014 missing a hearing results in an automatic default judgment. Add these to your calendar from the Violation & Resolution Center (calendar icon next to each hearing) and share with counsel/PM.` : '')
+      + `\n\nRECOMMENDATIONS\n${'━'.repeat(30)}`
+      + (result.hpdClassC > 0 ? `\n⚠️ IMMEDIATE ACTION REQUIRED: There are ${result.hpdClassC} Class C (Immediately Hazardous) violations that must be addressed within 24 hours of issuance. These may include lead paint hazards, gas leaks, heat/hot water failures, or fire safety issues.` : '')
+      + (result.overdue > 0 ? `\n\n⚠️ OVERDUE VIOLATIONS: ${result.overdue} violations are past their cure deadline. We recommend prioritizing these to avoid compounding fines and ECB hearings.` : '')
+      + (result.upcomingHearings.length > 0 ? `\n\n⚠️ TIME-SENSITIVE: ${result.upcomingHearings.length} ECB/OATH hearing(s) are on the calendar — missing a hearing results in an automatic default judgment. Add these to your calendar from the Violation & Resolution Center (calendar icon next to each hearing) and share with counsel/PM.` : '')
       + `\n\nWe recommend a phased approach to resolution:`
       + `\n  Phase 1 (Weeks 1-2): Address all Class C and overdue violations immediately`
       + `\n  Phase 2 (Weeks 3-8): Resolve Class B violations and DOB/ECB matters`
       + `\n  Phase 3 (Weeks 9+): Clear remaining Class A violations through scheduled maintenance`
-      + `\n\nPROFESSIONALS NEEDED\n${'\u2501'.repeat(30)}`
-      + `\n` + result.players.map(p => `  \u2022 ${p}`).join('\n')
+      + `\n\nPROFESSIONALS NEEDED\n${'━'.repeat(30)}`
+      + `\n` + result.players.map(p => `  • ${p}`).join('\n')
       + linksSection
       + `\n\nPlease review the attached PDF for the complete violation-by-violation breakdown, including specific descriptions, unit locations, cure deadlines, hearing dates, cost estimates, and resolution steps.`
       + `\n\nWe are available to discuss a resolution strategy at your convenience.`
@@ -644,7 +1054,7 @@ export default function Violations() {
     const to = encodeURIComponent(emailRecipientAddress.trim());
     const body = encodeURIComponent(buildReportBodyText(emailRecipientName, currentSenderSignatureText()));
     window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${subject}&body=${body}`, '_blank');
-    toast.success('Gmail opened \u2014 attach the downloaded PDF report');
+    toast.success('Gmail opened — attach the downloaded PDF report');
     setShowEmailPanel(false);
   };
 
@@ -653,7 +1063,7 @@ export default function Violations() {
     if (!result) return;
     if (!emailRecipientAddress.trim()) { toast.error('Enter a recipient email address'); return; }
     if (!emailConfigStatus?.resendConfigured) {
-      toast.error('Real sending isn\'t configured yet \u2014 add RESEND_API_KEY in Render, or use "Open in Gmail" for now.', { id: 'violations-send', duration: 6000 });
+      toast.error('Real sending isn\'t configured yet — add RESEND_API_KEY in Render, or use "Open in Gmail" for now.', { id: 'violations-send', duration: 6000 });
       return;
     }
     const plainText = buildReportBodyText(emailRecipientName, currentSenderSignatureText());
@@ -669,7 +1079,7 @@ export default function Violations() {
     const bodyHtml = bodyParagraphs + currentSenderSignatureHtml();
     const html = wrapCamelotEmailHtml({
       bodyHtml,
-      eyebrow: `Violation &amp; Resolution Report \u2014 ${result.address}, ${result.borough}`,
+      eyebrow: `Violation &amp; Resolution Report — ${result.address}, ${result.borough}`,
       preheaderText: `${result.totalOpen} open violation(s), ${linkLines.length ? 'with official record lookup links' : ''} for ${result.address}`,
     });
     const subject = `Violation & Resolution Report: ${result.address}, ${result.borough}`;
@@ -718,15 +1128,25 @@ export default function Violations() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Shield className="text-camelot-gold" size={28} />
-          Violation & Resolution Center
-        </h1>
-        <p className="text-slate-600 text-sm mt-1">
-          Pick a building from the portfolio or search any NYC property to pull violations, hearings, penalties, and generate a resolution report
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Shield className="text-camelot-gold" size={28} />
+            Violation & Resolution Center
+          </h1>
+          <p className="text-slate-600 text-sm mt-1">
+            Pick a building from the portfolio or search any NYC property to pull violations, hearings, penalties, and generate a resolution report
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAlertsPanel(s => !s)}
+          className="flex items-center gap-2 px-4 py-2 bg-camelot-navy-light border border-camelot-gold/30 rounded-lg text-camelot-gold hover:bg-camelot-gold/10 text-sm font-medium shrink-0"
+        >
+          <BellRing size={16} /> Portfolio Alerts
+        </button>
       </div>
+
+      {showAlertsPanel && <PortfolioAlertsPanel buildings={sortedBuildings} onClose={() => setShowAlertsPanel(false)} />}
 
       {/* Search Box */}
       <div className="bg-camelot-navy-light rounded-xl p-6 border border-white/10 space-y-4">
@@ -739,17 +1159,17 @@ export default function Violations() {
               onChange={e => handleSelectBuilding(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-camelot-navy border border-white/10 rounded-lg text-white outline-none text-lg appearance-none"
             >
-              <option value="">{`Select a Camelot building\u2026 (${sortedBuildings.length} in portfolio)`}</option>
+              <option value="">{`Select a Camelot building… (${sortedBuildings.length} in portfolio)`}</option>
               {sortedBuildings.map(b => (
                 <option key={b.id} value={String(b.id)}>
-                  {b.building_name ? `${b.building_name} \u2014 ${b.address}` : b.address}{b.city ? `, ${b.city}` : ''}
+                  {b.building_name ? `${b.building_name} — ${b.address}` : b.address}{b.city ? `, ${b.city}` : ''}
                 </option>
               ))}
             </select>
             <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
           {buildingsError && (
-            <p className="text-xs text-gray-500 mt-1.5">{`Couldn't load the managed portfolio automatically (${buildingsError}) \u2014 use the address field below instead.`}</p>
+            <p className="text-xs text-gray-500 mt-1.5">{`Couldn't load the managed portfolio automatically (${buildingsError}) — use the address field below instead.`}</p>
           )}
         </div>
 
@@ -838,7 +1258,7 @@ export default function Violations() {
               <StatCard icon={Clock} label="Overdue" value={result.overdue} color="red" />
               <StatCard icon={Gavel} label="Hearings" value={result.upcomingHearings.length} sub="Scheduled" color="blue" />
               <StatCard icon={DollarSign} label="ECB Balance Due" value={formatCurrency(result.totalBalanceDue)} color="red" />
-              <StatCard icon={DollarSign} label="Est. Resolution Cost" value={`${formatCurrency(result.costLow)}\u2013${formatCurrency(result.costHigh)}`} color="orange" />
+              <StatCard icon={DollarSign} label="Est. Resolution Cost" value={`${formatCurrency(result.costLow)}–${formatCurrency(result.costHigh)}`} color="orange" />
             </div>
 
             {showEmailPanel && (() => {
@@ -950,7 +1370,7 @@ export default function Violations() {
               <div className="p-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                   <Gavel size={14} className="text-camelot-gold" /> Upcoming Hearings & Deadlines
-                  <span className="text-xs text-gray-500 font-normal">{'\u2014 time-sensitive, don\'t let these slip'}</span>
+                  <span className="text-xs text-gray-500 font-normal">{'— time-sensitive, don\'t let these slip'}</span>
                 </h3>
                 <div className="flex items-center gap-2">
                   <button onClick={addAllToCalendar} className="flex items-center gap-2 px-3 py-1.5 bg-camelot-gold/20 text-camelot-gold rounded-lg hover:bg-camelot-gold/30 text-xs">
@@ -965,7 +1385,7 @@ export default function Violations() {
               {showSharePanel && (
                 <div className="px-4 py-3 bg-white/5 border-b border-white/10 flex flex-col md:flex-row gap-3 md:items-end">
                   <div className="flex-1">
-                    <label className="text-gray-400 text-xs mb-1 block">{'Guest email(s), comma-separated \u2014 used for "Add to Google Calendar" invites and the emailed calendar'}</label>
+                    <label className="text-gray-400 text-xs mb-1 block">{'Guest email(s), comma-separated — used for "Add to Google Calendar" invites and the emailed calendar'}</label>
                     <input
                       type="text"
                       value={guestEmailsInput}
@@ -1015,7 +1435,7 @@ export default function Violations() {
                       <h4 className="text-white font-semibold text-sm">{g.label}</h4>
                       <span className="text-xs text-gray-400">{g.count} violation{g.count > 1 ? 's' : ''}</span>
                     </div>
-                    <div className="text-camelot-gold text-sm font-bold mb-2">{formatCurrency(g.costLow)} \u2013 {formatCurrency(g.costHigh)} est.</div>
+                    <div className="text-camelot-gold text-sm font-bold mb-2">{formatCurrency(g.costLow)} – {formatCurrency(g.costHigh)} est.</div>
                     <ul className="space-y-1 mb-3">
                       {g.steps.map((s, i) => (
                         <li key={i} className="text-xs text-gray-300 flex gap-2"><span className="text-camelot-gold">{i + 1}.</span>{s}</li>
@@ -1061,6 +1481,11 @@ export default function Violations() {
               Open only
             </label>
             <span className="text-gray-500 text-sm">{filteredViolations.length} violations</span>
+            {hiddenKeys.size > 0 && (
+              <span className="flex items-center gap-1 text-xs text-gray-500" title="Marked Not Me — open a violation and clear its status to bring it back">
+                <EyeOff size={12} /> {hiddenKeys.size} hidden (Not Me)
+              </span>
+            )}
           </div>
 
           {/* Violation Table */}
@@ -1123,7 +1548,13 @@ export default function Violations() {
                     <td className="px-4 py-2 text-gray-300 text-xs">{formatCurrency(v.costLow)} - {formatCurrency(v.costHigh)}</td>
                     <td className="px-4 py-2 text-gray-400 text-xs">{v.players?.slice(0, 2).join(', ')}{v.players?.length > 2 ? ` +${v.players.length - 2}` : ''}</td>
                   </tr>
-                  {isExpanded && <ViolationDetailPanel v={v} />}
+                  {isExpanded && (
+                    <ViolationDetailPanel
+                      v={v} address={result.address} borough={result.borough}
+                      buildingId={selectedBuildingId ? Number(selectedBuildingId) : null}
+                      onNotMe={hiddenKey => setHiddenKeys(prev => new Set(prev).add(hiddenKey))}
+                    />
+                  )}
                   </Fragment>
                   );
                 })}

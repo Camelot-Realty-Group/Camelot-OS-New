@@ -8,6 +8,7 @@ import {
   buildViolationKey, getViolationTracking, updateViolationTracking, addViolationNote, deleteViolationNote,
   uploadViolationDocument, getViolationDocumentUrl, deleteViolationDocument, INTERNAL_STATUS_LABELS,
   listAlertSubscriptions, createAlertSubscription, deleteAlertSubscription, runViolationMonitorNow, getAlertLog,
+  getBulkViolationStatuses,
   type ViolationTrackingRow, type ViolationNote, type ViolationDocument, type InternalStatus, type HearingOutcome,
   type AlertSubscription, type AlertLogRow,
 } from '@/lib/violation-tracking';
@@ -134,7 +135,7 @@ function summarizeViolation(v: ViolationResult): string {
   return parts.join(' ');
 }
 
-function ViolationDetailPanel({ v, address, borough, buildingId }: { v: ViolationResult; address: string; borough: string; buildingId: number | null }) {
+function ViolationDetailPanel({ v, address, borough, buildingId, onNotMe }: { v: ViolationResult; address: string; borough: string; buildingId: number | null; onNotMe: (key: string) => void }) {
   const guide = RESOLUTION_GUIDE[v.resolutionKey] || RESOLUTION_GUIDE.DEFAULT;
   const dismissal = dismissalGuideFor(v.resolutionKey, v.source);
   const key = useMemo(() => buildViolationKey(v.source, v.violationId, address), [v.source, v.violationId, address]);

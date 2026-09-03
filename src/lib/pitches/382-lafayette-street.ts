@@ -101,7 +101,18 @@ export const CAMELOT_FACTS = {
   officePhone: '(212) 206-9939',
   website: 'www.camelot.nyc',
   linkedin: 'https://www.linkedin.com/company/camelot-realty-group',
+  officeCoords: { lat: 40.76438, lon: -73.97654 },
+  presidentTrackRecordUrl: 'https://david-goldoff-camelot-president.netlify.app/',
+  blogUrl: 'https://www.camelot.nyc/blog/',
+  ownersGuideUrl: 'https://www.camelot.nyc/2026-nyc-property-owners-guide/',
 };
+
+// Straight-line distance from 382 Lafayette St (40.72774, -73.99366, per
+// PropertyShark) to Camelot's office at 57 West 57th Street (40.76438,
+// -73.97654, per Camelot's own records) — computed via the haversine
+// formula from those two sourced coordinate pairs, not looked up as a
+// pre-packaged "distance" figure.
+export const LAFAYETTE_TO_OFFICE_MILES = 2.7;
 
 export const CAMELOT_MISSION =
   "Camelot is a boutique property management and real estate company offering round-the-clock service built for the specific needs of New York's smaller, higher-touch buildings \u2014 the ones a large management company tends to treat as an afterthought.";
@@ -137,6 +148,46 @@ export const LAFAYETTE_NEARBY_TRACK_RECORD: TrackRecordItem[] = [
   },
 ];
 
+// ============================================================
+// Neighboring portfolio map — past & present Camelot-portfolio
+// buildings in the TriBeCa / SoHo / NoLIta corridor around 382
+// Lafayette Street, as provided directly by David. Coordinates
+// below are an editorial schematic (relative position on a
+// simplified downtown street grid, calibrated to real cross
+// streets) — not surveyed GPS points — built for an illustrative
+// proximity map, not for precise navigation. `x`/`y` are percent
+// positions on a 0–100 schematic grid (x: west→east, y: north→south).
+// ============================================================
+
+export interface NearbyPortfolioProperty {
+  address: string;
+  neighborhood: string;
+  crossStreets: string;
+  x: number;
+  y: number;
+}
+
+export const LAFAYETTE_NEIGHBORING_PORTFOLIO: NearbyPortfolioProperty[] = [
+  { address: '25–27 Mercer Street', neighborhood: 'SoHo', crossStreets: 'near Grand St', x: 62, y: 42 },
+  { address: '39 Spring Street', neighborhood: 'NoLIta', crossStreets: 'near Mott/Mulberry', x: 82, y: 26 },
+  { address: '402 West Broadway', neighborhood: 'SoHo', crossStreets: 'at Spring St', x: 38, y: 26 },
+  { address: '283 West Broadway', neighborhood: 'TriBeCa/SoHo border', crossStreets: 'near Canal St', x: 38, y: 47 },
+  { address: '104–109 Reade Street', neighborhood: 'TriBeCa', crossStreets: 'near Church/Hudson', x: 43, y: 82 },
+  { address: '137 Franklin Street', neighborhood: 'TriBeCa', crossStreets: 'at Varick St', x: 38, y: 60 },
+  { address: '58 White Street', neighborhood: 'TriBeCa', crossStreets: 'near Broadway/Church', x: 55, y: 54 },
+  { address: '68 Thomas Street', neighborhood: 'TriBeCa', crossStreets: 'near West Broadway/Church', x: 44, y: 88 },
+  { address: '1 North Moore Street', neighborhood: 'TriBeCa', crossStreets: 'at West Broadway', x: 38, y: 67 },
+  { address: '11 North Moore Street', neighborhood: 'TriBeCa', crossStreets: 'at Varick/Beach', x: 33, y: 67 },
+  { address: '465 Washington Street', neighborhood: 'TriBeCa', crossStreets: 'near Canal/Watts', x: 15, y: 48 },
+  { address: '471 Washington Street', neighborhood: 'TriBeCa', crossStreets: 'near Canal/Watts', x: 16, y: 50 },
+  { address: '290 West Street', neighborhood: 'TriBeCa', crossStreets: 'at Canal St', x: 8, y: 47 },
+  { address: '11 Hubert Street', neighborhood: 'TriBeCa', crossStreets: 'at Hubert/Collister', x: 12, y: 73 },
+  { address: '157 Hudson Street', neighborhood: 'TriBeCa', crossStreets: 'near Hubert/Collister', x: 22, y: 72 },
+];
+
+export const LAFAYETTE_FAR_PORTFOLIO_NOTE =
+  'Also in the portfolio, a short subway ride north in Chelsea: 236 West 24th Street.';
+
 export const CAMELOT_PORTFOLIO_HIGHLIGHTS: TrackRecordItem[] = [
   {
     name: 'The Watermark at Brooklyn Heights',
@@ -164,6 +215,83 @@ export const CAMELOT_PORTFOLIO_HIGHLIGHTS: TrackRecordItem[] = [
 // Services — grouped for an intro conversation, not a full
 // proposal. No pricing attached to any of these.
 // ============================================================
+
+// ============================================================
+// Case studies — sourced from camelot.nyc/blog and press releases.
+// Real outcomes with real numbers, not composites.
+// ============================================================
+
+export interface CaseStudy {
+  title: string;
+  building: string;
+  url?: string;
+  summary: string;
+  stat: string;
+}
+
+export const LAFAYETTE_CASE_STUDIES: CaseStudy[] = [
+  {
+    title: 'The NYC Co-op That Saved $45,000 in Year One After Switching Management Companies',
+    building: '73-unit Manhattan co-op',
+    url: 'https://www.camelot.nyc/nyc-coop-saved-45000-switching-management-companies/',
+    summary:
+      'A line-by-line review of the P&L, every service contract, and every vendor relationship found two overlapping elevator maintenance contracts, an un-renegotiated energy supply contract, an oversized landscaping contract, and insurance that hadn\u2019t been shopped in six years \u2014 plus arrears running at 4.5% of revenue that came down to under 1%. The building was also brought into Local Law 97 compliance (it had been running roughly 18% over its 2024 emissions limit) through a retro-commissioning audit, a boiler tune-up, and targeted LED upgrades, avoiding an estimated $22,000 in annual fines.',
+    stat: '$45,000+ saved in year one',
+  },
+  {
+    title: 'Camelot Expands Into North Miami at Three Horizons East',
+    building: 'Three Horizons East Condominium, North Miami, FL — 89 units',
+    url: 'https://www.camelot.nyc/blog/',
+    summary: 'Camelot\u2019s first South Florida management engagement, focused on stabilization, operational modernization, resident communication, and long-term value preservation for an 89-unit residential community.',
+    stat: 'Camelot\u2019s first South Florida engagement',
+  },
+  {
+    title: 'Camelot Realty Group Appointed Managing Agent for East of East Lofts',
+    building: 'East of East Lofts, Long Island City',
+    url: 'https://www.camelot.nyc/east-of-east-lofts-long-island-city/',
+    summary: 'A boutique, full-floor-unit loft condominium \u2014 the same building type as 382 Lafayette Street \u2014 where Camelot was appointed managing agent, bringing the firm\u2019s managed portfolio to 54 properties across Manhattan, Brooklyn, Queens, and Westchester County at the time.',
+    stat: 'Same boutique loft-building profile as 382 Lafayette',
+  },
+];
+
+// ============================================================
+// Technology & strategic partnerships — sourced from
+// camelot.nyc/resident-tools/ and Camelot\u2019s own brochure copy.
+// ============================================================
+
+export interface TechPartner {
+  name: string;
+  role: string;
+  description: string;
+}
+
+export const LAFAYETTE_TECH_PARTNERS: TechPartner[] = [
+  {
+    name: 'Camelot OS',
+    role: 'Our proprietary operating layer',
+    description: 'The dashboard that sits over every other platform below \u2014 owner and board reporting, compliance tracking, and staff accountability, all in one place for every building Camelot manages.',
+  },
+  {
+    name: 'BuildingLink',
+    role: 'Resident operations',
+    description: 'Work orders and tickets, amenity reservations, package logistics, and the front-desk log \u2014 the record of daily building life, searchable by staff and visible to residents in real time.',
+  },
+  {
+    name: 'Concierge Plus',
+    role: 'Concierge & front desk',
+    description: 'Guest authentication, delivery and grocery handoff, and staff communication \u2014 the layer that makes a front desk fast without making it impersonal.',
+  },
+  {
+    name: 'MDS (Management Data Services)',
+    role: 'Accounting & financial reporting',
+    description: 'The accounting and financial management platform behind Camelot\u2019s monthly report packages \u2014 board members receive financial statements, budgets, and transaction-level detail on a fixed schedule.',
+  },
+  {
+    name: 'Meet Select',
+    role: 'Resident lifestyle membership',
+    description: 'A private membership extended to residents \u2014 a dedicated concierge team and access to more than 1.6 million partner locations (dining, retail, travel, entertainment) beyond whatever a building\u2019s own front desk can arrange. (www.meetselect.com)',
+  },
+];
 
 export interface ServiceGroup {
   category: string;
@@ -277,4 +405,6 @@ export const LAFAYETTE_TO_BE_CONFIRMED: string[] = [
   'Which property manager would be assigned \u2014 not yet decided since there is no engagement or fee discussion yet',
   'Contract end date with the current managing agent and any transition timing constraints',
   'The Board\u2019s specific pain points and priorities \u2014 to be gathered on the introductory call, not assumed',
+  'Current status of 25\u201327 Mercer Street \u2014 recent reporting (Commercial Observer, April 2025) describes a loan default/foreclosure action on this property; confirm current status before referencing it as an active engagement',
+  'Current use of 283 West Broadway \u2014 recent listings show what may be a commercial/clinical tenant at this address; confirm before describing it as residential',
 ];

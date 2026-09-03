@@ -32,6 +32,11 @@ import {
   LAFAYETTE_NEXT_STEP,
   CAMELOT_LEADERSHIP,
   LAFAYETTE_TO_BE_CONFIRMED,
+  LAFAYETTE_NEIGHBORING_PORTFOLIO,
+  LAFAYETTE_FAR_PORTFOLIO_NOTE,
+  LAFAYETTE_CASE_STUDIES,
+  LAFAYETTE_TECH_PARTNERS,
+  LAFAYETTE_TO_OFFICE_MILES,
   type Fact,
 } from '@/lib/pitches/382-lafayette-street';
 
@@ -98,11 +103,88 @@ function Rule() {
   return <div className="w-16 h-px mb-8" style={{ backgroundColor: GOLD }} />;
 }
 
+// A hand-built editorial schematic — not a surveyed GPS map — showing
+// 382 Lafayette Street against Camelot's neighboring past-and-present
+// portfolio in the TriBeCa/SoHo/NoLIta corridor, plus off-map callouts
+// for the two portfolio points that fall outside this downtown frame
+// (Chelsea, and the Midtown office). Positions are percent coordinates
+// on a simplified grid, placed via known real cross streets.
+function NeighborhoodMap() {
+  const W = 640;
+  const H = 620;
+  const px = (x: number) => (x / 100) * W;
+  const py = (y: number) => (y / 100) * H;
+  // Subject property: NoHo, north of the main downtown grid shown below.
+  const subject = { x: 82, y: 6 };
+  return (
+    <div className="border" style={{ borderColor: DIVIDER, backgroundColor: PAPER }}>
+      <svg viewBox={`0 0 ${W} ${H + 70}`} className="w-full h-auto" role="img" aria-label="Schematic map of Camelot's neighboring portfolio near 382 Lafayette Street">
+        {/* Off-map callout: Midtown office */}
+        <g>
+          <line x1={px(subject.x)} y1={py(subject.y) - 4} x2={px(subject.x)} y2={14} stroke={GOLD} strokeWidth={1.5} strokeDasharray="3,3" />
+          <polygon points={`${px(subject.x) - 4},18 ${px(subject.x) + 4},18 ${px(subject.x)},10`} fill={GOLD} />
+          <text x={px(subject.x) + 10} y={16} fontSize="11" fontFamily="'General Sans', sans-serif" fontWeight={600} fill={NAVY}>57 W 57th St (our office) — {LAFAYETTE_TO_OFFICE_MILES} mi north</text>
+        </g>
+
+        {/* NoHo band + subject property */}
+        <rect x={0} y={40} width={W} height={py(4)} fill="none" />
+        <text x={12} y={54} fontSize="10" fontFamily="'General Sans', sans-serif" fontWeight={700} letterSpacing="1.5" fill={MUTED}>NOHO</text>
+        <circle cx={px(subject.x)} cy={54} r={7} fill={GOLD} stroke={NAVY} strokeWidth={1.5} />
+        <text x={px(subject.x) + 12} y={51} fontSize="12" fontFamily="'Cormorant Garamond', serif" fontWeight={600} fill={NAVY}>382 Lafayette St</text>
+        <text x={px(subject.x) + 12} y={64} fontSize="9.5" fontFamily="'General Sans', sans-serif" fill={MUTED}>the subject property</text>
+
+        {/* Houston St boundary */}
+        <line x1={0} y1={py(14)} x2={W} y2={py(14)} stroke={DIVIDER} strokeWidth={1} />
+        <text x={12} y={py(14) - 4} fontSize="9" fontFamily="'General Sans', sans-serif" fill={MUTED}>Houston St</text>
+
+        {/* SoHo / NoLIta band label */}
+        <text x={12} y={py(20)} fontSize="10" fontFamily="'General Sans', sans-serif" fontWeight={700} letterSpacing="1.5" fill={MUTED}>SOHO / NOLITA</text>
+
+        {/* Canal St boundary */}
+        <line x1={0} y1={py(52)} x2={W} y2={py(52)} stroke={DIVIDER} strokeWidth={1} />
+        <text x={12} y={py(52) - 4} fontSize="9" fontFamily="'General Sans', sans-serif" fill={MUTED}>Canal St</text>
+
+        {/* TriBeCa band label */}
+        <text x={12} y={py(58)} fontSize="10" fontFamily="'General Sans', sans-serif" fontWeight={700} letterSpacing="1.5" fill={MUTED}>TRIBECA</text>
+
+        {/* Hudson River edge (west) */}
+        <rect x={0} y={py(52)} width={px(4)} height={py(100) - py(52)} fill={`${GOLD}0A`} />
+        <text x={4} y={py(96)} fontSize="8.5" fontFamily="'General Sans', sans-serif" fill={MUTED} transform={`rotate(-90 4 ${py(96)})`}>Hudson River</text>
+
+        {/* Neighboring portfolio pins */}
+        {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
+          <g key={p.address}>
+            <circle cx={px(p.x)} cy={py(p.y) + 70} r={5} fill="none" stroke={GOLD} strokeWidth={1.75} />
+            <text x={px(p.x)} y={py(p.y) + 73.5} fontSize="7" fontFamily="'General Sans', sans-serif" fontWeight={700} fill={NAVY} textAnchor="middle">{i + 1}</text>
+          </g>
+        ))}
+
+        {/* Chambers St boundary */}
+        <line x1={0} y1={py(100) + 70 - 2} x2={W} y2={py(100) + 70 - 2} stroke={DIVIDER} strokeWidth={1} />
+        <text x={12} y={py(100) + 70 - 6} fontSize="9" fontFamily="'General Sans', sans-serif" fill={MUTED}>Chambers St</text>
+      </svg>
+      <div className="px-6 pb-6 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
+          {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
+            <p key={p.address} className="text-xs leading-relaxed" style={{ color: MUTED }}>
+              <span className="font-semibold" style={{ color: NAVY }}>{i + 1}.</span> {p.address} <span className="italic">— {p.neighborhood}, {p.crossStreets}</span>
+            </p>
+          ))}
+        </div>
+        <p className="mt-4 text-xs italic" style={{ color: MUTED }}>{LAFAYETTE_FAR_PORTFOLIO_NOTE}</p>
+        <p className="mt-2 text-[10px]" style={{ color: MUTED }}>Schematic map for orientation, positioned against known cross streets — not a surveyed or GPS-accurate rendering.</p>
+      </div>
+    </div>
+  );
+}
+
 const NAV_SECTIONS: { id: string; label: string }[] = [
   { id: 'cover-letter', label: 'Introduction' },
   { id: 'about', label: 'About Camelot' },
   { id: 'services', label: 'Services' },
   { id: 'track-record', label: 'Track Record' },
+  { id: 'case-studies', label: 'Case Studies' },
+  { id: 'technology', label: 'Technology' },
   { id: 'coverage', label: 'Coverage' },
   { id: 'team', label: 'Team' },
   { id: 'next-step', label: 'Next Step' },
@@ -299,6 +381,12 @@ export default function Pitch382Lafayette() {
           <p className="mt-6 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
             Affiliations: {CAMELOT_FACTS.affiliations.join(', ')} — David is also a {CAMELOT_FACTS.reBnyCommittee.toLowerCase()}.
           </p>
+          <p className="mt-4 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            More on David Goldoff's track record is available at{' '}
+            <a href={CAMELOT_FACTS.presidentTrackRecordUrl} target="_blank" rel="noreferrer" style={{ color: GOLD }}>david-goldoff-camelot-president.netlify.app</a>,
+            and our current thinking on the co-op and condo market is in Camelot's{' '}
+            <a href={CAMELOT_FACTS.ownersGuideUrl} target="_blank" rel="noreferrer" style={{ color: GOLD }}>2026 NYC Property Owners Guide</a>.
+          </p>
         </section>
 
         {/* ============ SERVICES ============ */}
@@ -348,7 +436,7 @@ export default function Pitch382Lafayette() {
             ))}
           </div>
           <p className="font-heading text-xl mb-4" style={{ color: NAVY }}>Elsewhere in the portfolio</p>
-          <ul className="space-y-4">
+          <ul className="space-y-4 mb-14">
             {CAMELOT_PORTFOLIO_HIGHLIGHTS.map((item, i) => (
               <li key={item.name} className="flex gap-4">
                 <span className="font-heading text-2xl leading-none" style={{ color: GOLD }}>{String(i + 1).padStart(2, '0')}</span>
@@ -358,6 +446,56 @@ export default function Pitch382Lafayette() {
               </li>
             ))}
           </ul>
+          <p className="font-heading text-xl mb-2" style={{ color: NAVY }}>Past and present, in this exact neighborhood</p>
+          <p className="mb-6 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            The addresses below are Camelot-portfolio buildings, past and present, within the TriBeCa,
+            SoHo, and NoLIta corridor immediately surrounding 382 Lafayette Street — the same streets,
+            often the very same block. Our office sits {LAFAYETTE_TO_OFFICE_MILES} miles north, a short
+            trip when a Board wants to sit down in person.
+          </p>
+          <NeighborhoodMap />
+        </section>
+
+        {/* ============ CASE STUDIES ============ */}
+        <section id="case-studies" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>Case studies</SectionLabel>
+          <SectionTitle>What happens after we take over.</SectionTitle>
+          <Rule />
+          <div className="space-y-10">
+            {LAFAYETTE_CASE_STUDIES.map((cs) => (
+              <div key={cs.title} className="grid md:grid-cols-[1fr_2fr] gap-6 pb-10 border-b last:border-b-0" style={{ borderColor: DIVIDER }}>
+                <div>
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{cs.building}</p>
+                  <p className="font-heading text-2xl leading-tight mb-3" style={{ color: NAVY }}>{cs.stat}</p>
+                  {cs.url && (
+                    <a href={cs.url} target="_blank" rel="noreferrer" className="text-sm underline" style={{ color: GOLD }}>
+                      Read on camelot.nyc &rarr;
+                    </a>
+                  )}
+                </div>
+                <div>
+                  <p className="font-heading text-lg mb-2" style={{ color: NAVY }}>{cs.title}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: NAVY }}>{cs.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ============ TECHNOLOGY & STRATEGIC PARTNERSHIPS ============ */}
+        <section id="technology" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>Technology & strategic partnerships</SectionLabel>
+          <SectionTitle>The stack running quietly behind every building we manage.</SectionTitle>
+          <Rule />
+          <div className="grid md:grid-cols-2 gap-px" style={{ backgroundColor: '#e5decc' }}>
+            {LAFAYETTE_TECH_PARTNERS.map((tp) => (
+              <div key={tp.name} className="p-6" style={{ backgroundColor: PAPER }}>
+                <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{tp.name}</p>
+                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: GOLD }}>{tp.role}</p>
+                <p className="text-sm leading-relaxed" style={{ color: NAVY }}>{tp.description}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* ============ AREAS OF COVERAGE ============ */}

@@ -49,6 +49,7 @@ const CostBeatReportBuilder = lazy(() => import('@/pages/CostBeatReportBuilder')
 const Portfolio = lazy(() => import('@/pages/Portfolio'));
 const FactoryEngine = lazy(() => import('@/pages/FactoryEngine'));
 const PitchOakParkDouglaston = lazy(() => import('@/pages/PitchOakParkDouglaston'));
+const Pitch382Lafayette = lazy(() => import('@/pages/Pitch382Lafayette'));
 
 function page(Page: ComponentType) {
   return (
@@ -125,6 +126,7 @@ export default function App() {
           <Route path="/diagnostics" element={page(QAConsole)} />
           {/* Client-facing pitch microsites — reusable pattern (Oak Park is Template #1). Renders as a full-viewport overlay so it reads as a standalone site, not the internal dashboard. */}
           <Route path="/pitch/oak-park-douglaston" element={page(PitchOakParkDouglaston)} />
+          <Route path="/pitch/382-lafayette-street" element={page(Pitch382Lafayette)} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

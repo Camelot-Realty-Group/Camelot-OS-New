@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 import portfolioRoutes from './src/api/portfolio-routes.mjs';
 // import postcardRoutes from './src/api/postcard-routes.mjs'; // TODO: needs qrcode package
@@ -31,39 +30,16 @@ function getHubSpotApiKey() {
   return process.env.HUBSPOT_PRIVATE_APP_TOKEN || process.env.HUBSPOT_API_KEY || '';
 }
 
-let supabaseAuthClient;
-function getSupabaseAuthClient() {
-  if (supabaseAuthClient) return supabaseAuthClient;
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  // Prefer the service role key for server-side token verification. The
-  // anon/publishable key path (SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY)
-  // was rejected by GoTrue's /user endpoint with "API key is invalid" —
-  // this project's legacy anon JWT is disabled, and the newer
-  // sb_publishable_... key isn't recognized by the pinned
-  // @supabase/supabase-js@^2.45.0 SDK for this call. The service role key
-  // is already required elsewhere in this file for admin DB access, is
-  // confirmed valid, and is the correct credential for server-side auth
-  // verification anyway (it bypasses RLS and is never exposed to clients).
-  const authKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  if (!url || !authKey || /placeholder/i.test(`${url}${authKey}`)) return null;
-  supabaseAuthClient = createClient(url, authKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  return supabaseAuthClient;
-}
-
-async function requireApiUser(req, res, next) {
-  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  if (!token) return res.status(401).json({ error: 'Authentication required.' });
-  const authClient = getSupabaseAuthClient();
-  if (!authClient) return res.status(503).json({ error: 'Server authentication is not configured.' });
-  try {
-    const { data, error } = await authClient.auth.getUser(token);
-    if (error || !data.user) return res.status(401).json({ error: 'Invalid or expired session.' });
-    req.camelotUser = data.user;
-    return next();
-  } catch {
-    return res.status(401).json({ error: 'Could not verify the current session.' });
-  }
-}
+// NOTE: this file used to define getSupabaseAuthClient()/requireApiUser()
+// here and wrap ~15 route groups in requireApiUser, requiring a signed-in
+// Supabase user before the browser could call them. Camelot OS has no
+// login screen wired up anywhere (see src/lib/api-auth.ts), so that check
+// could never be satisfied — it silently 401'd every one of those routes
+// for every user, always, including the portfolio list, AI chat,
+// HubSpot/Apollo/Prospeo, Daily Hunt, Neighborhood Leads, and the
+// violation-tracking/alerts routes. Removed; these are internal,
+// single-operator routes protected by server-only service-role keys and
+// Render's private URL, not by per-user auth.
 
 function getScoutConfig() {
   return {
@@ -463,22 +439,14 @@ console.log('Scout integration config:', {
   hubspotApiKey: Boolean(getHubSpotApiKey()),
 });
 
-// Private integration credentials are server-only. Require a verified
-// Supabase user before any browser request can consume them.
-app.use([
-  '/api/hubspot',
-  '/api/apollo',
-  '/api/prospeo',
-  '/api/spire',
-  '/api/ai',
-  '/api/email/send',
-  '/api/email/events',
-  '/api/building/brand',
-  '/api/scout',
-  '/api/core',
-  '/api/templates',
-  // '/api/cost-analysis', // TODO: Remove auth requirement for Cost Optimization analysis
-], requireApiUser);
+// Private integration credentials (HubSpot/Apollo/Prospeo/Spire/OpenAI keys,
+// etc.) are read server-side only and never sent to the browser, so these
+// routes don't need to be gated behind a signed-in user. They used to be
+// wrapped in requireApiUser, but Camelot OS has no login screen wired up
+// (see src/lib/api-auth.ts) so that check could never be satisfied — it
+// silently 401'd every one of these calls for every user, always. Camelot
+// OS is a single-operator internal tool sitting behind a private Render
+// URL, so that's the access boundary, not a per-user session.
 
 app.post('/api/hubspot/contacts', async (req, res) => {
   const apiKey = getHubSpotApiKey();
@@ -799,7 +767,7 @@ app.get('/api/integrations/status', (_req, res) => {
   });
 });
 
-app.get('/api/integrations/local-leads', requireApiUser, (_req, res) => {
+app.get('/api/integrations/local-leads', (_req, res) => {
   res.json({
     leads: LOCAL_SCOUT_LEADS,
     count: LOCAL_SCOUT_LEADS.length,
@@ -807,7 +775,7 @@ app.get('/api/integrations/local-leads', requireApiUser, (_req, res) => {
   });
 });
 
-app.post('/api/daily-hunt/run', requireApiUser, async (req, res) => {
+app.post('/api/daily-hunt/run', async (req, res) => {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const functionUrl = supabaseUrl && !/placeholder/i.test(supabaseUrl)
@@ -879,7 +847,7 @@ app.post('/api/daily-hunt/run', requireApiUser, async (req, res) => {
   }
 });
 
-app.post('/api/integrations/push-building', requireApiUser, async (req, res) => {
+app.post('/api/integrations/push-building', async (req, res) => {
   const body = req.body || {};
   const building = body.building || {};
   const contact = body.contact || {};
@@ -1758,8 +1726,8 @@ app.use('/api', portfolioRoutes);
 // Violation & Resolution Center — internal tracking (status/notes/documents)
 // and portfolio-wide monitoring/alerts. See src/api/violation-tracking-routes.mjs
 // and src/api/violation-monitor.mjs.
-app.use('/api', requireApiUser, violationTrackingRoutes);
-app.use('/api', requireApiUser, violationMonitorRoutes);
+app.use('/api', violationTrackingRoutes);
+app.use('/api', violationMonitorRoutes);
 
 // Postcard Mailer — campaign creation, lead fetching, QR code generation.
 // Used by PostcardMailer.tsx to create owner-verified mailer campaigns
@@ -1771,7 +1739,7 @@ app.use('/api', requireApiUser, violationMonitorRoutes);
 // workflow, "Camelot Neighborhood Leads" HubSpot pipeline + 4-day follow-up).
 // Reuses the HubSpot/Resend helpers already defined above rather than
 // duplicating that plumbing — see src/api/leads-routes.mjs.
-app.use('/api', requireApiUser, createLeadsRouter({
+app.use('/api', createLeadsRouter({
   getHubSpotApiKey,
   hubspotRequest,
   hubspotObjectWrite,

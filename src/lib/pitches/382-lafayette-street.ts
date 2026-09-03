@@ -83,7 +83,6 @@ export const LAFAYETTE_CONTACT = {
 
 export const CAMELOT_FACTS = {
   founded: confirmed(2006, 'camelot.nyc; "Camelot — A Journal of Considered Ownership" brochure'),
-  founderInRealEstateSince: confirmed(2000, '"Camelot — A Journal of Considered Ownership" brochure — David Goldoff\u2019s own real estate career began in 2000, alongside his father Barry Goldoff and uncle Robert; he founded Camelot Realty Group itself in 2006'),
   buildings: confirmed(41, 'camelot.nyc'),
   aum: confirmed('$240M+', 'camelot.nyc'),
   boutiqueCondos: confirmed(26, '"Camelot — A Journal of Considered Ownership" brochure'),
@@ -219,9 +218,9 @@ export const CAMELOT_SERVICES: ServiceGroup[] = [
 // ============================================================
 
 export const LAFAYETTE_COVER_LETTER_PARAGRAPHS: string[] = [
-  'Samantha \u2014 thank you for thinking of Camelot, and please pass along our thanks to your uncle Jason as well. Since you own Unit 4 yourself, none of this is abstract for you either \u2014 so we\u2019ve tried to make this genuinely useful for you and the rest of the Board ahead of a call, not just a pitch.',
-  'A little about us: David Goldoff has been in New York real estate since 2000, working alongside his father Barry Goldoff and uncle Robert, identical twins who had been owning, developing, and operating buildings since the 1980s. He founded Camelot Realty Group in 2006 and has built it into a platform that today manages 41 buildings and more than $240 million in assets \u2014 26 of them boutique, full-amenity condominiums much like 382 Lafayette Street.',
-  'We already work in your neighborhood. Camelot manages 137 Franklin Street Apartment Corp in TriBeCa, a short walk from you, and has supported building improvements at 111 Mott Street in NoLIta, five minutes away. We also manage East of East Lofts in Long Island City \u2014 a boutique, full-floor-unit condominium built much like yours, with the same small, owner-occupied roll rather than a large shareholder base. NoHo and the streets around it are not new territory for us.',
+  'Samantha \u2014 thank you for thinking of Camelot, and please pass along our thanks to your uncle Jason as well. What follows is an introduction ahead of your call with the Board \u2014 not a sales pitch, just a clear picture of who we are and what we do.',
+  'Camelot Realty Group has been managing buildings in New York City for twenty years. We got our start in Lower Manhattan \u2014 servicing buildings in TriBeCa, SoHo, NoHo, and the West Village \u2014 and have grown from there into a platform that today manages 41 buildings and more than $240 million in assets, 26 of them boutique, full-amenity condominiums much like 382 Lafayette Street. Our full managed portfolio is browsable on our website at camelot.nyc/managed-buildings.',
+  'We still work in this immediate corridor today. Camelot manages 137 Franklin Street Apartment Corp in TriBeCa, a short walk from you, and has supported building improvements at 111 Mott Street in NoLIta, five minutes away. We also manage East of East Lofts in Long Island City \u2014 a boutique, full-floor-unit condominium built much like yours, with the same small, owner-occupied roll rather than a large shareholder base. NoHo and the streets around it are not new territory for us.',
   'What follows is an introduction, not a pitch with a number attached \u2014 we haven\u2019t discussed pricing, and we\u2019re not going to guess at one before we understand what the Board actually needs. Instead, this covers who we are, what a Camelot-managed building looks like day to day, and where we\u2019ve done this kind of work before.',
   'We\u2019d welcome the chance to speak with the full Board \u2014 by phone, video, or in person, whichever is easiest to coordinate. Once you have a day and time, we\u2019ll send a calendar invite over.',
 ];

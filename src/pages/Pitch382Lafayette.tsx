@@ -269,18 +269,19 @@ export default function Pitch382Lafayette() {
         {/* ============ ABOUT CAMELOT ============ */}
         <section id="about" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
           <SectionLabel>Who we are</SectionLabel>
-          <SectionTitle>Twenty years in New York real estate. Twenty of them in this business.</SectionTitle>
+          <SectionTitle>Twenty years managing buildings in this city.</SectionTitle>
           <Rule />
           <p className="mb-6 text-lg leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             {CAMELOT_MISSION}
           </p>
           <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
-            David Goldoff has been in New York real estate since <FactValue fact={{ value: CAMELOT_FACTS.founderInRealEstateSince.value, confirmed: true }} />, working
-            alongside his father Barry Goldoff and uncle Robert. He founded Camelot Realty Group in{' '}
-            <FactValue fact={CAMELOT_FACTS.founded} /> and built it into a platform that now manages{' '}
-            <FactValue fact={CAMELOT_FACTS.buildings} /> buildings and more than <FactValue fact={CAMELOT_FACTS.aum} /> in assets —{' '}
+            Camelot Realty Group has been managing buildings in New York City for twenty years. We got
+            our start in Lower Manhattan — servicing buildings in TriBeCa, SoHo, NoHo, and the West
+            Village — and have grown from there into a platform that today manages{' '}
+            <FactValue fact={CAMELOT_FACTS.buildings} /> buildings and more than <FactValue fact={CAMELOT_FACTS.aum} /> in assets,{' '}
             <FactValue fact={CAMELOT_FACTS.boutiqueCondos} /> of them boutique, full-amenity condominiums much like
-            382 Lafayette Street.
+            382 Lafayette Street. Our full managed portfolio is browsable on our website at{' '}
+            <a href="https://www.camelot.nyc/managed-buildings/" target="_blank" rel="noreferrer" style={{ color: GOLD }}>camelot.nyc/managed-buildings</a>.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ backgroundColor: '#e5decc' }}>
             {[

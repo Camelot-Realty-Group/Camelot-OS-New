@@ -173,16 +173,81 @@ export const RESOLUTION_GUIDE: Record<string, { label: string; steps: string[]; 
     ],
     companies: ['Property Manager', 'Licensed Contractor'],
   },
+  'FDNY': {
+    label: 'FDNY / Fire Prevention Violation',
+    steps: [
+      'Contact an FDNY-registered Fire Safety Director or code consultant to review the cited condition.',
+      'Correct the condition (equipment repair/replacement, access, signage, etc.) and retain proof (photos, invoices).',
+      'Submit the required Certificate of Correction or respond to the OATH summons before the hearing/cure date.',
+    ],
+    companies: ['Fire Safety Director', 'FDNY-Registered Contractor', 'OATH Hearings Representative'],
+  },
 };
+
+/**
+ * Direct links to the official dismissal / certification-of-correction paperwork
+ * for each resolution category, plus the fee and filing deadline that actually
+ * governs removal from the agency's record (distinct from the deadline to fix
+ * the underlying condition). Sourced from:
+ *  - HPD Clear Violations: https://www.nyc.gov/site/hpd/services-and-information/clear-violations.page
+ *  - HPD Dismissal Request form + fee schedule: https://www.nyc.gov/assets/hpd/downloads/pdfs/services/dismissal-request-form-clear-violations.pdf
+ *  - DOB Violation Dismissal Request form: https://www.nyc.gov/assets/buildings/pdf/ENF-ViolationDismissalRequestForm.pdf
+ *  - DOB OP106 Waiver/Reduction/Dismissal Cover Sheet (LL62/91, LL10/81, LL11/98, elevator, electrical): https://www.nyc.gov/site/buildings/dob/forms.page
+ *  - DOB "Resolve a Summons or Violation": https://www.nyc.gov/site/buildings/dob/resolve-a-summons-or-violation.page
+ *  - OATH "Appeal a Decision" (30 days / 35 if mailed; do NOT use for defaults): https://www.nyc.gov/site/oath/hearings/appeal-a-decision.page
+ *  - OATH "Reopen a Missed Hearing (Default)": https://www.nyc.gov/site/oath/hearings/reopen-a-missed-hearing-default-online.page
+ */
+export const DISMISSAL_GUIDE: Record<string, { formName: string; formUrl: string; fee: string; deadline: string }> = {
+  HPD_STANDARD: {
+    formName: 'HPD Certification of Correction / Dismissal Request',
+    formUrl: 'https://www.nyc.gov/site/hpd/services-and-information/clear-violations.page',
+    fee: '$250\u2013$500 by unit count ($1,000 if the building is in the Alternative Enforcement Program)',
+    deadline: 'Certify correction by the deadline on the notice. If overdue, file a Dismissal Request \u2014 HPD inspects within 45 days (summer) / 90 days (winter); if inspectors can\u2019t get access, a CV-1 self-certification is due within 45 business days of the final inspection attempt.',
+  },
+  HPD_LEAD: {
+    formName: 'HPD Dismissal Request + Local Law 1 lead records submission',
+    formUrl: 'https://www.nyc.gov/site/hpd/services-and-information/clear-violations.page',
+    fee: '$250\u2013$500 by unit count (AEP buildings: $1,000)',
+    deadline: 'Lead violations additionally require submitting the annual notice and the prior year\u2019s investigation records within 45 days of the violation; owners should submit at least 3, ideally all 10, consecutive years of records \u2014 missing years cost $1,000 each once HPD deems the submission sufficient.',
+  },
+  DOB_STANDARD: {
+    formName: 'DOB Violation Dismissal Request (+ OP106 Waiver/Reduction/Dismissal Cover Sheet for LL62/91, LL10/81, LL11/98, elevator & electrical)',
+    formUrl: 'https://www.nyc.gov/assets/buildings/pdf/ENF-ViolationDismissalRequestForm.pdf',
+    fee: 'No filing fee; applicable DOB civil penalties must be paid before dismissal is granted',
+    deadline: 'Submit the completed, typewritten form with all supporting documentation (before/after photos, licensed-professional assessment for structural items, proof of penalty payment for Work-Without-a-Permit) to the issuing unit (Executive Inspections, Plumbing Enforcement, Quality of Life, Special Operations, or the borough Construction Enforcement office).',
+  },
+  ECB_OATH: {
+    formName: 'OATH Hearing response: Cure Request, Stipulation, or Appeal',
+    formUrl: 'https://www.nyc.gov/site/oath/hearings/appeal-a-decision.page',
+    fee: 'No filing fee to respond or appeal; unpaid judgments become liens on the property',
+    deadline: 'Respond before the hearing date (cure, accept a stipulation, or attend). Appeals of a decision are due within 30 days (35 if mailed) \u2014 but a default judgment cannot be appealed; it requires a separate motion to reopen instead.',
+  },
+  FDNY_OATH: {
+    formName: 'OATH/FDNY Certificate of Correction or Hearing response',
+    formUrl: 'https://www.nyc.gov/site/oath/hearings/appeal-a-decision.page',
+    fee: 'No filing fee to respond; applicable penalties must be paid to close the summons',
+    deadline: 'Respond before the scheduled OATH hearing date to avoid an automatic default judgment at the maximum penalty.',
+  },
+};
+
+/** Maps a violation's resolutionKey + source to the right entry in DISMISSAL_GUIDE. */
+export function dismissalGuideFor(resolutionKey: string, source: string): { formName: string; formUrl: string; fee: string; deadline: string } {
+  if (source === 'DOB') return DISMISSAL_GUIDE.DOB_STANDARD;
+  if (source === 'ECB') return DISMISSAL_GUIDE.ECB_OATH;
+  if (source === 'FDNY') return DISMISSAL_GUIDE.FDNY_OATH;
+  if (resolutionKey === 'LEAD') return DISMISSAL_GUIDE.HPD_LEAD;
+  return DISMISSAL_GUIDE.HPD_STANDARD;
+}
 
 function resolutionKeyFor(desc: string, source: string, vClass: string): string {
   const d = desc.toUpperCase();
   for (const key of Object.keys(RESOLUTION_GUIDE)) {
-    if (key === 'DEFAULT' || key === 'DOB' || key === 'ECB') continue;
+    if (key === 'DEFAULT' || key === 'DOB' || key === 'ECB' || key === 'FDNY') continue;
     if (d.includes(key)) return key;
   }
   if (source === 'DOB') return 'DOB';
   if (source === 'ECB') return 'ECB';
+  if (source === 'FDNY') return 'FDNY';
   return 'DEFAULT';
 }
 

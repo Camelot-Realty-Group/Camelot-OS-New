@@ -7,6 +7,8 @@ import portfolioRoutes from './src/api/portfolio-routes.mjs';
 // import postcardRoutes from './src/api/postcard-routes.mjs'; // TODO: needs qrcode package
 // import { startPostcardScheduler } from './src/api/postcard-scheduler.mjs'; // TODO: needs qrcode package
 import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
+import violationTrackingRoutes from './src/api/violation-tracking-routes.mjs';
+import violationMonitorRoutes, { runViolationMonitor, startViolationMonitorScheduler } from './src/api/violation-monitor.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1753,6 +1755,12 @@ app.use('/api', costCuttingRoutes);
 // empty despite the sync engine, migration, and UI all being in place.
 app.use('/api', portfolioRoutes);
 
+// Violation & Resolution Center — internal tracking (status/notes/documents)
+// and portfolio-wide monitoring/alerts. See src/api/violation-tracking-routes.mjs
+// and src/api/violation-monitor.mjs.
+app.use('/api', requireApiUser, violationTrackingRoutes);
+app.use('/api', requireApiUser, violationMonitorRoutes);
+
 // Postcard Mailer — campaign creation, lead fetching, QR code generation.
 // Used by PostcardMailer.tsx to create owner-verified mailer campaigns
 // across all tools (Results, Pipeline, Factory Engine, etc.).
@@ -1779,6 +1787,13 @@ app.use('/api', requireApiUser, createLeadsRouter({
 // covers a full day's sends. See startDailyReportScheduler in
 // src/api/leads-routes.mjs for how the once-a-day guard works.
 startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc: 21 });
+
+// Portfolio-wide Violation & Resolution Center monitor — scans every active
+// building every 6 hours for new violations, status changes, and hearings
+// coming up within 14 days, then emails anyone subscribed via
+// violation_alert_subscriptions. See src/api/violation-monitor.mjs.
+app.locals.runViolationMonitorNow = () => runViolationMonitor({ getResendApiKey, getResendFromAddress });
+startViolationMonitorScheduler({ getResendApiKey, getResendFromAddress });
 
 // Weekly postcard batch scheduler — runs Sunday 22:00 UTC (5 PM ET).
 // Processes all campaigns with scheduled_mailer dates and sends via Lob.com

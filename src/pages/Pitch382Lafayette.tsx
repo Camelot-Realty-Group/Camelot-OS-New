@@ -39,6 +39,8 @@ const PHOTO_BASE = '/pitch/382-lafayette-street';
 const BRAND_BASE = `${PHOTO_BASE}/brand`;
 const LOGO_BLACK = `${BRAND_BASE}/camelot-logo-black.png`;
 const LOGO_CREAM = `${BRAND_BASE}/camelot-logo-cream.png`;
+const STREET_VIEW = `${PHOTO_BASE}/street-view.jpg`;
+const LOT_MAP = `${PHOTO_BASE}/lot-map.png`;
 
 // Palette matches the Camelot — A Journal of Considered Ownership
 // brochure design system: cream paper, ink text, brass/gold accent.
@@ -174,9 +176,20 @@ export default function Pitch382Lafayette() {
       <TopNav />
 
       {/* ============ HERO ============ */}
-      <section className="relative py-24 md:py-32 border-b" style={{ backgroundColor: NAVY, borderColor: DIVIDER }}>
-        <div className="max-w-5xl mx-auto px-6 md:px-10">
-          <img src={LOGO_CREAM} alt="Camelot Realty Group" className="h-8 md:h-10 w-auto mb-12" />
+      <section className="relative min-h-[80vh] flex flex-col border-b" style={{ borderColor: DIVIDER }}>
+        <img
+          src={STREET_VIEW}
+          alt="382 Lafayette Street, NoHo"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, rgba(22,20,15,0.45) 0%, rgba(22,20,15,0.25) 35%, rgba(22,20,15,0.92) 100%)' }}
+        />
+        <div className="relative z-10 px-6 md:px-10 pt-10">
+          <img src={LOGO_CREAM} alt="Camelot Realty Group" className="h-8 md:h-10 w-auto" />
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pb-16 md:pb-24 mt-auto w-full">
           <p className="font-sans text-xs font-semibold uppercase tracking-[0.25em] mb-4" style={{ color: GOLD }}>
             Prepared for Samantha Gasmer and the Board at 382 Lafayette Street
           </p>
@@ -217,20 +230,30 @@ export default function Pitch382Lafayette() {
           <SectionLabel>What we understand so far</SectionLabel>
           <SectionTitle>{LAFAYETTE_PROPERTY.name}, {LAFAYETTE_PROPERTY.neighborhood}.</SectionTitle>
           <Rule />
-          <p className="mb-6 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
-            {LAFAYETTE_PROPERTY.character} Everything below comes from public property records —
-            nothing here is a guess, and anything not yet confirmed is marked as such.
-          </p>
+          <div className="grid md:grid-cols-[1fr_260px] gap-8 mb-8">
+            <p className="text-base leading-relaxed" style={{ color: NAVY }}>
+              {LAFAYETTE_PROPERTY.character} Everything below comes from a property report David pulled
+              directly — nothing here is a guess, and anything not yet confirmed is marked as such.
+              The ground floor is home to Screaming Mimi's, the longtime NoHo vintage shop, and the
+              building has an elevator modernization and a facade/roof restoration underway — an
+              active, well-kept building, not one that's been left alone.
+            </p>
+            <img src={LOT_MAP} alt="382 Lafayette Street lot map" className="w-full object-contain border" style={{ borderColor: DIVIDER }} />
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ backgroundColor: '#e5decc' }}>
             {[
               { label: 'Address', value: LAFAYETTE_PROPERTY.fullAddress },
+              { label: 'Block & lot', value: <FactValue fact={LAFAYETTE_PROPERTY.blockLot} /> },
               { label: 'Neighborhood', value: `${LAFAYETTE_PROPERTY.neighborhood} (${LAFAYETTE_PROPERTY.historicDistrict.value})` },
               { label: 'Building type', value: 'Boutique pre-war loft condominium' },
-              { label: 'Total units', value: <FactValue fact={LAFAYETTE_PROPERTY.totalUnits} /> },
+              { label: 'Total units', value: <FactValue fact={LAFAYETTE_PROPERTY.totalUnits} format={(v) => `${v} (8 residential + 1 commercial)`} /> },
               { label: 'Stories', value: <FactValue fact={LAFAYETTE_PROPERTY.stories} /> },
               { label: 'Year built', value: <FactValue fact={LAFAYETTE_PROPERTY.yearBuilt} /> },
+              { label: 'Exterior', value: <FactValue fact={LAFAYETTE_PROPERTY.exteriorWall} /> },
               { label: 'Zoning', value: <FactValue fact={LAFAYETTE_PROPERTY.zoning} /> },
               { label: 'Ownership', value: <FactValue fact={LAFAYETTE_PROPERTY.ownership} /> },
+              { label: 'Building size', value: <FactValue fact={LAFAYETTE_PROPERTY.buildingSqFt} format={(v) => `${Number(v).toLocaleString()} sq. ft.`} /> },
+              { label: 'Current managing agent', value: <FactValue fact={LAFAYETTE_PROPERTY.currentManagingAgent} /> },
             ].map((cell) => (
               <div key={cell.label} className="p-5" style={{ backgroundColor: PAPER }}>
                 <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>{cell.label}</p>

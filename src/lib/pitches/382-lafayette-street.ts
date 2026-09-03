@@ -11,14 +11,13 @@
  * the firm has been doing this, its history in this specific corridor of
  * Manhattan, and what a working relationship would look like.
  *
- * Every fact below traces to a specific public source (NYC public
- * property records via RegWatch, StreetEasy, CityRealty, Compass) or to
- * Camelot's own published materials (camelot.nyc, the "Camelot — A
- * Journal of Considered Ownership" brochure, the Oak Park pitch data
- * file). Anything not independently confirmed is flagged via
- * `confirmed: false` rather than assumed. Do not add pricing or a
- * specific assigned property manager here without an explicit decision
- * from David — this is intentionally a pre-pricing, pre-assignment intro.
+ * Every fact below traces to a specific public source: David's own
+ * PropertyShark property report for 382 Lafayette St (DOF-sourced),
+ * or Camelot's own published materials (camelot.nyc, the brochure,
+ * the Oak Park pitch data file). Anything not independently confirmed
+ * is flagged via confirmed:false rather than assumed. Do not add
+ * pricing or a specific assigned property manager here without an
+ * explicit decision from David.
  */
 
 export interface Fact<T> {
@@ -42,15 +41,27 @@ export const LAFAYETTE_PROPERTY = {
   state: 'NY',
   zip: '10003',
   fullAddress: '382 Lafayette Street, New York, NY 10003 (NoHo)',
-  bbl: confirmed('1-00531-1105', 'NYC public property records via RegWatch'),
+  blockLot: confirmed('Block 531, Lot 7502 — Condo complex 100641', 'PropertyShark property report for 382 Lafayette St, generated 9/3/2026'),
   type: 'condo' as const,
-  totalUnits: unconfirmed(9, 'NYC public property records cite 9 units; individual listing sources (StreetEasy, Zillow) cite 8 or 7 residences — small boutique buildings sometimes combine or subdivide units over time. Confirm the current unit count and governing entity name directly with the Board.'),
-  stories: confirmed(9, 'NYC public property records; StreetEasy; Compass listing data'),
-  yearBuilt: confirmed(1896, 'NYC public property records (StreetEasy and CityRealty list the building as completed in 1900 — pre-war construction records for this era commonly show a small variance between filed and completed dates)'),
-  zoning: confirmed('M1-5/R9A', 'NYC public property records via RegWatch'),
-  ownership: confirmed('Individually owned units (condominium)', 'NYC public property records; multiple unit-level condominium sales on StreetEasy/Compass confirm condo form of ownership'),
-  historicDistrict: confirmed('NoHo Historic District', 'NYC Landmarks Preservation Commission NoHo Historic District designation report'),
-  character: 'A boutique, pre-war loft condominium of the kind NoHo is known for — full-floor and duplex residences, cast-iron and masonry construction, a handful of owners rather than a large roll of shareholders.',
+  totalUnits: confirmed(9, 'PropertyShark property report: 8 residential units (DOF) + 1 ground-floor commercial unit'),
+  residentialUnits: confirmed(8, 'PropertyShark property report (DOF residential unit count)'),
+  stories: confirmed(9, 'PropertyShark property report'),
+  yearBuilt: confirmed(1900, 'PropertyShark property report (DOF record)'),
+  zoning: confirmed('M1-5/R9A', 'PropertyShark property report'),
+  specialDistrict: confirmed('SoHo-NoHo Mixed Use District (SNX)', 'PropertyShark property report'),
+  ownership: confirmed('Individually owned units (condominium)', 'PropertyShark property report — unit-by-unit ownership records'),
+  historicDistrict: confirmed('NoHo Historic District', 'PropertyShark property report; NYC Landmarks Preservation Commission designation'),
+  exteriorWall: confirmed('Masonry load-bearing wall', 'PropertyShark property report'),
+  buildingSqFt: confirmed(21850, 'PropertyShark property report'),
+  residentialSqFt: confirmed(15390, 'PropertyShark property report'),
+  avgResidentialUnitSize: confirmed(1924, 'PropertyShark property report'),
+  commercialSqFt: confirmed(2430, 'PropertyShark property report — ground-floor retail'),
+  currentManagingAgent: confirmed('The Andrews Organization (Stuart Smolar)', 'PropertyShark property report, citing NYC HPD building registration filed 9/12/2025'),
+  currentCorporation: confirmed('382 Condominium Company', 'PropertyShark property report, citing NYC HPD building registration'),
+  groundFloorTenant: confirmed('Screaming Mimi’s, the longtime NoHo vintage clothing shop', 'PropertyShark property report, citing NYC commercial occupancy records'),
+  recentCapitalWork: confirmed('an elevator modernization (permit issued 2025) and a facade/roof restoration (a roughly $235,000 general-construction permit covering floors 2 through 9 and the roof)', 'PropertyShark property report, citing NYC DOB permit filings'),
+  samanthaUnit: confirmed('Unit 4 (purchased 3/23/2023)', 'PropertyShark property report — unit ownership records list Samantha Gasmer as owner of Unit 4'),
+  character: 'A boutique, pre-war loft condominium of the kind NoHo is known for — full-floor residences, cast-iron and masonry construction, nine units total rather than a large roll of shareholders.',
 };
 
 // ============================================================
@@ -208,9 +219,9 @@ export const CAMELOT_SERVICES: ServiceGroup[] = [
 // ============================================================
 
 export const LAFAYETTE_COVER_LETTER_PARAGRAPHS: string[] = [
-  'Samantha \u2014 thank you for thinking of Camelot, and please pass along our thanks to your uncle Jason as well. We\u2019re glad to put together something useful for you and the rest of the Board ahead of a call.',
+  'Samantha \u2014 thank you for thinking of Camelot, and please pass along our thanks to your uncle Jason as well. Since you own Unit 4 yourself, none of this is abstract for you either \u2014 so we\u2019ve tried to make this genuinely useful for you and the rest of the Board ahead of a call, not just a pitch.',
   'A little about us: David Goldoff has been in New York real estate since 2000, working alongside his father Barry Goldoff and uncle Robert, identical twins who had been owning, developing, and operating buildings since the 1980s. He founded Camelot Realty Group in 2006 and has built it into a platform that today manages 41 buildings and more than $240 million in assets \u2014 26 of them boutique, full-amenity condominiums much like 382 Lafayette Street.',
-  'We already work in your neighborhood. Camelot manages 137 Franklin Street Apartment Corp in TriBeCa, a short walk from you, and has supported building improvements at 111 Mott Street in NoLIta, five minutes away. We also manage East of East Lofts in Long Island City \u2014 a boutique, full-floor-unit condominium built much like yours. NoHo and the streets around it are not new territory for us.',
+  'We already work in your neighborhood. Camelot manages 137 Franklin Street Apartment Corp in TriBeCa, a short walk from you, and has supported building improvements at 111 Mott Street in NoLIta, five minutes away. We also manage East of East Lofts in Long Island City \u2014 a boutique, full-floor-unit condominium built much like yours, with the same small, owner-occupied roll rather than a large shareholder base. NoHo and the streets around it are not new territory for us.',
   'What follows is an introduction, not a pitch with a number attached \u2014 we haven\u2019t discussed pricing, and we\u2019re not going to guess at one before we understand what the Board actually needs. Instead, this covers who we are, what a Camelot-managed building looks like day to day, and where we\u2019ve done this kind of work before.',
   'We\u2019d welcome the chance to speak with the full Board \u2014 by phone, video, or in person, whichever is easiest to coordinate. Once you have a day and time, we\u2019ll send a calendar invite over.',
 ];
@@ -263,8 +274,8 @@ export const CAMELOT_LEADERSHIP: LeaderProfile[] = [
 // ============================================================
 
 export const LAFAYETTE_TO_BE_CONFIRMED: string[] = [
-  'Exact unit count and the governing condominium entity\u2019s legal name (public sources show minor variance \u2014 confirm against the offering plan / bylaws)',
+  'The governing condominium entity\u2019s exact legal name (HPD registration lists \u201c382 Condominium Company\u201d \u2014 confirm against the offering plan / bylaws)',
   'Which property manager would be assigned \u2014 not yet decided since there is no engagement or fee discussion yet',
-  'Current management company, contract end date, and any transition timing constraints',
+  'Contract end date with the current managing agent and any transition timing constraints',
   'The Board\u2019s specific pain points and priorities \u2014 to be gathered on the introductory call, not assumed',
 ];

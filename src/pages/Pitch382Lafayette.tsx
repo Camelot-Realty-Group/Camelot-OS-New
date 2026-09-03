@@ -123,7 +123,10 @@ function NeighborhoodMap() {
         <g>
           <line x1={px(subject.x)} y1={py(subject.y) - 4} x2={px(subject.x)} y2={14} stroke={GOLD} strokeWidth={1.5} strokeDasharray="3,3" />
           <polygon points={`${px(subject.x) - 4},18 ${px(subject.x) + 4},18 ${px(subject.x)},10`} fill={GOLD} />
-          <text x={px(subject.x) + 10} y={16} fontSize="11" fontFamily="'General Sans', sans-serif" fontWeight={600} fill={NAVY}>57 W 57th St (our office) — {LAFAYETTE_TO_OFFICE_MILES} mi north</text>
+          <text x={px(subject.x) - 10} y={26} fontSize="10.5" fontFamily="'General Sans', sans-serif" fontWeight={600} fill={NAVY} textAnchor="end">
+            <tspan x={px(subject.x) - 10} dy="0">57 W 57th St (our office)</tspan>
+            <tspan x={px(subject.x) - 10} dy="13">{LAFAYETTE_TO_OFFICE_MILES} mi north</tspan>
+          </text>
         </g>
 
         {/* NoHo band + subject property */}

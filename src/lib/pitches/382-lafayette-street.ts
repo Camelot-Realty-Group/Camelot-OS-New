@@ -114,6 +114,13 @@ export const CAMELOT_FACTS = {
 // pre-packaged "distance" figure.
 export const LAFAYETTE_TO_OFFICE_MILES = 2.7;
 
+// Sample MDS monthly board reporting package — the same illustrative,
+// fictional-coop sample ("999 Owner's Corp", not any real client's data)
+// already built for the Oak Park pitch; reused here rather than
+// duplicated, since it demonstrates the same MDS platform.
+export const MDS_SAMPLE_PAGE_COUNT = 20;
+export const MDS_SAMPLE_BASE = '/pitch/oak-park-douglaston';
+
 export const CAMELOT_MISSION =
   "Camelot is a boutique property management and real estate company offering round-the-clock service built for the specific needs of New York's smaller, higher-touch buildings \u2014 the ones a large management company tends to treat as an afterthought.";
 
@@ -141,48 +148,44 @@ export const LAFAYETTE_NEARBY_TRACK_RECORD: TrackRecordItem[] = [
     distance: 'a short walk from 382 Lafayette Street',
     note: 'Camelot serves as managing agent for this cooperative, one avenue over from NoHo.',
   },
-  {
-    name: 'East of East Lofts',
-    neighborhood: 'Long Island City',
-    note: 'Camelot was appointed managing agent for this loft-style condominium \u2014 the same boutique, full-floor-unit building type as 382 Lafayette Street.',
-  },
 ];
 
 // ============================================================
 // Neighboring portfolio map — past & present Camelot-portfolio
 // buildings in the TriBeCa / SoHo / NoLIta corridor around 382
-// Lafayette Street, as provided directly by David. Coordinates
-// below are an editorial schematic (relative position on a
-// simplified downtown street grid, calibrated to real cross
-// streets) — not surveyed GPS points — built for an illustrative
-// proximity map, not for precise navigation. `x`/`y` are percent
-// positions on a 0–100 schematic grid (x: west→east, y: north→south).
+// Lafayette Street, as named directly by David. Coordinates are
+// best-effort geocodes (cross-checked against MapQuest, Wikipedia,
+// and CityRealty address records where available, and otherwise
+// placed against known NYC cross-street geography) for plotting on
+// a real street map — illustrative placement for orientation, not
+// survey-grade.
 // ============================================================
 
 export interface NearbyPortfolioProperty {
   address: string;
   neighborhood: string;
   crossStreets: string;
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
 }
 
 export const LAFAYETTE_NEIGHBORING_PORTFOLIO: NearbyPortfolioProperty[] = [
-  { address: '25–27 Mercer Street', neighborhood: 'SoHo', crossStreets: 'near Grand St', x: 62, y: 42 },
-  { address: '39 Spring Street', neighborhood: 'NoLIta', crossStreets: 'near Mott/Mulberry', x: 82, y: 26 },
-  { address: '402 West Broadway', neighborhood: 'SoHo', crossStreets: 'at Spring St', x: 38, y: 26 },
-  { address: '283 West Broadway', neighborhood: 'TriBeCa/SoHo border', crossStreets: 'near Canal St', x: 38, y: 47 },
-  { address: '104–109 Reade Street', neighborhood: 'TriBeCa', crossStreets: 'near Church/Hudson', x: 43, y: 82 },
-  { address: '137 Franklin Street', neighborhood: 'TriBeCa', crossStreets: 'at Varick St', x: 38, y: 60 },
-  { address: '58 White Street', neighborhood: 'TriBeCa', crossStreets: 'near Broadway/Church', x: 55, y: 54 },
-  { address: '68 Thomas Street', neighborhood: 'TriBeCa', crossStreets: 'near West Broadway/Church', x: 44, y: 88 },
-  { address: '1 North Moore Street', neighborhood: 'TriBeCa', crossStreets: 'at West Broadway', x: 38, y: 67 },
-  { address: '11 North Moore Street', neighborhood: 'TriBeCa', crossStreets: 'at Varick/Beach', x: 33, y: 67 },
-  { address: '465 Washington Street', neighborhood: 'TriBeCa', crossStreets: 'near Canal/Watts', x: 15, y: 48 },
-  { address: '471 Washington Street', neighborhood: 'TriBeCa', crossStreets: 'near Canal/Watts', x: 16, y: 50 },
-  { address: '290 West Street', neighborhood: 'TriBeCa', crossStreets: 'at Canal St', x: 8, y: 47 },
-  { address: '11 Hubert Street', neighborhood: 'TriBeCa', crossStreets: 'at Hubert/Collister', x: 12, y: 73 },
-  { address: '157 Hudson Street', neighborhood: 'TriBeCa', crossStreets: 'near Hubert/Collister', x: 22, y: 72 },
+  { address: '25–27 Mercer Street', neighborhood: 'SoHo', crossStreets: 'near Grand St', lat: 40.7208, lng: -74.0019 },
+  { address: '39 Spring Street', neighborhood: 'NoLIta', crossStreets: 'near Mott/Mulberry', lat: 40.7229, lng: -73.9958 },
+  { address: '202 Spring Street', neighborhood: 'SoHo', crossStreets: 'near Sullivan/Thompson', lat: 40.7241, lng: -74.0018 },
+  { address: '402 West Broadway', neighborhood: 'SoHo', crossStreets: 'at Spring St', lat: 40.7256, lng: -74.0026 },
+  { address: '283 West Broadway', neighborhood: 'TriBeCa/SoHo border', crossStreets: 'near Canal St', lat: 40.7205, lng: -74.0043 },
+  { address: '104–109 Reade Street', neighborhood: 'TriBeCa', crossStreets: 'near Church/Hudson', lat: 40.7156, lng: -74.0088 },
+  { address: '137 Franklin Street', neighborhood: 'TriBeCa', crossStreets: 'at Varick St', lat: 40.7186, lng: -74.0064 },
+  { address: '58 White Street', neighborhood: 'TriBeCa', crossStreets: 'near Broadway/Church', lat: 40.7183, lng: -74.0038 },
+  { address: '68 Thomas Street', neighborhood: 'TriBeCa', crossStreets: 'near West Broadway/Church', lat: 40.7161, lng: -74.0055 },
+  { address: '1 North Moore Street', neighborhood: 'TriBeCa', crossStreets: 'at West Broadway', lat: 40.7198, lng: -74.0087 },
+  { address: '11 North Moore Street', neighborhood: 'TriBeCa', crossStreets: 'at Varick/Beach', lat: 40.7204, lng: -74.0096 },
+  { address: '465 Washington Street', neighborhood: 'TriBeCa', crossStreets: 'near Canal/Watts', lat: 40.7244, lng: -74.0096 },
+  { address: '471 Washington Street', neighborhood: 'TriBeCa', crossStreets: 'near Canal/Watts', lat: 40.7248, lng: -74.0099 },
+  { address: '290 West Street', neighborhood: 'TriBeCa', crossStreets: 'at Canal St', lat: 40.7222, lng: -74.0117 },
+  { address: '11 Hubert Street', neighborhood: 'TriBeCa', crossStreets: 'at Hubert/Collister', lat: 40.7202, lng: -74.0113 },
+  { address: '157 Hudson Street', neighborhood: 'TriBeCa', crossStreets: 'near Hubert/Collister', lat: 40.7198, lng: -74.0093 },
 ];
 
 export const LAFAYETTE_FAR_PORTFOLIO_NOTE =
@@ -263,33 +266,54 @@ export interface TechPartner {
   name: string;
   role: string;
   description: string;
+  logo?: string;
+  logoIsWordmark?: boolean;
+  url?: string;
 }
+
+const TECH_LOGO_BASE = '/pitch/382-lafayette-street/partner-logos';
 
 export const LAFAYETTE_TECH_PARTNERS: TechPartner[] = [
   {
-    name: 'Camelot OS',
-    role: 'Our proprietary operating layer',
-    description: 'The dashboard that sits over every other platform below \u2014 owner and board reporting, compliance tracking, and staff accountability, all in one place for every building Camelot manages.',
-  },
-  {
-    name: 'BuildingLink',
-    role: 'Resident operations',
-    description: 'Work orders and tickets, amenity reservations, package logistics, and the front-desk log \u2014 the record of daily building life, searchable by staff and visible to residents in real time.',
+    name: 'MDS (Multi-Data Services)',
+    role: 'Accounting system of record',
+    description: 'Full general ledger, accounts payable/receivable, budgeting, and the monthly board reporting package \u2014 cash flow, bank reconciliations, check register, unpaid and paid-invoice images \u2014 kept separately reconciled for every building Camelot manages.',
+    logo: `${TECH_LOGO_BASE}/mds-logo.svg`,
+    url: 'https://multidataservices.com',
   },
   {
     name: 'Concierge Plus',
-    role: 'Concierge & front desk',
-    description: 'Guest authentication, delivery and grocery handoff, and staff communication \u2014 the layer that makes a front desk fast without making it impersonal.',
+    role: 'Resident & Board experience portal',
+    description: 'A branded resident and Board portal \u2014 announcements, package tracking, amenity/common-area communication, and document access. Included in the base management fee, with front-desk and Board training provided directly by Camelot as part of onboarding.',
+    logo: `${TECH_LOGO_BASE}/conciergeplus-mark.png`,
+    url: 'https://conciergeplus.com',
   },
   {
-    name: 'MDS (Management Data Services)',
-    role: 'Accounting & financial reporting',
-    description: 'The accounting and financial management platform behind Camelot\u2019s monthly report packages \u2014 board members receive financial statements, budgets, and transaction-level detail on a fixed schedule.',
+    name: 'BuildingLink',
+    role: 'Resident/maintenance operations',
+    description: 'Work orders and tickets, amenity reservations, package logistics, and the front-desk log \u2014 the record of daily building life, searchable by staff and visible to residents in real time. Where a building already runs BuildingLink, Camelot reviews the license and version rather than layering on a second system.',
+    logo: `${TECH_LOGO_BASE}/buildinglink-logo.png`,
+    url: 'https://www.buildinglink.com',
+  },
+  {
+    name: 'Domecile (BoardPackager)',
+    role: 'Digital board-application platform',
+    description: 'A secure, paperless platform for sale, refinance, transfer, lease, and sublease applications \u2014 applicants, brokers, and the Board all work from the same digital package instead of paper.',
+    logo: `${TECH_LOGO_BASE}/domecile-logo.svg`,
+    url: 'https://www.domecile.com',
   },
   {
     name: 'Meet Select',
     role: 'Resident lifestyle membership',
-    description: 'A private membership extended to residents \u2014 a dedicated concierge team and access to more than 1.6 million partner locations (dining, retail, travel, entertainment) beyond whatever a building\u2019s own front desk can arrange. (www.meetselect.com)',
+    description: 'A private membership extended to residents \u2014 a dedicated concierge team and access to more than 1.6 million partner locations across dining, retail, travel, and entertainment, beyond whatever a building\u2019s own front desk can arrange.',
+    logoIsWordmark: true,
+    url: 'https://www.meetselect.com',
+  },
+  {
+    name: 'Camelot OS',
+    role: 'Our proprietary operating layer',
+    description: 'Camelot\u2019s own intelligence layer \u2014 owner and board reporting, live NYC Open Data compliance monitoring (HPD/DOB/ACRIS), cost benchmarking against Camelot\u2019s own portfolio, and staff accountability, all in one dashboard for every building Camelot manages.',
+    logoIsWordmark: true,
   },
 ];
 
@@ -348,7 +372,7 @@ export const CAMELOT_SERVICES: ServiceGroup[] = [
 export const LAFAYETTE_COVER_LETTER_PARAGRAPHS: string[] = [
   'Samantha \u2014 thank you for thinking of Camelot, and please pass along our thanks to your uncle Jason as well. What follows is an introduction ahead of your call with the Board \u2014 not a sales pitch, just a clear picture of who we are and what we do.',
   'Camelot Realty Group has been managing buildings in New York City for twenty years. We got our start in Lower Manhattan \u2014 servicing buildings in TriBeCa, SoHo, NoHo, and the West Village \u2014 and have grown from there into a platform that today manages 47 buildings and more than $240 million in assets, 26 of them boutique, full-amenity condominiums much like 382 Lafayette Street. Our full managed portfolio is browsable on our website at camelot.nyc/managed-buildings.',
-  'We still work in this immediate corridor today. Camelot manages 137 Franklin Street Apartment Corp in TriBeCa, a short walk from you, and has supported building improvements at 111 Mott Street in NoLIta, five minutes away. We also manage East of East Lofts in Long Island City \u2014 a boutique, full-floor-unit condominium built much like yours, with the same small, owner-occupied roll rather than a large shareholder base. NoHo and the streets around it are not new territory for us.',
+  'We still work in this immediate corridor today. Camelot manages 137 Franklin Street Apartment Corp in TriBeCa, a short walk from you, and has supported building improvements at 111 Mott Street in NoLIta, five minutes away \u2014 and our current and past portfolio runs through most of the blocks around you, from Mercer and Spring Streets down through TriBeCa. NoHo and the streets around it are not new territory for us.',
   'What follows is an introduction, not a pitch with a number attached \u2014 we haven\u2019t discussed pricing, and we\u2019re not going to guess at one before we understand what the Board actually needs. Instead, this covers who we are, what a Camelot-managed building looks like day to day, and where we\u2019ve done this kind of work before.',
   'We\u2019d welcome the chance to speak with the full Board \u2014 by phone, video, or in person, whichever is easiest to coordinate. Once you have a day and time, we\u2019ll send a calendar invite over.',
 ];

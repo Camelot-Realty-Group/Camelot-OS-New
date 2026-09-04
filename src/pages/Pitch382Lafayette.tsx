@@ -21,6 +21,16 @@
 
 import { useEffect, type ReactNode } from 'react';
 import {
+  Building2,
+  Calculator,
+  Users,
+  HeartHandshake,
+  TrendingUp,
+  CalendarDays,
+  Landmark,
+  Home,
+} from 'lucide-react';
+import {
   LAFAYETTE_PROPERTY,
   LAFAYETTE_CONTACT,
   CAMELOT_FACTS,
@@ -37,8 +47,13 @@ import {
   LAFAYETTE_CASE_STUDIES,
   LAFAYETTE_TECH_PARTNERS,
   LAFAYETTE_TO_OFFICE_MILES,
+  MDS_SAMPLE_PAGE_COUNT,
+  MDS_SAMPLE_BASE,
   type Fact,
 } from '@/lib/pitches/382-lafayette-street';
+import RealNeighborhoodMap from '@/components/RealNeighborhoodMap';
+import BoroughCoverageMap from '@/components/BoroughCoverageMap';
+import FlipBookViewer from '@/components/FlipBookViewer';
 
 const PHOTO_BASE = '/pitch/382-lafayette-street';
 const BRAND_BASE = `${PHOTO_BASE}/brand`;
@@ -46,6 +61,8 @@ const LOGO_BLACK = `${BRAND_BASE}/camelot-logo-black.png`;
 const LOGO_CREAM = `${BRAND_BASE}/camelot-logo-cream.png`;
 const STREET_VIEW = `${PHOTO_BASE}/street-view.jpg`;
 const LOT_MAP = `${PHOTO_BASE}/lot-map.png`;
+const SIGNATURE_IMG = `${BRAND_BASE}/david-goldoff-signature.png`;
+const CALENDLY_URL = 'https://calendly.com/dgoldoff/intro-to-camelot-os-demo';
 
 // Palette matches the Camelot — A Journal of Considered Ownership
 // brochure design system: cream paper, ink text, brass/gold accent.
@@ -103,80 +120,46 @@ function Rule() {
   return <div className="w-16 h-px mb-8" style={{ backgroundColor: GOLD }} />;
 }
 
-// A hand-built editorial schematic — not a surveyed GPS map — showing
-// 382 Lafayette Street against Camelot's neighboring past-and-present
-// portfolio in the TriBeCa/SoHo/NoLIta corridor, plus off-map callouts
-// for the two portfolio points that fall outside this downtown frame
-// (Chelsea, and the Midtown office). Positions are percent coordinates
-// on a simplified grid, placed via known real cross streets.
-function NeighborhoodMap() {
-  const W = 640;
-  const H = 620;
-  const px = (x: number) => (x / 100) * W;
-  const py = (y: number) => (y / 100) * H;
-  // Subject property: NoHo, north of the main downtown grid shown below.
-  const subject = { x: 82, y: 6 };
+const SERVICE_ICONS: Record<string, typeof Building2> = {
+  'Day-to-day management': Building2,
+  'Financial & compliance': Calculator,
+  'Governance & transition': Users,
+  'Resident experience': HeartHandshake,
+  'Beyond management': TrendingUp,
+};
+
+// Real coordinates for the map's subject property and Camelot's office,
+// sourced via MapQuest address lookups (see 382-lafayette-street.ts).
+const MAP_SUBJECT = { label: '382 Lafayette Street', neighborhood: 'NoHo', lat: 40.72768, lng: -73.99354 };
+const MAP_OFFICE = { label: '57 West 57th Street', neighborhood: 'Midtown', lat: 40.76438, lng: -73.97654 };
+
+function NeighborhoodMapSection() {
+  const portfolioPoints = LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => ({
+    label: p.address,
+    neighborhood: p.neighborhood,
+    crossStreets: p.crossStreets,
+    lat: p.lat,
+    lng: p.lng,
+    number: i + 1,
+  }));
   return (
-    <div className="border" style={{ borderColor: DIVIDER, backgroundColor: PAPER }}>
-      <svg viewBox={`0 0 ${W} ${H + 70}`} className="w-full h-auto" role="img" aria-label="Schematic map of Camelot's neighboring portfolio near 382 Lafayette Street">
-        {/* Off-map callout: Midtown office */}
-        <g>
-          <line x1={px(subject.x)} y1={py(subject.y) - 4} x2={px(subject.x)} y2={14} stroke={GOLD} strokeWidth={1.5} strokeDasharray="3,3" />
-          <polygon points={`${px(subject.x) - 4},18 ${px(subject.x) + 4},18 ${px(subject.x)},10`} fill={GOLD} />
-          <text x={px(subject.x) - 10} y={26} fontSize="10.5" fontFamily="'General Sans', sans-serif" fontWeight={600} fill={NAVY} textAnchor="end">
-            <tspan x={px(subject.x) - 10} dy="0">57 W 57th St (our office)</tspan>
-            <tspan x={px(subject.x) - 10} dy="13">{LAFAYETTE_TO_OFFICE_MILES} mi north</tspan>
-          </text>
-        </g>
-
-        {/* NoHo band + subject property */}
-        <rect x={0} y={40} width={W} height={py(4)} fill="none" />
-        <text x={12} y={54} fontSize="10" fontFamily="'General Sans', sans-serif" fontWeight={700} letterSpacing="1.5" fill={MUTED}>NOHO</text>
-        <circle cx={px(subject.x)} cy={54} r={7} fill={GOLD} stroke={NAVY} strokeWidth={1.5} />
-        <text x={px(subject.x) + 12} y={51} fontSize="12" fontFamily="'Cormorant Garamond', serif" fontWeight={600} fill={NAVY}>382 Lafayette St</text>
-        <text x={px(subject.x) + 12} y={64} fontSize="9.5" fontFamily="'General Sans', sans-serif" fill={MUTED}>the subject property</text>
-
-        {/* Houston St boundary */}
-        <line x1={0} y1={py(14)} x2={W} y2={py(14)} stroke={DIVIDER} strokeWidth={1} />
-        <text x={12} y={py(14) - 4} fontSize="9" fontFamily="'General Sans', sans-serif" fill={MUTED}>Houston St</text>
-
-        {/* SoHo / NoLIta band label */}
-        <text x={12} y={py(20)} fontSize="10" fontFamily="'General Sans', sans-serif" fontWeight={700} letterSpacing="1.5" fill={MUTED}>SOHO / NOLITA</text>
-
-        {/* Canal St boundary */}
-        <line x1={0} y1={py(52)} x2={W} y2={py(52)} stroke={DIVIDER} strokeWidth={1} />
-        <text x={12} y={py(52) - 4} fontSize="9" fontFamily="'General Sans', sans-serif" fill={MUTED}>Canal St</text>
-
-        {/* TriBeCa band label */}
-        <text x={12} y={py(58)} fontSize="10" fontFamily="'General Sans', sans-serif" fontWeight={700} letterSpacing="1.5" fill={MUTED}>TRIBECA</text>
-
-        {/* Hudson River edge (west) */}
-        <rect x={0} y={py(52)} width={px(4)} height={py(100) - py(52)} fill={`${GOLD}0A`} />
-        <text x={4} y={py(96)} fontSize="8.5" fontFamily="'General Sans', sans-serif" fill={MUTED} transform={`rotate(-90 4 ${py(96)})`}>Hudson River</text>
-
-        {/* Neighboring portfolio pins */}
+    <div>
+      <RealNeighborhoodMap
+        subject={MAP_SUBJECT}
+        office={MAP_OFFICE}
+        portfolio={portfolioPoints}
+        officeDistanceMiles={LAFAYETTE_TO_OFFICE_MILES}
+        goldHex={GOLD}
+        navyHex={NAVY}
+      />
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
         {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
-          <g key={p.address}>
-            <circle cx={px(p.x)} cy={py(p.y) + 70} r={5} fill="none" stroke={GOLD} strokeWidth={1.75} />
-            <text x={px(p.x)} y={py(p.y) + 73.5} fontSize="7" fontFamily="'General Sans', sans-serif" fontWeight={700} fill={NAVY} textAnchor="middle">{i + 1}</text>
-          </g>
+          <p key={p.address} className="text-xs leading-relaxed" style={{ color: MUTED }}>
+            <span className="font-semibold" style={{ color: NAVY }}>{i + 1}.</span> {p.address} <span className="italic">— {p.neighborhood}, {p.crossStreets}</span>
+          </p>
         ))}
-
-        {/* Chambers St boundary */}
-        <line x1={0} y1={py(100) + 70 - 2} x2={W} y2={py(100) + 70 - 2} stroke={DIVIDER} strokeWidth={1} />
-        <text x={12} y={py(100) + 70 - 6} fontSize="9" fontFamily="'General Sans', sans-serif" fill={MUTED}>Chambers St</text>
-      </svg>
-      <div className="px-6 pb-6 pt-2">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
-          {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
-            <p key={p.address} className="text-xs leading-relaxed" style={{ color: MUTED }}>
-              <span className="font-semibold" style={{ color: NAVY }}>{i + 1}.</span> {p.address} <span className="italic">— {p.neighborhood}, {p.crossStreets}</span>
-            </p>
-          ))}
-        </div>
-        <p className="mt-4 text-xs italic" style={{ color: MUTED }}>{LAFAYETTE_FAR_PORTFOLIO_NOTE}</p>
-        <p className="mt-2 text-[10px]" style={{ color: MUTED }}>Schematic map for orientation, positioned against known cross streets — not a surveyed or GPS-accurate rendering.</p>
       </div>
+      <p className="mt-4 text-xs italic" style={{ color: MUTED }}>{LAFAYETTE_FAR_PORTFOLIO_NOTE}</p>
     </div>
   );
 }
@@ -305,7 +288,12 @@ export default function Pitch382Lafayette() {
                 {p}
               </p>
             ))}
-            <p className="mt-10 font-heading text-lg" style={{ color: NAVY }}>David A. Goldoff</p>
+            <img
+              src={SIGNATURE_IMG}
+              alt="David A. Goldoff signature"
+              className="mt-10 h-16 md:h-20 w-auto object-contain object-left"
+            />
+            <p className="mt-1 font-heading text-lg" style={{ color: NAVY }}>David A. Goldoff</p>
             <p className="font-sans text-xs font-semibold uppercase tracking-wider" style={{ color: GOLD }}>President, Camelot Realty Group</p>
           </div>
         </section>
@@ -370,12 +358,13 @@ export default function Pitch382Lafayette() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ backgroundColor: '#e5decc' }}>
             {[
-              { label: 'Founded', value: <FactValue fact={CAMELOT_FACTS.founded} /> },
-              { label: 'Buildings managed', value: <FactValue fact={CAMELOT_FACTS.buildings} /> },
-              { label: 'Assets under management', value: <FactValue fact={CAMELOT_FACTS.aum} /> },
-              { label: 'Boutique condominiums', value: <FactValue fact={CAMELOT_FACTS.boutiqueCondos} /> },
+              { label: 'Founded', value: <FactValue fact={CAMELOT_FACTS.founded} />, Icon: CalendarDays },
+              { label: 'Buildings managed', value: <FactValue fact={CAMELOT_FACTS.buildings} />, Icon: Building2 },
+              { label: 'Assets under management', value: <FactValue fact={CAMELOT_FACTS.aum} />, Icon: Landmark },
+              { label: 'Boutique condominiums', value: <FactValue fact={CAMELOT_FACTS.boutiqueCondos} />, Icon: Home },
             ].map((cell) => (
               <div key={cell.label} className="p-5" style={{ backgroundColor: PAPER }}>
+                <cell.Icon className="mb-3" size={20} strokeWidth={1.5} style={{ color: GOLD }} />
                 <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>{cell.label}</p>
                 <p className="text-sm leading-snug" style={{ color: NAVY }}>{cell.value}</p>
               </div>
@@ -402,9 +391,14 @@ export default function Pitch382Lafayette() {
             need. This is simply the full range of what a Camelot-managed building has access to.
           </p>
           <div className="grid md:grid-cols-2 gap-x-10 gap-y-10">
-            {CAMELOT_SERVICES.map((group) => (
+            {CAMELOT_SERVICES.map((group) => {
+              const Icon = SERVICE_ICONS[group.category] ?? Building2;
+              return (
               <div key={group.category}>
-                <p className="font-heading text-xl mb-3" style={{ color: NAVY }}>{group.category}</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <Icon size={22} strokeWidth={1.5} style={{ color: GOLD }} />
+                  <p className="font-heading text-xl" style={{ color: NAVY }}>{group.category}</p>
+                </div>
                 <ul className="space-y-2">
                   {group.items.map((item, i) => (
                     <li key={i} className="flex gap-3 text-sm leading-relaxed" style={{ color: NAVY }}>
@@ -414,7 +408,8 @@ export default function Pitch382Lafayette() {
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -456,7 +451,7 @@ export default function Pitch382Lafayette() {
             often the very same block. Our office sits {LAFAYETTE_TO_OFFICE_MILES} miles north, a short
             trip when a Board wants to sit down in person.
           </p>
-          <NeighborhoodMap />
+          <NeighborhoodMapSection />
         </section>
 
         {/* ============ CASE STUDIES ============ */}
@@ -490,15 +485,71 @@ export default function Pitch382Lafayette() {
           <SectionLabel>Technology & strategic partnerships</SectionLabel>
           <SectionTitle>The stack running quietly behind every building we manage.</SectionTitle>
           <Rule />
-          <div className="grid md:grid-cols-2 gap-px" style={{ backgroundColor: '#e5decc' }}>
+          <p className="mb-10 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            These aren't logos for decoration — each is a platform Camelot actually runs day to day, with a
+            specific job to do. Click through to see each provider directly.
+          </p>
+          <div className="mb-14">
             {LAFAYETTE_TECH_PARTNERS.map((tp) => (
-              <div key={tp.name} className="p-6" style={{ backgroundColor: PAPER }}>
-                <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{tp.name}</p>
-                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: GOLD }}>{tp.role}</p>
-                <p className="text-sm leading-relaxed" style={{ color: NAVY }}>{tp.description}</p>
+              <div
+                key={tp.name}
+                className="grid md:grid-cols-[160px_1fr] gap-4 md:gap-10 py-8 border-b items-start"
+                style={{ borderColor: '#e5decc' }}
+              >
+                <div className="h-9 flex items-center md:justify-start">
+                  {tp.logo ? (
+                    <img src={tp.logo} alt={`${tp.name} logo`} className="max-h-full max-w-[150px] object-contain object-left" />
+                  ) : tp.logoIsWordmark ? (
+                    <span className="font-heading text-xl tracking-wide" style={{ color: NAVY }}>
+                      {tp.name === 'Camelot OS' ? (
+                        <>CAMELOT <span style={{ color: GOLD }}>OS</span></>
+                      ) : (
+                        <span style={{ color: GOLD }}>{tp.name}</span>
+                      )}
+                    </span>
+                  ) : null}
+                </div>
+                <div>
+                  <p className="font-heading text-lg mb-0.5" style={{ color: NAVY }}>{tp.name}</p>
+                  <p className="font-sans text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{tp.role}</p>
+                  <p className="text-sm leading-relaxed max-w-2xl" style={{ color: NAVY }}>{tp.description}</p>
+                  {tp.url && (
+                    <a
+                      href={tp.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-3 font-sans text-xs font-semibold uppercase tracking-wider"
+                      style={{ color: GOLD }}
+                    >
+                      Learn more &rarr;
+                    </a>
+                  )}
+                </div>
               </div>
             ))}
           </div>
+
+          <p className="font-heading text-xl mb-2" style={{ color: NAVY }}>What our monthly reporting actually looks like</p>
+          <p className="text-sm leading-relaxed mb-4 max-w-3xl" style={{ color: MUTED }}>
+            An illustrative sample of the monthly board reporting package MDS produces — cash flow, bank
+            reconciliations, check register, and paid-invoice images — for a fictional coop (“999 Owner's
+            Corp”), not 382 Lafayette's actual financials. Flip through it below, or download the full PDF.
+          </p>
+          <FlipBookViewer
+            pageSrc={(n) => `${MDS_SAMPLE_BASE}/mds-sample-report/page-${String(n).padStart(2, '0')}.jpg`}
+            pageCount={MDS_SAMPLE_PAGE_COUNT}
+            title="MDS Sample Monthly Report Package"
+            goldHex={GOLD}
+            navyHex={NAVY}
+          />
+          <a
+            href={`${MDS_SAMPLE_BASE}/documents/Camelot-MDS-Sample-Monthly-Report-Package.pdf`}
+            download
+            className="inline-flex items-center gap-2 px-6 py-3 mt-4 font-sans text-sm font-semibold uppercase tracking-wider"
+            style={{ backgroundColor: GOLD, color: NAVY }}
+          >
+            Download Sample Report (PDF)
+          </a>
         </section>
 
         {/* ============ AREAS OF COVERAGE ============ */}
@@ -506,9 +557,10 @@ export default function Pitch382Lafayette() {
           <SectionLabel>Where we operate</SectionLabel>
           <SectionTitle>New York City first. Expanding deliberately, not everywhere at once.</SectionTitle>
           <Rule />
-          <p className="text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+          <p className="mb-8 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             {CAMELOT_FACTS.footprint.value}. {CAMELOT_FACTS.southFloridaNote.value}
           </p>
+          <BoroughCoverageMap goldHex={GOLD} navyHex={NAVY} />
         </section>
 
         {/* ============ TEAM ============ */}
@@ -541,13 +593,24 @@ export default function Pitch382Lafayette() {
           <p className="mb-8 text-lg leading-relaxed max-w-2xl" style={{ color: NAVY }}>
             {LAFAYETTE_NEXT_STEP}
           </p>
-          <a
-            href="mailto:dgoldoff@camelot.nyc?subject=382%20Lafayette%20Street%20%E2%80%94%20a%20few%20times%20for%20the%20Board"
-            className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider"
-            style={{ backgroundColor: GOLD, color: NAVY }}
-          >
-            Propose a time
-          </a>
+          <div className="flex flex-wrap gap-4">
+            <a
+              href={CALENDLY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider"
+              style={{ backgroundColor: GOLD, color: NAVY }}
+            >
+              Propose a time (Calendly)
+            </a>
+            <a
+              href="mailto:dgoldoff@camelot.nyc?subject=382%20Lafayette%20Street%20%E2%80%94%20a%20few%20times%20for%20the%20Board"
+              className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border"
+              style={{ borderColor: NAVY, color: NAVY }}
+            >
+              Or email David directly
+            </a>
+          </div>
         </section>
 
         {/* ============ OPEN ITEMS ============ */}

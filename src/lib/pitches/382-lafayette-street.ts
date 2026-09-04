@@ -421,6 +421,12 @@ export const CAMELOT_LEADERSHIP: LeaderProfile[] = [
     photo: '/pitch/382-lafayette-street/team/vincent-melilo.jpg',
     bio: 'Oversees accounting operations firm-wide \u2014 the accountable lead for monthly closes, books, and budgets across the portfolio.',
   },
+  {
+    name: 'Anthony Abruzzo, CPA',
+    role: 'Chief Financial Officer & Senior Managing Tax Director',
+    photo: '/pitch/382-lafayette-street/team/anthony-abruzzo.jpg',
+    bio: 'Licensed CPA overseeing all financial reporting internally and for clients, and works closely with boards to define budget goals and options. Works alongside his father\u2019s firm, Abruzzo Accounting.',
+  },
 ];
 
 // ============================================================

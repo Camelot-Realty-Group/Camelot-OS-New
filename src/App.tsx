@@ -9,6 +9,7 @@ import { useTour } from '@/hooks/useTour';
 import { useBuildings } from '@/hooks/useBuildings';
 
 const Search = lazy(() => import('@/pages/Search'));
+const WelcomeHome = lazy(() => import('@/pages/WelcomeHome'));
 const Results = lazy(() => import('@/pages/Results'));
 const DailyHunt = lazy(() => import('@/pages/DailyHunt'));
 const Saved = lazy(() => import('@/pages/Saved'));
@@ -84,6 +85,7 @@ export default function App() {
       <Layout onStartTour={startTour}>
         <Routes>
           <Route path="/" element={page(Search)} />
+          <Route path="/welcome-home" element={page(WelcomeHome)} />
           <Route path="/results" element={page(Results)} />
           <Route path="/daily-hunt" element={page(DailyHunt)} />
           <Route path="/saved" element={page(Saved)} />

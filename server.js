@@ -1233,6 +1233,47 @@ const getAiKey = () => process.env.OPENAI_API_KEY || process.env.AI_API_KEY || '
 const getAiUrl = () => process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
 const getAiModel = () => process.env.AI_MODEL || process.env.VITE_AI_MODEL || 'gpt-4o-mini';
 
+// ============================================================
+// Merlin pitch-archive retrieval — searches camelot_pitch_documents
+// (extracted text from ~90 past pitch/management-agreement folders in
+// Google Drive) so Merlin's answers can be grounded in real prior deals.
+// ============================================================
+const PITCH_ARCHIVE_STOPWORDS = new Set([
+  'the','a','an','of','to','in','on','for','and','or','is','are','was','were','what','who','when','where','why','how',
+  'do','does','did','can','could','would','should','tell','me','about','with','from','at','by','this','that','it',
+  'camelot','building','property','pitch','past','our','we','you','your',
+]);
+
+async function searchPitchArchive(userText, limit = 4) {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseKey || /placeholder/i.test(supabaseUrl)) return [];
+
+  const words = (userText || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !PITCH_ARCHIVE_STOPWORDS.has(w));
+  if (words.length === 0) return [];
+  const query = words.slice(0, 8).join(' ');
+
+  try {
+    const url = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/camelot_pitch_documents`
+      + `?select=filename,drive_url,extracted_text,camelot_pitch_library(building_name)`
+      + `&text_search=plfts(english).${encodeURIComponent(query)}`
+      + `&limit=${limit}`;
+    const resp = await fetch(url, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+    });
+    if (!resp.ok) return [];
+    const rows = await resp.json().catch(() => []);
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    console.warn('[pitch-archive] search failed:', err?.message);
+    return [];
+  }
+}
+
 app.post('/api/ai/chat', async (req, res) => {
   const key = getAiKey();
   if (!key) {
@@ -1243,12 +1284,32 @@ app.post('/api/ai/chat', async (req, res) => {
     return res.status(400).json({ error: 'messages[] required' });
   }
   try {
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
+    const archiveHits = lastUserMsg ? await searchPitchArchive(lastUserMsg.content) : [];
+    let chatMessages = messages.slice(-40);
+    if (archiveHits.length > 0) {
+      const context = archiveHits
+        .map((h) => {
+          const name = h.camelot_pitch_library?.building_name || 'Unknown building';
+          const excerpt = (h.extracted_text || '').slice(0, 900);
+          return `Building: ${name}\nFile: ${h.filename}\nExcerpt:\n${excerpt}`;
+        })
+        .join('\n\n---\n\n');
+      chatMessages = [
+        {
+          role: 'system',
+          content:
+            `Relevant excerpts from Camelot's past pitch and management-agreement archive (use only if genuinely relevant to the user's question, and say which building/file it came from if you use it):\n\n${context}`,
+        },
+        ...chatMessages,
+      ];
+    }
     const upstream = await fetch(getAiUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: getAiModel(),
-        messages: messages.slice(-40),
+        messages: chatMessages,
         temperature: typeof temperature === 'number' ? temperature : 0.7,
         max_tokens: typeof max_tokens === 'number' ? Math.min(max_tokens, 4096) : 2048,
         stream: false,

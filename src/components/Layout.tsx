@@ -39,6 +39,7 @@ import {
   Users,
   UserSearch,
   Phone,
+  Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/store';
@@ -57,6 +58,12 @@ interface NavSection {
 }
 
 const navigation: NavSection[] = [
+  {
+    title: 'Welcome Home',
+    items: [
+      { label: 'Intro to Camelot', href: '/welcome-home', icon: <Home size={18} /> },
+    ],
+  },
   {
     title: 'Scout — New Business',
     items: [

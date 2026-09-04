@@ -361,6 +361,7 @@ export const CAMELOT_SERVICES: ServiceGroup[] = [
     items: [
       'Brokerage and leasing services through Camelot Brokerage Services Corp \u2014 a separate, independently licensed entity and agreement from property management',
       'Access to capital-partner relationships (through Penn South Capital and Goldoff Equity Group) for ownership groups considering acquisition, refinancing, or repositioning',
+      'Financing & capital advisory as a separate engagement \u2014 Camelot runs a lender RFP, levels quotes into an apples-to-apples comparison, and coordinates the bank file through closing for a refinance, new loan, or capital-improvement credit line, structured outside the base management fee',
     ],
   },
 ];
@@ -431,4 +432,6 @@ export const LAFAYETTE_TO_BE_CONFIRMED: string[] = [
   'The Board\u2019s specific pain points and priorities \u2014 to be gathered on the introductory call, not assumed',
   'Current status of 25\u201327 Mercer Street \u2014 recent reporting (Commercial Observer, April 2025) describes a loan default/foreclosure action on this property; confirm current status before referencing it as an active engagement',
   'Current use of 283 West Broadway \u2014 recent listings show what may be a commercial/clinical tenant at this address; confirm before describing it as residential',
+  'Year built shows 1900 in the PropertyShark/DOF-sourced record used on this page vs. 1896 in a separate Camelot OS intelligence report generated 9/3/2026 \u2014 minor discrepancy, worth reconciling before a final proposal',
+  'Open HPD/DOB violation count \u2014 two different Camelot-generated reports on 9/3/2026 showed different figures (14 open of 127 total vs. 2 open); needs a fresh manual HPD/DOB BIS pull before quoting a number to the Board',
 ];

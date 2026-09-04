@@ -334,6 +334,11 @@ export default function Pitch382Lafayette() {
               </div>
             ))}
           </div>
+          <div className="mt-6 flex flex-wrap gap-x-8 gap-y-1 text-xs" style={{ color: MUTED }}>
+            <span><strong style={{ color: NAVY }}>Bleecker St (6 train)</strong> — 0.14 mi</span>
+            <span><strong style={{ color: NAVY }}>8 St-NYU (R/W train)</strong> — 0.19 mi</span>
+            <span className="italic">Per Camelot's own property-intelligence pull, 9/3/2026 — bus, e-bike, rideshare, and taxi points mapped at onboarding.</span>
+          </div>
           <p className="mt-4 text-xs italic" style={{ color: MUTED }}>
             {LAFAYETTE_CONTACT.context}
           </p>

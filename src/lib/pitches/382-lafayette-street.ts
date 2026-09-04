@@ -105,6 +105,7 @@ export const CAMELOT_FACTS = {
   website: 'www.camelot.nyc',
   linkedin: 'https://www.linkedin.com/company/camelot-realty-group',
   officeCoords: { lat: 40.76438, lon: -73.97654 },
+  executiveOfficeCoords: { lat: 40.7605, lon: -73.9733 },
   presidentTrackRecordUrl: 'https://david-goldoff-camelot-president.netlify.app/',
   blogUrl: 'https://www.camelot.nyc/blog/',
   ownersGuideUrl: 'https://www.camelot.nyc/2026-nyc-property-owners-guide/',
@@ -116,6 +117,11 @@ export const CAMELOT_FACTS = {
 // formula from those two sourced coordinate pairs, not looked up as a
 // pre-packaged "distance" figure.
 export const LAFAYETTE_TO_OFFICE_MILES = 2.7;
+
+// Straight-line distance from 382 Lafayette St to Camelot's executive
+// office at 501 Madison Avenue (40.7605, -73.9733) -- same haversine
+// method as above.
+export const LAFAYETTE_TO_EXEC_OFFICE_MILES = 2.5;
 
 // Sample MDS monthly board reporting package — the same illustrative,
 // fictional-coop sample ("999 Owner's Corp", not any real client's data)
@@ -138,18 +144,29 @@ export interface TrackRecordItem {
   distance?: string;
 }
 
+// The three closest Camelot-portfolio buildings to 382 Lafayette Street,
+// ranked by straight-line (haversine) distance computed from the same
+// cross-checked coordinates used in LAFAYETTE_NEIGHBORING_PORTFOLIO below
+// -- not an eyeballed guess. Order: 39 Spring St (0.35 mi), 402 West
+// Broadway (0.49 mi), 202 Spring St (0.50 mi).
 export const LAFAYETTE_NEARBY_TRACK_RECORD: TrackRecordItem[] = [
   {
-    name: '111 Mott Street',
+    name: '39 Spring Street',
     neighborhood: 'NoLIta',
-    distance: 'a five-minute walk from 382 Lafayette Street',
-    note: 'A Camelot-supported building improvement and operations case study \u2014 published on camelot.nyc \u2014 just south of NoHo.',
+    distance: '0.35 miles away -- about a 7-minute walk',
+    note: 'The single closest address in Camelot\u2019s portfolio to 382 Lafayette Street -- practically next door.',
   },
   {
-    name: '137 Franklin Street Apartment Corp',
-    neighborhood: 'TriBeCa',
-    distance: 'a short walk from 382 Lafayette Street',
-    note: 'Camelot serves as managing agent for this cooperative, one avenue over from NoHo.',
+    name: '402 West Broadway',
+    neighborhood: 'SoHo',
+    distance: '0.49 miles away -- about a 9-minute walk',
+    note: 'A SoHo corner building at Spring Street, in the same loft-conversion building stock as 382 Lafayette.',
+  },
+  {
+    name: '202 Spring Street',
+    neighborhood: 'SoHo',
+    distance: '0.50 miles away -- about a 9-minute walk',
+    note: 'Near Sullivan and Thompson, a five-minute walk from the Spring Street 6 train -- the same commute 382 Lafayette residents already use.',
   },
 ];
 
@@ -235,6 +252,15 @@ export interface CaseStudy {
   stat: string;
 }
 
+// The first two entries below are sourced from a public camelot.nyc post
+// or press release (each has a url). The final two -- 58 White Street
+// and 949 Park Avenue -- are drawn from an internal Camelot document (a
+// 90-Day Transition Plan prepared for another building's board) rather
+// than a public webpage, so they carry no url; both are real, both are
+// steps from a negative starting point to a resolved one, and 58 White
+// Street doubles as one of the closest addresses in Camelot's own
+// portfolio to 382 Lafayette Street (0.84 miles away, per
+// LAFAYETTE_NEIGHBORING_PORTFOLIO).
 export const LAFAYETTE_CASE_STUDIES: CaseStudy[] = [
   {
     title: 'The NYC Co-op That Saved $45,000 in Year One After Switching Management Companies',
@@ -257,6 +283,20 @@ export const LAFAYETTE_CASE_STUDIES: CaseStudy[] = [
     url: 'https://www.camelot.nyc/east-of-east-lofts-long-island-city/',
     summary: 'A boutique, full-floor-unit loft condominium \u2014 the same building type as 382 Lafayette Street \u2014 where Camelot was appointed managing agent, bringing the firm\u2019s managed portfolio to 54 properties across Manhattan, Brooklyn, Queens, and Westchester County at the time.',
     stat: 'Same boutique loft-building profile as 382 Lafayette',
+  },
+  {
+    title: 'Under Budget, Ahead of Schedule: A TriBeCa Facade Restoration',
+    building: '58 White Street, TriBeCa -- 0.84 miles from 382 Lafayette Street',
+    summary:
+      'A Local Law 11/FISP facade cycle that started as an open violation and an unscoped repair became a managed capital project: Camelot ran the bid process, held the contractor to the schedule, and closed out the work 45 days ahead of the original timeline and under the approved budget -- turning a compliance liability into a completed capital improvement the board could point to.',
+    stat: 'Facade restoration finished 45 days early, under budget',
+  },
+  {
+    title: 'From a $200,000 Insurance Claim to a Contained Loss',
+    building: '949 Park Avenue, Upper East Side',
+    summary:
+      'Window damage that could have become an uninsured, board-absorbed repair bill instead became a documented, fully pursued insurance claim -- Camelot\u2019s financial administration team built the claim file, pushed it through the carrier, and recovered roughly $200,000 that would otherwise have landed on the building\u2019s reserves.',
+    stat: '~$200,000 in damage recovered through insurance, not reserves',
   },
 ];
 
@@ -382,7 +422,45 @@ export const LAFAYETTE_COVER_LETTER_PARAGRAPHS: string[] = [
 ];
 
 export const LAFAYETTE_NEXT_STEP =
-  'Reply with a few times that work for the Board this week or next, and we\u2019ll send a calendar invite \u2014 phone, Zoom, or in person, whichever is easiest.';
+  'Before we talk about a fee, tell us what isn\u2019t working. A short list of what\u2019s frustrating about the current arrangement, a look at recent financials, and the honest version of what you\u2019d want from the next management company \u2014 that\u2019s what turns this from a pitch into a real conversation.';
+
+export const LAFAYETTE_NEXT_STEP_FOLLOWUP =
+  'We won\u2019t pretend to have it solved before we\u2019ve heard it. What we can promise is that we listen first, ask the questions that actually matter, and come back with a specific plan \u2014 not a boilerplate proposal \u2014 that the Board can hold us to. From there, the next step is a meeting with the people who\u2019ll actually decide: we walk through exactly how we\u2019d approach 382 Lafayette Street, and we leave with a plan and a set of commitments both sides can act on.';
+
+export interface MeetingPrepItem {
+  label: string;
+  detail: string;
+}
+
+export const LAFAYETTE_WHAT_TO_BRING: MeetingPrepItem[] = [
+  {
+    label: 'The pain points',
+    detail: 'What isn\u2019t working today, specifically \u2014 not a general complaint, but where it actually breaks down.',
+  },
+  {
+    label: 'Recent financials',
+    detail: 'A look at where the building stands \u2014 budget, reserves, arrears \u2014 so any plan we propose is grounded in the real numbers, not a guess.',
+  },
+  {
+    label: 'The wish list',
+    detail: 'What an ideal management relationship would actually look like for this Board, in plain terms.',
+  },
+];
+
+export const LAFAYETTE_WHAT_YOU_GET: MeetingPrepItem[] = [
+  {
+    label: 'A real listening session',
+    detail: 'We ask the questions that matter and let the Board talk \u2014 no pitch deck running in the background.',
+  },
+  {
+    label: 'A specific plan, not a template',
+    detail: 'We come back with a written response to what we actually heard, not a boilerplate proposal.',
+  },
+  {
+    label: 'A meeting with decision-makers',
+    detail: 'The people who can actually say yes, in the same room, working through the plan together.',
+  },
+];
 
 // ============================================================
 // Senior team — introduced generally; no specific property
@@ -427,7 +505,105 @@ export const CAMELOT_LEADERSHIP: LeaderProfile[] = [
     photo: '/pitch/382-lafayette-street/team/anthony-abruzzo.jpg',
     bio: 'Licensed CPA overseeing all financial reporting internally and for clients, and works closely with boards to define budget goals and options. Works alongside his father\u2019s firm, Abruzzo Accounting.',
   },
+  {
+    name: 'Robert Isaacs',
+    role: 'Senior Managing Director, Head of Asset Management & Compliance',
+    photo: '',
+    bio: 'Oversees asset management and compliance across the Camelot portfolio. Previously ran RHI Group LLC and served as owner\u2019s representative for a Queens rental portfolio Camelot manages.',
+  },
+  {
+    name: 'Steven Milewicz',
+    role: 'Chief Legal Officer, M&A',
+    photo: '',
+    bio: 'Handles M&A transactions and capital raises, providing legal guidance across Camelot\u2019s investment and acquisition activities.',
+  },
+  {
+    name: 'Eleni Palmeri',
+    role: 'Licensed Real Estate Salesperson, Brokerage & Sales',
+    photo: '',
+    bio: 'Specializes in Manhattan and Eastern Long Island markets, bringing 15 years of NYC sales experience and a client-first approach rooted in honesty and trust.',
+  },
+  {
+    name: 'Anthony Tavaglione',
+    role: 'Senior Controller & Accounting Manager',
+    photo: '',
+    bio: 'Senior controller supporting Camelot\u2019s Finance & Accounting team \u2014 monthly closes, budgets, and reporting across the managed portfolio.',
+  },
 ];
+
+// ============================================================
+// First 90 days — the transition plan, adapted from a real 90-Day
+// Transition Plan Camelot prepared for another building's board
+// (source: internal Camelot document, not a public camelot.nyc page),
+// generalized here for a boutique condominium like 382 Lafayette
+// rather than the union co-op the original document was written for.
+// ============================================================
+
+export interface NinetyDayActivity {
+  activity: string;
+  outcome: string;
+}
+
+export interface NinetyDayPhase {
+  phase: string;
+  days: string;
+  emoji: string;
+  headline: string;
+  summary: string;
+  activities: NinetyDayActivity[];
+  deliverable: string;
+}
+
+export const LAFAYETTE_90_DAY_PLAN: NinetyDayPhase[] = [
+  {
+    phase: 'Phase 1',
+    days: 'Days 1\u201330',
+    emoji: '\ud83d\udd0d',
+    headline: 'Discovery',
+    summary:
+      'Everything starts with a clean, documented picture of the building \u2014 no assumptions carried over from the outgoing manager.',
+    activities: [
+      { activity: 'Kickoff meeting, staff introductions, full document and records collection', outcome: 'Building Assessment Brief' },
+      { activity: 'On-site walkthrough with the property manager and Camelot\u2019s facilities lead \u2014 a free inspection, not billed', outcome: 'Facilities Report' },
+      { activity: 'Financial audit: general ledger handoff, arrears reconciliation, every vendor contract reviewed line by line', outcome: 'Financial Health Memo' },
+      { activity: 'Compliance check across Local Law 97, Local Law 11/FISP, and open DOB/HPD violations', outcome: 'Compliance Snapshot + Vendor Priority List' },
+    ],
+    deliverable: 'Board receives a written Building Assessment, Facilities Report, and Financial Health Memo \u2014 the real starting point, on paper.',
+  },
+  {
+    phase: 'Phase 2',
+    days: 'Days 31\u201360',
+    emoji: '\u2699\ufe0f',
+    headline: 'Optimization',
+    summary:
+      'With the picture clear, Camelot moves on what it found \u2014 vendor contracts go out to bid, technology goes live, and the first real board report goes out.',
+    activities: [
+      { activity: 'RFPs issued to priority vendors identified in Phase 1; insurance shopped across multiple brokers, not one relationship', outcome: 'Competitive Bid Summary' },
+      { activity: 'Camelot\u2019s technology stack activated: MDS accounting system, Concierge Plus resident portal, BuildingLink (or existing system reviewed rather than duplicated)', outcome: 'Technology Deployment Confirmation' },
+      { activity: 'Bank account relationships and reconciliation processes established', outcome: 'Financial migration complete' },
+      { activity: 'First full Camelot monthly board reporting package issued', outcome: 'First Camelot Monthly Report' },
+    ],
+    deliverable: 'The board sees its first Camelot-produced monthly report and a live resident portal \u2014 the new normal, in motion.',
+  },
+  {
+    phase: 'Phase 3',
+    days: 'Days 61\u201390',
+    emoji: '\ud83d\udcc8',
+    headline: 'Stabilization & Reporting',
+    summary:
+      'By day 90, Camelot delivers the first measurable proof of value \u2014 documented savings, a live technology platform, and a 12-month plan the board can hold Camelot to.',
+    activities: [
+      { activity: 'Vendor rebid summary presented with savings achieved versus benchmark', outcome: 'Projected savings documented and board-approved' },
+      { activity: 'New vendor contracts finalized and executed with no service interruption', outcome: 'New contracts live' },
+      { activity: 'Energy baseline finalized and Local Law 97 compliance roadmap submitted', outcome: 'Carbon budget mapped, reduction targets set' },
+      { activity: 'Comprehensive 90-Day Board Presentation: financial scorecard, cost-reduction summary, technology report, compliance dashboard, and the 12-month operating plan', outcome: '90-Day Performance Report + 12-Month Operating Plan' },
+    ],
+    deliverable: 'A live board presentation covering every accomplishment, every dollar saved, and exactly what happens in month four \u2014 no surprises, all documented.',
+  },
+];
+
+export const LAFAYETTE_90_DAY_COMMITMENT =
+  'Camelot is not the cheapest option \u2014 and we do not aim to be. Our value is the combination of experienced professionals, institutional-quality financial oversight, and a technology infrastructure built specifically for buildings like 382 Lafayette Street.';
 
 // ============================================================
 // Open items — everything still to confirm before this goes

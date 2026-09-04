@@ -19,7 +19,7 @@
  * generation engines, since none of that applies pre-pricing.
  */
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Building2,
   Calculator,
@@ -29,6 +29,7 @@ import {
   CalendarDays,
   Landmark,
   Home,
+  Send,
 } from 'lucide-react';
 import {
   LAFAYETTE_PROPERTY,
@@ -40,6 +41,9 @@ import {
   CAMELOT_SERVICES,
   LAFAYETTE_COVER_LETTER_PARAGRAPHS,
   LAFAYETTE_NEXT_STEP,
+  LAFAYETTE_NEXT_STEP_FOLLOWUP,
+  LAFAYETTE_WHAT_TO_BRING,
+  LAFAYETTE_WHAT_YOU_GET,
   CAMELOT_LEADERSHIP,
   LAFAYETTE_TO_BE_CONFIRMED,
   LAFAYETTE_NEIGHBORING_PORTFOLIO,
@@ -47,6 +51,9 @@ import {
   LAFAYETTE_CASE_STUDIES,
   LAFAYETTE_TECH_PARTNERS,
   LAFAYETTE_TO_OFFICE_MILES,
+  LAFAYETTE_TO_EXEC_OFFICE_MILES,
+  LAFAYETTE_90_DAY_PLAN,
+  LAFAYETTE_90_DAY_COMMITMENT,
   MDS_SAMPLE_PAGE_COUNT,
   MDS_SAMPLE_BASE,
   type Fact,
@@ -54,6 +61,8 @@ import {
 import RealNeighborhoodMap from '@/components/RealNeighborhoodMap';
 import BoroughCoverageMap from '@/components/BoroughCoverageMap';
 import FlipBookViewer from '@/components/FlipBookViewer';
+import { sendCamelotEmail } from '@/lib/pdf-generator';
+import toast from 'react-hot-toast';
 
 const PHOTO_BASE = '/pitch/382-lafayette-street';
 const BRAND_BASE = `${PHOTO_BASE}/brand`;
@@ -132,8 +141,10 @@ const SERVICE_ICONS: Record<string, typeof Building2> = {
 // sourced via MapQuest address lookups (see 382-lafayette-street.ts).
 const MAP_SUBJECT = { label: '382 Lafayette Street', neighborhood: 'NoHo', lat: 40.72768, lng: -73.99354 };
 const MAP_OFFICE = { label: '57 West 57th Street', neighborhood: 'Midtown', lat: 40.76438, lng: -73.97654 };
+const MAP_EXEC_OFFICE = { label: '501 Madison Avenue', neighborhood: 'Midtown', lat: 40.7605, lng: -73.9733 };
 
 function NeighborhoodMapSection() {
+  const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
   const portfolioPoints = LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => ({
     label: p.address,
     neighborhood: p.neighborhood,
@@ -147,12 +158,18 @@ function NeighborhoodMapSection() {
       <RealNeighborhoodMap
         subject={MAP_SUBJECT}
         office={MAP_OFFICE}
+        secondOffice={MAP_EXEC_OFFICE}
         portfolio={portfolioPoints}
         officeDistanceMiles={LAFAYETTE_TO_OFFICE_MILES}
+        secondOfficeDistanceMiles={LAFAYETTE_TO_EXEC_OFFICE_MILES}
         goldHex={GOLD}
         navyHex={NAVY}
+        highlightedIndex={highlightedIndex}
       />
-      <div className="mt-8 overflow-x-auto">
+      <p className="mt-6 text-xs" style={{ color: MUTED }}>
+        Hover a row below to light up its pin on the map above.
+      </p>
+      <div className="mt-2 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b-2" style={{ borderColor: NAVY }}>
@@ -164,7 +181,13 @@ function NeighborhoodMapSection() {
           </thead>
           <tbody>
             {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
-              <tr key={p.address} className="border-b" style={{ borderColor: DIVIDER }}>
+              <tr
+                key={p.address}
+                className="border-b cursor-pointer transition-colors"
+                style={{ borderColor: DIVIDER, backgroundColor: highlightedIndex === i ? '#f3ecd9' : 'transparent' }}
+                onMouseEnter={() => setHighlightedIndex(i)}
+                onMouseLeave={() => setHighlightedIndex(null)}
+              >
                 <td className="py-2 pr-4 font-semibold" style={{ color: GOLD }}>{i + 1}</td>
                 <td className="py-2 pr-4" style={{ color: NAVY }}>{p.address}</td>
                 <td className="py-2 pr-4" style={{ color: MUTED }}>{p.neighborhood}</td>
@@ -179,12 +202,95 @@ function NeighborhoodMapSection() {
   );
 }
 
+// A mailto: link silently does nothing when the visitor has no default
+// mail client configured in their browser -- exactly the failure mode
+// reported for this page. This form sends a real email through
+// Camelot OS's own Resend-backed endpoint instead, with the mailto:
+// link kept only as a secondary fallback.
+function ContactDavidForm() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSend = async () => {
+    if (!email.trim() || !message.trim()) {
+      toast.error('Please add your email and a short message.');
+      return;
+    }
+    setSending(true);
+    const result = await sendCamelotEmail({
+      to: 'dgoldoff@camelot.nyc',
+      replyTo: email.trim(),
+      subject: `382 Lafayette Street \u2014 message from ${name.trim() || 'the Board'}`,
+      html: `<p><strong>From:</strong> ${name.trim() || '(no name given)'} &lt;${email.trim()}&gt;</p><p>${message.trim().replace(/\n/g, '<br/>')}</p>`,
+      text: `From: ${name.trim() || '(no name given)'} <${email.trim()}>\n\n${message.trim()}`,
+    });
+    setSending(false);
+    if (result.ok) {
+      setSent(true);
+      toast.success('Sent to David.');
+    } else {
+      toast.error(result.error || 'Send failed \u2014 try the direct email link below instead.');
+    }
+  };
+
+  if (sent) {
+    return (
+      <p className="text-sm leading-relaxed max-w-md" style={{ color: NAVY }}>
+        Thank you — your message is on its way to David. He’ll follow up directly.
+      </p>
+    );
+  }
+
+  return (
+    <div className="max-w-md space-y-3">
+      <input
+        type="text"
+        placeholder="Your name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="w-full px-4 py-2.5 text-sm border"
+        style={{ borderColor: DIVIDER, backgroundColor: PAPER, color: NAVY }}
+      />
+      <input
+        type="email"
+        placeholder="Your email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full px-4 py-2.5 text-sm border"
+        style={{ borderColor: DIVIDER, backgroundColor: PAPER, color: NAVY }}
+      />
+      <textarea
+        placeholder="A few times that work for the Board, or any questions before then"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        rows={3}
+        className="w-full px-4 py-2.5 text-sm border resize-none"
+        style={{ borderColor: DIVIDER, backgroundColor: PAPER, color: NAVY }}
+      />
+      <button
+        type="button"
+        onClick={handleSend}
+        disabled={sending}
+        className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider disabled:opacity-60"
+        style={{ backgroundColor: GOLD, color: NAVY }}
+      >
+        <Send size={14} />
+        {sending ? 'Sending\u2026' : 'Send message to David'}
+      </button>
+    </div>
+  );
+}
+
 const NAV_SECTIONS: { id: string; label: string }[] = [
   { id: 'cover-letter', label: 'Introduction' },
   { id: 'about', label: 'About Camelot' },
   { id: 'services', label: 'Services' },
-  { id: 'track-record', label: 'Track Record' },
+  { id: 'nearby', label: 'A Few Blocks Away' },
   { id: 'case-studies', label: 'Case Studies' },
+  { id: 'first-90-days', label: 'First 90 Days' },
   { id: 'technology', label: 'Technology' },
   { id: 'coverage', label: 'Coverage' },
   { id: 'team', label: 'Team' },
@@ -448,18 +554,26 @@ export default function Pitch382Lafayette() {
           </div>
         </section>
 
-        {/* ============ TRACK RECORD ============ */}
-        <section id="track-record" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
-          <SectionLabel>Track record</SectionLabel>
+        {/* ============ A FEW BLOCKS AWAY ============ */}
+        <section id="nearby" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>A few blocks away</SectionLabel>
           <SectionTitle>We already work a few blocks from you.</SectionTitle>
           <Rule />
           <p className="mb-8 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             Downtown Manhattan's boutique loft condominiums — small owner counts, pre-war construction,
             full-floor or duplex units — are exactly the kind of building Camelot was built to manage well.
+            These are the three closest addresses in Camelot's own portfolio, ranked by straight-line
+            distance from 382 Lafayette Street.
           </p>
-          <div className="grid md:grid-cols-3 gap-px mb-10" style={{ backgroundColor: '#e5decc' }}>
-            {LAFAYETTE_NEARBY_TRACK_RECORD.map((item) => (
-              <div key={item.name} className="p-6" style={{ backgroundColor: PAPER }}>
+          <div className="grid md:grid-cols-3 gap-px mb-14" style={{ backgroundColor: '#e5decc' }}>
+            {LAFAYETTE_NEARBY_TRACK_RECORD.map((item, i) => (
+              <div key={item.name} className="p-6 relative" style={{ backgroundColor: PAPER }}>
+                <span
+                  className="absolute top-4 right-4 font-heading text-3xl leading-none"
+                  style={{ color: `${GOLD}33` }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
                 <p className="font-heading text-lg mb-1" style={{ color: NAVY }}>{item.name}</p>
                 <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-3" style={{ color: GOLD }}>
                   {item.neighborhood}{item.distance ? ` — ${item.distance}` : ''}
@@ -468,23 +582,12 @@ export default function Pitch382Lafayette() {
               </div>
             ))}
           </div>
-          <p className="font-heading text-xl mb-4" style={{ color: NAVY }}>Elsewhere in the portfolio</p>
-          <ul className="space-y-4 mb-14">
-            {CAMELOT_PORTFOLIO_HIGHLIGHTS.map((item, i) => (
-              <li key={item.name} className="flex gap-4">
-                <span className="font-heading text-2xl leading-none" style={{ color: GOLD }}>{String(i + 1).padStart(2, '0')}</span>
-                <span className="text-base leading-relaxed pt-1" style={{ color: NAVY }}>
-                  <strong>{item.name}</strong> ({item.neighborhood}) — {item.note}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="font-heading text-xl mb-2" style={{ color: NAVY }}>Past and present, in this exact neighborhood</p>
+          <p className="font-heading text-xl mb-2" style={{ color: NAVY }}>The full local portfolio, plotted</p>
           <p className="mb-6 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
-            The addresses below are Camelot-portfolio buildings, past and present, within the TriBeCa,
-            SoHo, and NoLIta corridor immediately surrounding 382 Lafayette Street — the same streets,
-            often the very same block. Our office sits {LAFAYETTE_TO_OFFICE_MILES} miles north, a short
-            trip when a Board wants to sit down in person.
+            Beyond the three closest, the map below plots every Camelot-portfolio address (past and present)
+            within the TriBeCa, SoHo, and NoLIta corridor immediately surrounding 382 Lafayette Street,
+            alongside both Camelot offices. Subject property, offices, and neighboring portfolio are
+            color-coded — hover an address in the table to see exactly where it sits.
           </p>
           <NeighborhoodMapSection />
         </section>
@@ -492,9 +595,13 @@ export default function Pitch382Lafayette() {
         {/* ============ CASE STUDIES ============ */}
         <section id="case-studies" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
           <SectionLabel>Case studies</SectionLabel>
-          <SectionTitle>What happens after we take over.</SectionTitle>
+          <SectionTitle>Track record, in practice: a negative situation, made positive.</SectionTitle>
           <Rule />
-          <div className="space-y-10">
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            A track record is only useful if it shows the turn — the arrears that came down, the violation
+            that closed, the claim that got paid instead of absorbed. These are real outcomes, not composites.
+          </p>
+          <div className="space-y-10 mb-14">
             {LAFAYETTE_CASE_STUDIES.map((cs) => (
               <div key={cs.title} className="grid md:grid-cols-[1fr_2fr] gap-6 pb-10 border-b last:border-b-0" style={{ borderColor: DIVIDER }}>
                 <div>
@@ -512,6 +619,74 @@ export default function Pitch382Lafayette() {
                 </div>
               </div>
             ))}
+          </div>
+          <p className="font-heading text-xl mb-4" style={{ color: NAVY }}>Elsewhere in the portfolio</p>
+          <ul className="space-y-4">
+            {CAMELOT_PORTFOLIO_HIGHLIGHTS.map((item, i) => (
+              <li key={item.name} className="flex gap-4">
+                <span className="font-heading text-2xl leading-none" style={{ color: GOLD }}>{String(i + 1).padStart(2, '0')}</span>
+                <span className="text-base leading-relaxed pt-1" style={{ color: NAVY }}>
+                  <strong>{item.name}</strong> ({item.neighborhood}) — {item.note}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ============ FIRST 90 DAYS ============ */}
+        <section id="first-90-days" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>What happens after we take over</SectionLabel>
+          <SectionTitle>Your first 90 days, mapped out.</SectionTitle>
+          <Rule />
+          <p className="mb-12 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            A transition should never feel like a black box. This is the same three-phase plan Camelot runs
+            for every incoming building, adapted here for 382 Lafayette Street — what happens, who owns it,
+            and what the Board sees at the end of each phase.
+          </p>
+          <div className="space-y-12">
+            {LAFAYETTE_90_DAY_PLAN.map((phase, i) => (
+              <div key={phase.phase} className="grid md:grid-cols-[220px_1fr] gap-6 md:gap-10">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-3xl leading-none" role="img" aria-hidden="true">{phase.emoji}</span>
+                    <span className="font-heading text-4xl leading-none" style={{ color: `${GOLD}33` }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>
+                    {phase.phase} &middot; {phase.days}
+                  </p>
+                  <p className="font-heading text-2xl leading-tight" style={{ color: NAVY }}>{phase.headline}</p>
+                </div>
+                <div className="border-t md:border-t-0 md:border-l pt-6 md:pt-0 md:pl-8" style={{ borderColor: DIVIDER }}>
+                  <p className="text-base leading-relaxed mb-6" style={{ color: NAVY }}>{phase.summary}</p>
+                  <ul className="space-y-3 mb-6">
+                    {phase.activities.map((a) => (
+                      <li key={a.activity} className="flex gap-3 text-sm leading-relaxed">
+                        <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: GOLD }} />
+                        <span style={{ color: NAVY }}>
+                          {a.activity}
+                          <span className="block mt-0.5 font-sans text-[10px] font-semibold uppercase tracking-wider" style={{ color: MUTED }}>
+                            &rarr; {a.outcome}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-start gap-3 p-4" style={{ backgroundColor: PAPER, border: `1px solid ${DIVIDER}` }}>
+                    <span className="text-lg leading-none shrink-0" role="img" aria-hidden="true">📋</span>
+                    <p className="text-sm leading-relaxed" style={{ color: NAVY }}>
+                      <strong>What the Board receives: </strong>{phase.deliverable}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-14 pt-10 border-t" style={{ borderColor: DIVIDER }}>
+            <p className="text-base leading-relaxed max-w-2xl" style={{ color: NAVY }}>
+              {LAFAYETTE_90_DAY_COMMITMENT}
+            </p>
           </div>
         </section>
 
@@ -611,7 +786,19 @@ export default function Pitch382Lafayette() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {CAMELOT_LEADERSHIP.map((person) => (
               <div key={person.name}>
-                <img src={person.photo} alt={person.name} className="w-full aspect-square object-cover mb-3" style={{ backgroundColor: PAPER }} />
+                {person.photo ? (
+                  <img src={person.photo} alt={person.name} className="w-full aspect-square object-cover mb-3" style={{ backgroundColor: PAPER }} />
+                ) : (
+                  <div
+                    className="w-full aspect-square flex items-center justify-center mb-3"
+                    style={{ backgroundColor: PAPER, border: `1px solid ${DIVIDER}` }}
+                    aria-hidden="true"
+                  >
+                    <span className="font-heading text-3xl" style={{ color: GOLD }}>
+                      {person.name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('')}
+                    </span>
+                  </div>
+                )}
                 <p className="font-heading text-base" style={{ color: NAVY }}>{person.name}</p>
                 <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>{person.role}</p>
                 <p className="text-xs leading-relaxed" style={{ color: MUTED }}>{person.bio}</p>
@@ -623,12 +810,39 @@ export default function Pitch382Lafayette() {
         {/* ============ NEXT STEP ============ */}
         <section id="next-step" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
           <SectionLabel>Next step</SectionLabel>
-          <SectionTitle>Let's find a time.</SectionTitle>
+          <SectionTitle>Tell us where it hurts. We'll tell you what we'd do about it.</SectionTitle>
           <Rule />
-          <p className="mb-8 text-lg leading-relaxed max-w-2xl" style={{ color: NAVY }}>
+          <p className="mb-6 text-lg leading-relaxed max-w-2xl" style={{ color: NAVY }}>
             {LAFAYETTE_NEXT_STEP}
           </p>
-          <div className="flex flex-wrap gap-4">
+          <p className="mb-12 text-base leading-relaxed max-w-2xl" style={{ color: NAVY }}>
+            {LAFAYETTE_NEXT_STEP_FOLLOWUP}
+          </p>
+          <div className="grid md:grid-cols-2 gap-px mb-12" style={{ backgroundColor: '#e5decc' }}>
+            <div className="p-6" style={{ backgroundColor: PAPER }}>
+              <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-4" style={{ color: GOLD }}>What to bring to the first conversation</p>
+              <ul className="space-y-4">
+                {LAFAYETTE_WHAT_TO_BRING.map((item) => (
+                  <li key={item.label}>
+                    <p className="font-heading text-base mb-0.5" style={{ color: NAVY }}>{item.label}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: MUTED }}>{item.detail}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="p-6" style={{ backgroundColor: PAPER }}>
+              <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-4" style={{ color: GOLD }}>What you'll get back</p>
+              <ul className="space-y-4">
+                {LAFAYETTE_WHAT_YOU_GET.map((item) => (
+                  <li key={item.label}>
+                    <p className="font-heading text-base mb-0.5" style={{ color: NAVY }}>{item.label}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: MUTED }}>{item.detail}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4 mb-10">
             <a
               href={CALENDLY_URL}
               target="_blank"
@@ -638,14 +852,19 @@ export default function Pitch382Lafayette() {
             >
               Propose a time (Calendly)
             </a>
-            <a
-              href="mailto:dgoldoff@camelot.nyc?subject=382%20Lafayette%20Street%20%E2%80%94%20a%20few%20times%20for%20the%20Board"
-              className="inline-flex items-center gap-2 px-6 py-3 font-sans text-sm font-semibold uppercase tracking-wider border"
-              style={{ borderColor: NAVY, color: NAVY }}
-            >
-              Or email David directly
-            </a>
           </div>
+          <p className="font-heading text-xl mb-1" style={{ color: NAVY }}>Or send David a message directly</p>
+          <p className="mb-5 text-sm leading-relaxed max-w-md" style={{ color: MUTED }}>
+            This sends straight to David's inbox — no mail app required on your end.
+          </p>
+          <ContactDavidForm />
+          <a
+            href="mailto:dgoldoff@camelot.nyc?subject=382%20Lafayette%20Street%20%E2%80%94%20a%20few%20times%20for%20the%20Board"
+            className="inline-block mt-4 font-sans text-xs font-semibold uppercase tracking-wider underline"
+            style={{ color: MUTED }}
+          >
+            Prefer your own email client? Click here instead.
+          </a>
         </section>
 
         {/* ============ OPEN ITEMS ============ */}

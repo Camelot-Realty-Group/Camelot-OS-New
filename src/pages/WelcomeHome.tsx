@@ -31,9 +31,9 @@ export default function WelcomeHome() {
   const [block, setBlock] = useState('');
   const [lot, setLot] = useState('');
   const [websiteReference, setWebsiteReference] = useState('');
-  const [propertyType, setPropertyType] = useState(PROPERTY_TYPES[0]);
+  const [propertyType, setPropertyType] = useState<string>(PROPERTY_TYPES[0]);
   const [contactName, setContactName] = useState('');
-  const [referralSource, setReferralSource] = useState(REFERRAL_SOURCES[0]);
+  const [referralSource, setReferralSource] = useState<string>(REFERRAL_SOURCES[0]);
   const [notes, setNotes] = useState('');
   const [recipientName, setRecipientName] = useState('');
   const [recipientEntity, setRecipientEntity] = useState('');

@@ -152,12 +152,27 @@ function NeighborhoodMapSection() {
         goldHex={GOLD}
         navyHex={NAVY}
       />
-      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
-        {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
-          <p key={p.address} className="text-xs leading-relaxed" style={{ color: MUTED }}>
-            <span className="font-semibold" style={{ color: NAVY }}>{i + 1}.</span> {p.address} <span className="italic">— {p.neighborhood}, {p.crossStreets}</span>
-          </p>
-        ))}
+      <div className="mt-8 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b-2" style={{ borderColor: NAVY }}>
+              <th className="text-left py-2 font-sans font-semibold uppercase text-xs tracking-wider" style={{ color: NAVY }}>#</th>
+              <th className="text-left py-2 font-sans font-semibold uppercase text-xs tracking-wider" style={{ color: NAVY }}>Address</th>
+              <th className="text-left py-2 font-sans font-semibold uppercase text-xs tracking-wider" style={{ color: NAVY }}>Neighborhood</th>
+              <th className="text-left py-2 font-sans font-semibold uppercase text-xs tracking-wider" style={{ color: NAVY }}>Cross streets</th>
+            </tr>
+          </thead>
+          <tbody>
+            {LAFAYETTE_NEIGHBORING_PORTFOLIO.map((p, i) => (
+              <tr key={p.address} className="border-b" style={{ borderColor: DIVIDER }}>
+                <td className="py-2 pr-4 font-semibold" style={{ color: GOLD }}>{i + 1}</td>
+                <td className="py-2 pr-4" style={{ color: NAVY }}>{p.address}</td>
+                <td className="py-2 pr-4" style={{ color: MUTED }}>{p.neighborhood}</td>
+                <td className="py-2" style={{ color: MUTED }}>{p.crossStreets}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       <p className="mt-4 text-xs italic" style={{ color: MUTED }}>{LAFAYETTE_FAR_PORTFOLIO_NOTE}</p>
     </div>
@@ -304,13 +319,28 @@ export default function Pitch382Lafayette() {
           <SectionTitle>{LAFAYETTE_PROPERTY.name}, {LAFAYETTE_PROPERTY.neighborhood}.</SectionTitle>
           <Rule />
           <div className="grid md:grid-cols-[1fr_260px] gap-8 mb-8">
-            <p className="text-base leading-relaxed" style={{ color: NAVY }}>
-              {LAFAYETTE_PROPERTY.character} Everything below comes from a property report David pulled
-              directly — nothing here is a guess, and anything not yet confirmed is marked as such.
-              The ground floor is home to Screaming Mimi's, the longtime NoHo vintage shop, and the
-              building has an elevator modernization and a facade/roof restoration underway — an
-              active, well-kept building, not one that's been left alone.
-            </p>
+            <div>
+              <p className="text-base leading-relaxed mb-4" style={{ color: NAVY }}>
+                {LAFAYETTE_PROPERTY.character} Everything below comes from a property report David pulled
+                directly — nothing here is a guess, and anything not yet confirmed is marked as such.
+                The ground floor is home to Screaming Mimi's, the longtime NoHo vintage shop, and the
+                building has an elevator modernization and a facade/roof restoration underway — an
+                active, well-kept building, not one that's been left alone.
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: MUTED }}>
+                Per the NYC Landmarks Preservation Commission's NoHo Historic District designation report, the
+                building was designed by <strong style={{ color: NAVY }}>Cleverdon & Putzel</strong> in the{' '}
+                <strong style={{ color: NAVY }}>{LAFAYETTE_PROPERTY.architecturalStyle.value}</strong> style,
+                originally built as a warehouse for Edward Judson.
+              </p>
+              <img
+                src={`${PHOTO_BASE}/street-view-2.jpg`}
+                alt="382 Lafayette Street, alternate exterior view"
+                className="mt-4 w-full max-w-md object-contain border"
+                style={{ borderColor: DIVIDER }}
+              />
+              <p className="mt-1 text-[10px] italic" style={{ color: MUTED }}>Photo: CityRealty</p>
+            </div>
             <img src={LOT_MAP} alt="382 Lafayette Street lot map" className="w-full object-contain border" style={{ borderColor: DIVIDER }} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-px" style={{ backgroundColor: '#e5decc' }}>

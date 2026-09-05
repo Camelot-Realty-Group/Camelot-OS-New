@@ -53,6 +53,7 @@ import {
   LAFAYETTE_WHAT_TO_BRING,
   LAFAYETTE_WHAT_YOU_GET,
   CAMELOT_AWARDS,
+  CAMELOT_CHARITABLE_GIVING,
   CAMELOT_TESTIMONIALS,
   CAMELOT_TESTIMONIAL_STATS,
   CAMELOT_PROOF_STATS,
@@ -690,6 +691,18 @@ export default function Pitch382Lafayette() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-6 p-5 flex gap-3" style={{ backgroundColor: PAPER, border: `1px solid ${DIVIDER}` }}>
+            <HeartHandshake size={20} strokeWidth={1.5} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
+            <div>
+              <p className="font-heading text-base leading-snug mb-0.5" style={{ color: NAVY }}>{CAMELOT_CHARITABLE_GIVING.title}</p>
+              <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>
+                {CAMELOT_CHARITABLE_GIVING.role} &middot; {CAMELOT_CHARITABLE_GIVING.date} &middot; {CAMELOT_CHARITABLE_GIVING.location}
+              </p>
+              <p className="text-xs leading-relaxed" style={{ color: MUTED }}>
+                In benefit of the {CAMELOT_CHARITABLE_GIVING.cause}. {CAMELOT_CHARITABLE_GIVING.detail}
+              </p>
+            </div>
           </div>
           <p className="mt-6 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
             Affiliations: {CAMELOT_FACTS.affiliations.join(', ')} — David is also a {CAMELOT_FACTS.reBnyCommittee.toLowerCase()}.

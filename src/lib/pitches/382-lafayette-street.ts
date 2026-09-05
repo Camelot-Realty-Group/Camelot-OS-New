@@ -675,6 +675,35 @@ export const CAMELOT_AWARDS: Award[] = [
 ];
 
 // ============================================================
+// Community & charitable giving \u2014 sourced from Camelot Realty
+// Group's own Facebook post (June 9, 2025) and camelot.nyc's 2025
+// Year in Review. This sits underneath the awards deliberately:
+// recognition the industry gave Camelot, followed by what Camelot
+// gives back.
+// ============================================================
+
+export interface CharitableEvent {
+  title: string;
+  cause: string;
+  role: string;
+  partner: string;
+  date: string;
+  location: string;
+  detail: string;
+}
+
+export const CAMELOT_CHARITABLE_GIVING: CharitableEvent = {
+  title: '15th Annual AMRF Golf Tournament',
+  cause: 'American Medical Research Foundation (AMRF), a 501(c)(3) dedicated to Crohn\u2019s & Colitis research and support',
+  role: 'Co-sponsor',
+  partner: 'Andrew Brucker of Fox Rothschild LLP',
+  date: 'September 15, 2025',
+  location: 'Hampshire Country Club, Mamaroneck, NY',
+  detail:
+    'Camelot Realty Group co-sponsored the tournament alongside Fox Rothschild LLP, bringing together landlords, vendors, investors, bankers, and operators from New York, Connecticut, and New Jersey for a day of golf in support of Crohn\u2019s & Colitis research \u2014 part of a broader year in which Camelot and its network raised over $50,000 for charitable causes.',
+};
+
+// ============================================================
 // Testimonials \u2014 sourced verbatim from camelot.nyc/testimonials/.
 // Selected for relevance to this specific intro: a board president
 // at a nearby portfolio building going through the same sponsor-to-

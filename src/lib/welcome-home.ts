@@ -240,6 +240,10 @@ export const WELCOME_HOME_CONTENT_SECTIONS: { title: string; detail: string }[] 
     detail: 'A Camelot OS-generated report on the specific property, followed by how Camelot’s approach saves money and creates new revenue streams.',
   },
   {
+    title: 'Interior / rooftop / common-area gallery',
+    detail: 'A short photo gallery of the actual subject building — interiors, rooftop, lobby, or shared amenity space if any exist. Prefer the recipient’s own unit’s past sale/rental listing photos when the recipient is a specific unit owner (a personal touch: their own home, shown back to them). Every photo not taken by Camelot must carry a visible photo credit (brokerage + year) and a note that it is not current Camelot photography. If the building genuinely has no rooftop or shared amenity space (common for small boutique buildings — confirm via StreetEasy “Amenities” before assuming), say so plainly instead of padding the section with unrelated stock or portfolio photos passed off as the subject building’s own.',
+  },
+  {
     title: 'Why Camelot (value proposition)',
     detail: 'Self-managed and owned — not by private equity — so our interests are aligned with our clients’. Highly curated images paired with the copy, not just text.',
   },
@@ -273,7 +277,7 @@ export const WELCOME_HOME_CHECKLIST: { title: string; detail: string }[] = [
   },
   {
     title: 'Source real photography',
-    detail: 'Exterior + street-level images (StreetEasy, CityRealty, Google Maps) — never a competing broker’s active listing photos of private units.',
+    detail: 'Exterior + street-level images (StreetEasy, CityRealty, Google Maps). Also check the recipient’s own unit for a past (sold/rented, not active) listing with interior photos — those can be used with a visible photo credit to the original brokerage, since they are no longer an active competing listing. Never use another unit owner’s active listing photos. Check StreetEasy “Amenities” for a rooftop/gym/shared space before claiming one exists; most small boutique buildings have none, and that should be stated honestly rather than substituted with unrelated portfolio photos.',
   },
   {
     title: 'Write the cover letter',
@@ -293,6 +297,6 @@ export const WELCOME_HOME_CHECKLIST: { title: string; detail: string }[] = [
   },
   {
     title: 'Team + next step',
-    detail: 'Relevant senior team bios and a working Calendly link so the board can book the intro Zoom directly.',
+    detail: 'Relevant senior team bios with real headshots (fall back to initials only if no photo is on file) and a working Calendly link so the board can book the intro Zoom directly.',
   },
 ];

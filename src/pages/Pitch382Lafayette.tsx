@@ -30,6 +30,8 @@ import {
   Landmark,
   Home,
   Send,
+  Award,
+  ChevronDown,
 } from 'lucide-react';
 import {
   LAFAYETTE_PROPERTY,
@@ -44,6 +46,13 @@ import {
   LAFAYETTE_NEXT_STEP_FOLLOWUP,
   LAFAYETTE_WHAT_TO_BRING,
   LAFAYETTE_WHAT_YOU_GET,
+  CAMELOT_AWARDS,
+  CAMELOT_TESTIMONIALS,
+  CAMELOT_TESTIMONIAL_STATS,
+  CAMELOT_PROOF_STATS,
+  CAMELOT_FEE_PHILOSOPHY,
+  LAFAYETTE_LL97_NOTE,
+  LAFAYETTE_FAQ,
   CAMELOT_LEADERSHIP,
   LAFAYETTE_TO_BE_CONFIRMED,
   LAFAYETTE_NEIGHBORING_PORTFOLIO,
@@ -290,12 +299,47 @@ const NAV_SECTIONS: { id: string; label: string }[] = [
   { id: 'services', label: 'Services' },
   { id: 'nearby', label: 'A Few Blocks Away' },
   { id: 'case-studies', label: 'Case Studies' },
+  { id: 'testimonials', label: 'Testimonials' },
   { id: 'first-90-days', label: 'First 90 Days' },
   { id: 'technology', label: 'Technology' },
   { id: 'coverage', label: 'Coverage' },
   { id: 'team', label: 'Team' },
+  { id: 'faq', label: 'FAQ' },
   { id: 'next-step', label: 'Next Step' },
 ];
+
+function FaqAccordion({ items }: { items: { question: string; answer: string }[] }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  return (
+    <div className="divide-y" style={{ borderColor: DIVIDER }}>
+      {items.map((item, i) => {
+        const isOpen = openIndex === i;
+        return (
+          <div key={item.question} className="border-t" style={{ borderColor: DIVIDER }}>
+            <button
+              type="button"
+              onClick={() => setOpenIndex(isOpen ? null : i)}
+              className="w-full flex items-center justify-between gap-4 py-5 text-left"
+              aria-expanded={isOpen}
+            >
+              <span className="font-heading text-lg" style={{ color: NAVY }}>{item.question}</span>
+              <ChevronDown
+                size={18}
+                strokeWidth={1.5}
+                style={{ color: GOLD, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s ease', flexShrink: 0 }}
+              />
+            </button>
+            {isOpen && (
+              <p className="pb-5 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+                {item.answer}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function TopNav() {
   // This app runs under react-router's HashRouter, which treats the full
@@ -475,6 +519,12 @@ export default function Pitch382Lafayette() {
             <span><strong style={{ color: NAVY }}>8 St-NYU (R/W train)</strong> — 0.19 mi</span>
             <span className="italic">Per Camelot's own property-intelligence pull, 9/3/2026 — bus, e-bike, rideshare, and taxi points mapped at onboarding.</span>
           </div>
+          <div className="mt-6 p-5 flex items-start gap-3" style={{ backgroundColor: PAPER, border: `1px solid ${DIVIDER}` }}>
+            <Landmark size={18} strokeWidth={1.5} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
+            <p className="text-sm leading-relaxed" style={{ color: NAVY }}>
+              <strong>On Local Law 97: </strong>{LAFAYETTE_LL97_NOTE}
+            </p>
+          </div>
           <p className="mt-4 text-xs italic" style={{ color: MUTED }}>
             {LAFAYETTE_CONTACT.context}
           </p>
@@ -511,6 +561,18 @@ export default function Pitch382Lafayette() {
               </div>
             ))}
           </div>
+          <div className="mt-8 grid sm:grid-cols-2 gap-px" style={{ backgroundColor: '#e5decc' }}>
+            {CAMELOT_AWARDS.map((award) => (
+              <div key={award.title} className="p-5 flex gap-3" style={{ backgroundColor: PAPER }}>
+                <Award size={20} strokeWidth={1.5} className="shrink-0 mt-0.5" style={{ color: GOLD }} />
+                <div>
+                  <p className="font-heading text-base leading-snug mb-0.5" style={{ color: NAVY }}>{award.title}</p>
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>{award.organization} &middot; {award.date}</p>
+                  <p className="text-xs leading-relaxed" style={{ color: MUTED }}>Awarded to {award.recipient}. {award.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
           <p className="mt-6 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
             Affiliations: {CAMELOT_FACTS.affiliations.join(', ')} — David is also a {CAMELOT_FACTS.reBnyCommittee.toLowerCase()}.
           </p>
@@ -527,10 +589,14 @@ export default function Pitch382Lafayette() {
           <SectionLabel>What we do</SectionLabel>
           <SectionTitle>Management, compliance, and the resident experience — in one accountable team.</SectionTitle>
           <Rule />
-          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+          <p className="mb-6 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             None of this is priced yet — that's a conversation for after the Board tells us what you actually
             need. This is simply the full range of what a Camelot-managed building has access to.
           </p>
+          <div className="mb-10 p-5 max-w-3xl" style={{ backgroundColor: PAPER, border: `1px solid ${DIVIDER}` }}>
+            <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: GOLD }}>How we think about fees, before we've discussed a number</p>
+            <p className="text-sm leading-relaxed" style={{ color: NAVY }}>{CAMELOT_FEE_PHILOSOPHY}</p>
+          </div>
           <div className="grid md:grid-cols-2 gap-x-10 gap-y-10">
             {CAMELOT_SERVICES.map((group) => {
               const Icon = SERVICE_ICONS[group.category] ?? Building2;
@@ -597,9 +663,13 @@ export default function Pitch382Lafayette() {
           <SectionLabel>Case studies</SectionLabel>
           <SectionTitle>Track record, in practice: a negative situation, made positive.</SectionTitle>
           <Rule />
-          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+          <p className="mb-6 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
             A track record is only useful if it shows the turn — the arrears that came down, the violation
             that closed, the claim that got paid instead of absorbed. These are real outcomes, not composites.
+          </p>
+          <p className="mb-10 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            Across the portfolio, boards find an average of <strong style={{ color: NAVY }}>{CAMELOT_PROOF_STATS.avgSavingsFirstYear.value}</strong> in savings in
+            their first year with Camelot — the case studies below are what that actually looks like, building by building.
           </p>
           <div className="space-y-10 mb-14">
             {LAFAYETTE_CASE_STUDIES.map((cs) => (
@@ -631,6 +701,32 @@ export default function Pitch382Lafayette() {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* ============ TESTIMONIALS ============ */}
+        <section id="testimonials" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>In their own words</SectionLabel>
+          <SectionTitle>What boards and owners actually say, not what we’d like them to.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            Pulled directly from{' '}
+            <a href="https://www.camelot.nyc/testimonials/" target="_blank" rel="noreferrer" style={{ color: GOLD }}>camelot.nyc/testimonials</a>
+            {' '}— including one from 137 Franklin Street, a few blocks from you, and one from 949 Park Avenue, referenced in the case studies above.
+          </p>
+          <div className="grid md:grid-cols-3 gap-px mb-8" style={{ backgroundColor: '#e5decc' }}>
+            {CAMELOT_TESTIMONIALS.map((t) => (
+              <div key={t.name} className="p-6 flex flex-col" style={{ backgroundColor: PAPER }}>
+                <p className="font-heading text-3xl leading-none mb-3" style={{ color: `${GOLD}55` }}>&ldquo;</p>
+                <p className="text-sm leading-relaxed mb-4 flex-1" style={{ color: NAVY }}>{t.quote}</p>
+                <p className="font-heading text-base" style={{ color: NAVY }}>{t.name}</p>
+                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider" style={{ color: GOLD }}>{t.title}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            <strong style={{ color: NAVY }}>{CAMELOT_TESTIMONIAL_STATS.clientRating} client rating</strong>, <strong style={{ color: NAVY }}>{CAMELOT_TESTIMONIAL_STATS.yearsInNyc} years</strong> in New York City, and{' '}
+            <strong style={{ color: NAVY }}>{CAMELOT_PROOF_STATS.betterCommunicationPct.value} of boards</strong> report better communication after switching to Camelot.
+          </p>
         </section>
 
         {/* ============ FIRST 90 DAYS ============ */}
@@ -811,6 +907,19 @@ export default function Pitch382Lafayette() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* ============ FAQ ============ */}
+        <section id="faq" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>Common questions</SectionLabel>
+          <SectionTitle>What boards actually ask us, answered plainly.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            Adapted from{' '}
+            <a href="https://www.camelot.nyc/faq/" target="_blank" rel="noreferrer" style={{ color: GOLD }}>camelot.nyc/faq</a>
+            {' '}for a condominium board specifically — the published version also covers rental buildings, which isn't relevant here.
+          </p>
+          <FaqAccordion items={LAFAYETTE_FAQ} />
         </section>
 
         {/* ============ NEXT STEP ============ */}

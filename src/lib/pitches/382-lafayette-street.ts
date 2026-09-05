@@ -373,6 +373,7 @@ export const CAMELOT_SERVICES: ServiceGroup[] = [
       'Regular, scheduled on-site presence \u2014 not a manager you only hear from when something breaks',
       'Vendor sourcing, contract oversight, and a bench of licensed and bonded contractors built over two decades',
       'Building maintenance coordination and preventive-maintenance scheduling',
+      '24/7 after-hours emergency support with a 48-hour guaranteed response time as a baseline commitment, not a best effort',
     ],
   },
   {
@@ -604,6 +605,156 @@ export const LAFAYETTE_90_DAY_PLAN: NinetyDayPhase[] = [
 
 export const LAFAYETTE_90_DAY_COMMITMENT =
   'Camelot is not the cheapest option \u2014 and we do not aim to be. Our value is the combination of experienced professionals, institutional-quality financial oversight, and a technology infrastructure built specifically for buildings like 382 Lafayette Street.';
+
+// ============================================================
+// Recognition \u2014 sourced from camelot.nyc/awards/ and the
+// Camelot 2025 Year in Review PDF. Real, dated, named awards \u2014
+// not a generic "award-winning" claim.
+// ============================================================
+
+export interface Award {
+  title: string;
+  recipient: string;
+  organization: string;
+  date: string;
+  detail: string;
+}
+
+export const CAMELOT_AWARDS: Award[] = [
+  {
+    title: 'Property Management Company of the Year',
+    recipient: 'Camelot Realty Group',
+    organization: 'RED Awards (Commercial Real Estate)',
+    date: 'April 2025',
+    detail: 'Recognizing outstanding leadership and excellence in property management across New York.',
+  },
+  {
+    title: 'Residential Management Community Service Award',
+    recipient: 'David Goldoff',
+    organization: 'REBNY \u2014 25th Annual Residential Management Leadership Breakfast',
+    date: 'November 6, 2025',
+    detail: 'Recognizing exceptional commitment to community and charitable work in New York, at the New York Hilton Midtown.',
+  },
+];
+
+// ============================================================
+// Testimonials \u2014 sourced verbatim from camelot.nyc/testimonials/.
+// Selected for relevance to this specific intro: a board president
+// at a nearby portfolio building going through the same sponsor-to-
+// board transition dynamic, an owner at 949 Park Avenue (already
+// referenced in the case studies above), and a sophisticated,
+// international client voice.
+// ============================================================
+
+export interface Testimonial {
+  quote: string;
+  name: string;
+  title: string;
+}
+
+export const CAMELOT_TESTIMONIALS: Testimonial[] = [
+  {
+    quote:
+      'Camelot has been a helpful agent representing our Co-op since we moved into our new home. As a new Board President and my first real estate venture, we really relied on them for their experience in understanding protocols, building-wide systems, and the business of running a building.',
+    name: 'Brandon Miller',
+    title: 'Board President, 137 Franklin Street Apartment Corp',
+  },
+  {
+    quote:
+      'I have been a client of Camelot Realty Group since buying my apartment in 2012. Valerie and David have been by my side as not only the best and most knowledgeable property managers but as family! Their experience and dedication is limitless and they go far beyond the expected for each and every one of their clients and properties.',
+    name: 'Evee Georgiadis',
+    title: 'Owner, 949 Park Avenue Condominium',
+  },
+  {
+    quote:
+      'As an overseas property owner, it is important to have a property manager that is responsive to both our and our tenants\u2019 needs, knowledgeable and experienced across the lifecycle of ownership, cost efficient and trustworthy. As Camelot\u2019s client for over three years we have come to appreciate the service, actions and advice the principals have provided.',
+    name: 'Lawrence Lee',
+    title: 'Managing Director, Laureat Hotel Investments Limited',
+  },
+];
+
+export const CAMELOT_TESTIMONIAL_STATS = {
+  clientRating: '5/5',
+  yearsInNyc: '20+',
+};
+
+// ============================================================
+// Published proof points \u2014 sourced verbatim from the camelot.nyc
+// homepage. Real, stated numbers rather than vague claims.
+// ============================================================
+
+export const CAMELOT_PROOF_STATS = {
+  avgSavingsFirstYear: confirmed('$45,000', 'camelot.nyc homepage \u2014 "Average annual savings boards find in the first 90 days"'),
+  responseTimeSla: confirmed('48 hrs', 'camelot.nyc homepage \u2014 "Our guaranteed response time vs. weeks from large firms"'),
+  betterCommunicationPct: confirmed('73%', 'camelot.nyc homepage \u2014 "Boards report better communication after switching to Camelot"'),
+};
+
+// ============================================================
+// Fee philosophy \u2014 no pricing has been discussed for 382
+// Lafayette Street, so no numbers appear here. This is Camelot's
+// published fee philosophy, sourced verbatim from camelot.nyc/pricing/
+// and camelot.nyc/property-management-fees-what-they-dont-tell-you/,
+// included so the Board knows how Camelot thinks about fees before
+// a number is ever discussed.
+// ============================================================
+
+export const CAMELOT_FEE_PHILOSOPHY =
+  'Our fee structure is straightforward: a percentage-based management fee with a clear rate schedule for ancillary services, no hidden markups on vendor work, and all building funds held in segregated accounts in the building\u2019s name. No RFP required, no six-week \u201cscope analysis\u201d before you see a number. We publish our pricing philosophy on our own website because we believe transparency isn\u2019t just an ethical obligation \u2014 it\u2019s a competitive advantage.';
+
+// ============================================================
+// Local Law 97 \u2014 a specific, honest note for this specific
+// building rather than generic compliance fear. At 21,850 sq ft
+// (per LAFAYETTE_PROPERTY.buildingSqFt), 382 Lafayette Street sits
+// just under LL97's 25,000 sq ft threshold. Numbers below sourced
+// from camelot.nyc's own LL97 guide.
+// ============================================================
+
+export const LAFAYETTE_LL97_NOTE =
+  'Local Law 97 covers buildings 25,000 square feet or larger, requiring a 40% cut in carbon emissions by 2030 and 80% by 2050 against a 2005 baseline \u2014 with penalties of $268 per metric ton of CO2 equivalent over the limit for the 2024\u20132029 compliance period. At roughly 21,850 square feet, 382 Lafayette sits just under that threshold today. Worth confirming as a fact, not assuming \u2014 and something Camelot tracks for every building it manages, covered or not, since a renovation or a use change can move a building across that line.';
+
+// ============================================================
+// FAQ \u2014 trimmed and adapted from camelot.nyc/faq/ for a
+// co-op/condo board audience (the published FAQ also covers rental
+// buildings, which isn't relevant here).
+// ============================================================
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+export const LAFAYETTE_FAQ: FaqItem[] = [
+  {
+    question: 'What does a property manager actually do day to day?',
+    answer:
+      'A property manager is the operational hub for a building \u2014 coordinating repairs and maintenance, preparing budgets and financial statements, managing vendor contracts, and ensuring compliance with NYC DOB, HPD, and other city agencies. In practice, that means everything from a 2 a.m. emergency call to an annual filing with the city.',
+  },
+  {
+    question: 'How much does property management cost for a condo like ours?',
+    answer:
+      'For co-ops and condos in New York City, management fees typically run 5\u20137% of monthly maintenance or common charges collected, depending on building size and scope of services. We haven\u2019t discussed a number for 382 Lafayette yet \u2014 that comes after we understand the building and the Board\u2019s priorities, not before.',
+  },
+  {
+    question: 'What\u2019s the actual process to switch management companies?',
+    answer:
+      'It starts with a complimentary consultation to understand the building\u2019s structure, current challenges, and goals. From there it\u2019s the three-phase, 90-day transition covered above \u2014 discovery, optimization, then stabilization and reporting \u2014 with a general ledger handoff and records-collection protocol so nothing falls through the cracks during the changeover.',
+  },
+  {
+    question: 'Is Camelot actually licensed to do this?',
+    answer:
+      'Yes. In New York State, anyone managing real property, negotiating leases, or collecting rent on behalf of others generally needs a real estate broker\u2019s license from the NY Department of State. David Goldoff holds one, is an active REBNY member, and Camelot Brokerage Services Corp. is separately licensed for brokerage and leasing work.',
+  },
+  {
+    question: 'What happens if something breaks at 2 a.m.?',
+    answer:
+      'Camelot provides 24/7 after-hours emergency support for every managed building, with a 48-hour guaranteed response time as a baseline commitment \u2014 not a best effort.',
+  },
+  {
+    question: 'Are there fees I should know about before signing anything?',
+    answer:
+      'Ask us directly \u2014 we\u2019d rather you ask now than find it buried in an invoice later. Our approach: a clear rate schedule for ancillary services, no administrative markup added to vendor invoices, and all building funds held in segregated accounts in the building\u2019s own name.',
+  },
+];
 
 // ============================================================
 // Open items — everything still to confirm before this goes

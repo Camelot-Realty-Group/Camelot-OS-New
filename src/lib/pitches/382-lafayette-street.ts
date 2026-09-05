@@ -757,6 +757,107 @@ export const LAFAYETTE_FAQ: FaqItem[] = [
 ];
 
 // ============================================================
+// Camelot OS — the internal tooling behind the pitch, verified
+// live on camelot-os.onrender.com rather than described in the
+// abstract. Real numbers as of the live check; nothing here is
+// invented, and where a tool is still mid-build that's stated
+// plainly rather than glossed over.
+// ============================================================
+
+export const CAMELOT_OS_PORTFOLIO_MIX = {
+  totalBuildings: 41,
+  totalUnits: 484,
+  residentialUnits: 473,
+  commercialUnits: 11,
+  rentalBuildings: 16,
+  rentalPct: 39,
+  condoCoopBuildings: 25,
+  condoCoopPct: 61,
+  lastSync: 'Aug 29, 2026',
+};
+
+export interface CostCategory {
+  category: string;
+  note: string;
+}
+
+// Illustrative categories, not a real budget analysis — 382 Lafayette's
+// actual financials haven't been uploaded yet. Modeled on the real,
+// documented categories from the $45,000-saved co-op case study above
+// (LAFAYETTE_CASE_STUDIES), scaled down for a 9-unit boutique building
+// rather than a 73-unit co-op.
+export const LAFAYETTE_COST_PREVIEW: CostCategory[] = [
+  { category: 'Elevator maintenance', note: 'Overlapping or unshopped service contracts are one of the most common finds across Camelot\u2019s portfolio.' },
+  { category: 'Insurance', note: 'Policies that haven\u2019t been shopped across multiple brokers in several years, per Camelot\u2019s standard practice of comparing rather than renewing.' },
+  { category: 'Energy supply', note: 'Un-renegotiated gas/electric contracts, plus LL97-driven efficiency upgrades where they pencil out.' },
+  { category: 'Vendor contracts generally', note: 'A line-by-line review of every service contract — landscaping, cleaning, security — against current market rates.' },
+];
+
+export const LAFAYETTE_COST_PREVIEW_NOTE =
+  'This isn\u2019t 382 Lafayette\u2019s real number \u2014 we don\u2019t have the building\u2019s financials yet. It\u2019s where Camelot typically finds savings in comparable boutique buildings, run through the same Cost-Beat methodology behind the $45,000 case study above. Send over a recent budget, financial statement, or audit and we\u2019ll run the real analysis, line by line.';
+
+export interface OsTool {
+  name: string;
+  tagline: string;
+  description: string;
+  url: string;
+  status: 'live' | 'in production';
+}
+
+export const CAMELOT_OS_TOOLS: OsTool[] = [
+  {
+    name: 'Report Center',
+    tagline: 'Every proposal starts here.',
+    description: 'Camelot\u2019s AI proposal engine \u2014 pulls live NYC public records into a full Property Intelligence Dossier, cost-reduction program, and transition plan, the same pipeline that built this page.',
+    url: 'https://camelot-os.onrender.com/#/report-center',
+    status: 'live',
+  },
+  {
+    name: 'Portfolio',
+    tagline: '41 buildings, one source of truth.',
+    description: 'Every Camelot-managed building, synced live from Spire MDS \u2014 484 units across 41 buildings, refreshed continuously rather than reconstructed for each proposal.',
+    url: 'https://camelot-os.onrender.com/#/portfolio',
+    status: 'live',
+  },
+  {
+    name: 'Cost-Beat Report Builder',
+    tagline: 'The methodology behind every savings number we quote.',
+    description: 'Line-by-line budget-vs-comparable analysis \u2014 their budget against a Camelot target, with evidence for every line, exported as a board-ready PDF.',
+    url: 'https://camelot-os.onrender.com/#/cost-beat-report',
+    status: 'live',
+  },
+  {
+    name: 'Violation & Resolution Center',
+    tagline: 'Real HPD, DOB, and ECB data, in real time.',
+    description: 'Pulls live violation, penalty, and hearing data straight from NYC Open Data for any address \u2014 portfolio building or not \u2014 with an estimated resolution cost and the specific professionals needed to close each one out.',
+    url: 'https://camelot-os.onrender.com/#/violations',
+    status: 'live',
+  },
+  {
+    name: 'Sentinel',
+    tagline: 'Quarterly market intelligence, building by building.',
+    description: 'Tracks $/sqft and market position for buildings across Camelot\u2019s footprint \u2014 including 137 Franklin Street and 58 White Street, both a few blocks from 382 Lafayette \u2014 and flags anything trading above or below its neighborhood.',
+    url: 'https://camelot-os.onrender.com/#/sentinel',
+    status: 'live',
+  },
+  {
+    name: 'Template Concierge',
+    tagline: 'Camelot\u2019s document library.',
+    description: '21 ready documents across management agreements, compliance, leasing, governance, and reporting \u2014 most fillable through a short questionnaire into a branded, merge-filled document on the spot.',
+    url: 'https://camelot-os.onrender.com/#/templates',
+    status: 'live',
+  },
+];
+
+export const CAMELOT_DRIVE_NOTE =
+  'Every new client gets a dedicated, on-demand Google Drive folder structure from day one \u2014 board packages, financials, vendor contracts, and compliance records, organized the same way for every building we manage. No waiting on an email to find a document; if you have Drive access, you already have the file.';
+
+export const SENTINEL_NEARBY_STACKUP = [
+  { building: '137 Franklin Street', neighborhood: 'TriBeCa/SoHo', pricePerSqFt: '$2,050', position: 'At market' },
+  { building: '58 White Street', neighborhood: 'TriBeCa/SoHo', pricePerSqFt: '$2,200', position: 'Above market' },
+];
+
+// ============================================================
 // Open items — everything still to confirm before this goes
 // beyond an intro conversation
 // ============================================================

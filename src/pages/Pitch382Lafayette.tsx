@@ -166,7 +166,16 @@ function Rule() {
 // in its own signature ink.
 function Subject({ children, onDark = false }: { children: ReactNode; onDark?: boolean }) {
   return (
-    <em className="font-heading italic" style={{ color: onDark ? '#e6a6b1' : SUBJECT_INK, fontWeight: 600 }}>
+    <em
+      className="font-heading italic"
+      style={{
+        color: onDark ? '#e6a6b1' : SUBJECT_INK,
+        fontWeight: 600,
+        fontSize: '2em',
+        lineHeight: 1.15,
+        display: 'inline-block',
+      }}
+    >
       {children}
     </em>
   );

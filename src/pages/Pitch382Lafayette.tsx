@@ -171,7 +171,7 @@ function Subject({ children, onDark = false }: { children: ReactNode; onDark?: b
       style={{
         color: onDark ? '#e6a6b1' : SUBJECT_INK,
         fontWeight: 600,
-        fontSize: '2em',
+        fontSize: '1.5em',
         lineHeight: 1.5,
         display: 'inline-block',
         margin: '0.05em 0.02em',

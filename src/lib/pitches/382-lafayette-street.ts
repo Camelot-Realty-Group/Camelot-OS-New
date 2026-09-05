@@ -508,25 +508,25 @@ export const CAMELOT_LEADERSHIP: LeaderProfile[] = [
   {
     name: 'Robert Isaacs',
     role: 'Senior Managing Director, Head of Asset Management & Compliance',
-    photo: '',
+    photo: '/pitch/382-lafayette-street/team/robert-isaacs.jpg',
     bio: 'Oversees asset management and compliance across the Camelot portfolio. Previously ran RHI Group LLC and served as owner\u2019s representative for a Queens rental portfolio Camelot manages.',
   },
   {
     name: 'Steven Milewicz',
     role: 'Chief Legal Officer, M&A',
-    photo: '',
+    photo: '/pitch/382-lafayette-street/team/steven-milewicz.jpg',
     bio: 'Handles M&A transactions and capital raises, providing legal guidance across Camelot\u2019s investment and acquisition activities.',
   },
   {
     name: 'Eleni Palmeri',
     role: 'Licensed Real Estate Salesperson, Brokerage & Sales',
-    photo: '',
+    photo: '/pitch/382-lafayette-street/team/eleni-palmeri.jpg',
     bio: 'Specializes in Manhattan and Eastern Long Island markets, bringing 15 years of NYC sales experience and a client-first approach rooted in honesty and trust.',
   },
   {
     name: 'Anthony Tavaglione',
     role: 'Senior Controller & Accounting Manager',
-    photo: '',
+    photo: '/pitch/382-lafayette-street/team/anthony-tavaglione.jpg',
     bio: 'Senior controller supporting Camelot\u2019s Finance & Accounting team \u2014 monthly closes, budgets, and reporting across the managed portfolio.',
   },
 ];

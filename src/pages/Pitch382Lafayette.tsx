@@ -175,6 +175,7 @@ function Subject({ children, onDark = false }: { children: ReactNode; onDark?: b
         lineHeight: 1.5,
         display: 'inline-block',
         margin: '0.05em 0.02em',
+        whiteSpace: 'nowrap',
       }}
     >
       {children}

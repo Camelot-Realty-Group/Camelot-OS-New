@@ -59,6 +59,9 @@ import {
   CAMELOT_FEE_PHILOSOPHY,
   LAFAYETTE_LL97_NOTE,
   LAFAYETTE_FAQ,
+  LAFAYETTE_INTERIOR_GALLERY,
+  LAFAYETTE_GALLERY_NOTE,
+  type GalleryPhoto,
   CAMELOT_OS_PORTFOLIO_MIX,
   LAFAYETTE_COST_PREVIEW,
   LAFAYETTE_COST_PREVIEW_NOTE,
@@ -614,7 +617,7 @@ export default function Pitch382Lafayette() {
           <SectionTitle>The home itself, not a rendering.</SectionTitle>
           <Rule />
           <div className="grid md:grid-cols-3 gap-6 mb-6">
-            {LAFAYETTE_INTERIOR_GALLERY.map((photo) => (
+            {LAFAYETTE_INTERIOR_GALLERY.map((photo: GalleryPhoto) => (
               <figure key={photo.src} className="m-0">
                 <img
                   src={photo.src}

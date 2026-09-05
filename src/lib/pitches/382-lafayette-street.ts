@@ -68,6 +68,43 @@ export const LAFAYETTE_PROPERTY = {
 };
 
 // ============================================================
+// Interior gallery — real, sourced photography
+// ============================================================
+// 382 Lafayette has no rooftop, gym, or shared amenity space of its own
+// (confirmed via StreetEasy: "No info on wellness and recreation," "No info
+// on shared outdoor space" — it's a 9-unit elevator building, nothing more).
+// These three images are from the public 2023 sale listing of Unit 4 itself
+// — Samantha's own home — photographed by SERHANT. at the time of that sale.
+// Used here with visible photo credit; not Camelot photography, and not a
+// current condition guarantee. Sourced 9/5/2026.
+export interface GalleryPhoto {
+  src: string;
+  caption: string;
+  credit: string;
+}
+
+export const LAFAYETTE_INTERIOR_GALLERY: GalleryPhoto[] = [
+  {
+    src: '/pitch/382-lafayette-street/gallery/unit4-living-room.jpg',
+    caption: 'Unit 4 \u2014 living room, four-window bay over Lafayette Street',
+    credit: 'SERHANT., 2023 sale listing',
+  },
+  {
+    src: '/pitch/382-lafayette-street/gallery/unit4-kitchen.jpg',
+    caption: 'Unit 4 \u2014 kitchen',
+    credit: 'SERHANT., 2023 sale listing',
+  },
+  {
+    src: '/pitch/382-lafayette-street/gallery/unit4-dining-library.jpg',
+    caption: 'Unit 4 \u2014 dining and library wall',
+    credit: 'SERHANT., 2023 sale listing',
+  },
+];
+
+export const LAFAYETTE_GALLERY_NOTE =
+  'These are from the public listing photography of the March 2023 sale of Unit 4 itself \u2014 not current Camelot photography, and not a representation of current condition. 382 Lafayette is a nine-unit elevator building with no rooftop deck, gym, or other shared amenity space of its own; there is nothing to show there. Credited to the photographer\u2019s original brokerage throughout.';
+
+// ============================================================
 // The referral / intro context
 // ============================================================
 

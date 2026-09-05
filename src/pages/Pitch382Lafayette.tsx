@@ -355,6 +355,7 @@ function ContactDavidForm() {
 
 const NAV_SECTIONS: { id: string; label: string }[] = [
   { id: 'cover-letter', label: 'Introduction' },
+  { id: 'gallery', label: 'Gallery' },
   { id: 'about', label: 'About Camelot' },
   { id: 'services', label: 'Services' },
   { id: 'nearby', label: 'A Few Blocks Away' },
@@ -604,6 +605,32 @@ export default function Pitch382Lafayette() {
           </div>
           <p className="mt-4 text-xs italic" style={{ color: MUTED }}>
             {LAFAYETTE_CONTACT.context}
+          </p>
+        </section>
+
+        {/* ============ INTERIOR GALLERY ============ */}
+        <section id="gallery" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>Inside <Subject>382 Lafayette Street</Subject></SectionLabel>
+          <SectionTitle>The home itself, not a rendering.</SectionTitle>
+          <Rule />
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            {LAFAYETTE_INTERIOR_GALLERY.map((photo) => (
+              <figure key={photo.src} className="m-0">
+                <img
+                  src={photo.src}
+                  alt={photo.caption}
+                  className="w-full aspect-[4/3] object-cover"
+                  style={{ backgroundColor: PAPER }}
+                />
+                <figcaption className="mt-2 text-xs leading-snug" style={{ color: MUTED }}>
+                  {photo.caption}
+                  <span className="block mt-0.5 italic">Photo: {photo.credit}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <p className="text-xs leading-relaxed max-w-3xl italic" style={{ color: MUTED }}>
+            {LAFAYETTE_GALLERY_NOTE}
           </p>
         </section>
 

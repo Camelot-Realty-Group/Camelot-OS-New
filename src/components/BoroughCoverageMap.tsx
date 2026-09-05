@@ -133,7 +133,8 @@ export default function BoroughCoverageMap({ goldHex, navyHex }: { goldHex: stri
         fillOpacity: 0.65,
       })
         .addTo(map)
-        .bindTooltip(`${a.label} \u2014 ${a.detail}`, { permanent: true, direction: 'top', className: 'lafayette-map-tooltip' });
+        .bindTooltip(`${a.label} \u2014 ${a.detail}`, { permanent: false, direction: 'top', className: 'lafayette-map-tooltip' })
+        .bindPopup(`<strong>${a.label}</strong><br/>${a.detail}`);
     });
 
     map.fitBounds(bounds, { padding: [50, 50] });

@@ -115,17 +115,29 @@ export default function CostCuttingTool() {
   }
 
   async function loadBuildings() {
+    // NOTE: the `buildings` table has RLS enabled (018_portfolio_sync.sql) with
+    // `REVOKE ALL ... FROM anon` and a policy scoped to `authenticated`. Camelot
+    // OS has no login flow wired up, so the frontend Supabase client (anon key,
+    // no session) can never read this table directly — that's why this dropdown
+    // was always empty even though Portfolio (41 buildings) works fine. Portfolio
+    // gets its data through the backend `/api/portfolio` route instead, which
+    // reads the same `portfolio_overview` view using the service-role key and
+    // bypasses RLS server-side. Use that same route here for consistency.
     try {
-      const { data, error: err } = await supabase
-        .from('buildings')
-        .select('id, mds_code, building_name')
-        .order('building_name');
-
-      if (err) throw err;
-      setBuildings(data || []);
+      const res = await authenticatedApiFetch('/api/portfolio');
+      const body = await res.json();
+      if (!res.ok) {
+        throw new Error(body?.error || body?.message || `Failed to load buildings (HTTP ${res.status})`);
+      }
+      const rows = (body.buildings || []) as any[];
+      setBuildings(
+        rows
+          .filter((b) => b.mds_code && b.building_name)
+          .map((b) => ({ id: b.id, mds_code: b.mds_code, building_name: b.building_name }))
+      );
     } catch (err) {
       console.error('Error loading buildings:', err);
-      setError('Failed to load buildings');
+      setError(err instanceof Error ? err.message : 'Failed to load buildings');
     }
   }
 

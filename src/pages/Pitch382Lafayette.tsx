@@ -778,10 +778,16 @@ export default function Pitch382Lafayette() {
           <SectionLabel>Who you'd be working with</SectionLabel>
           <SectionTitle>Senior oversight on every account — not just the one you're pitched.</SectionTitle>
           <Rule />
-          <p className="mb-10 text-sm italic max-w-3xl" style={{ color: MUTED }}>
+          <p className="mb-3 text-sm italic max-w-3xl" style={{ color: MUTED }}>
             We haven't assigned a day-to-day property manager yet — that's a decision we make once we
             understand the building and the Board's priorities, not before. These are the senior people who
             oversee every Camelot account, including yours if we move forward.
+          </p>
+          <p className="mb-10 text-sm leading-relaxed max-w-3xl" style={{ color: MUTED }}>
+            This is the senior leadership team, not the full company roster — Camelot also runs a wider
+            bench of property managers, leasing agents, controllers, administrative staff, and office
+            management who do the day-to-day work under this team's oversight. The people below are the
+            ones accountable for how every account, including this one, actually performs.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {CAMELOT_LEADERSHIP.map((person) => (

@@ -2,21 +2,21 @@
  * Public-facing intro pitch microsite for 382 Lafayette Street, NoHo
  * (route: /pitch/382-lafayette-street).
  *
- * This is a WARM INTRO page, not a priced proposal like the Oak Park at
- * Douglaston pitch (Template #1). Samantha Gasmer's board is exploring a
- * change of management company and asked for materials ahead of a
- * scheduling call — no pricing has been discussed, so this page
- * deliberately has no Proposal/Agreement generation, no fee tables, and
- * no assigned property manager. It covers company history, mission,
- * services, track record (leading with the immediate neighborhood), and
- * areas of coverage, then a simple next-step CTA.
+ * Originally a WARM INTRO page (no pricing, no proposal). As of the
+ * September 2026 Zoom call with Samantha and the Board, the deal has
+ * progressed: the Board is actively evaluating a switch from The Andrews
+ * Organization, terms were discussed ($2,000/month, $500 setup, Nov 1
+ * 2026 start), and a real DOB compliance picture ($21,750 in civil
+ * penalties) is on the table. The "60-Day Transition Plan" section below
+ * reflects that — it links out to four static PDF documents (Proposal,
+ * Management Agreement, Termination Letter, Transition & File Request
+ * Guide) rather than embedding a live document generator, keeping this
+ * page's footprint small relative to the full Oak Park pitch engine.
  *
  * Reuses the same design language as PitchOakParkDouglaston.tsx (the
  * Camelot — A Journal of Considered Ownership palette: cream paper,
  * ink text, gold accent) for visual consistency across every instance
- * of this pitch pattern, but is intentionally a much shorter, standalone
- * component — it does not import the agreement/proposal/transition-plan
- * generation engines, since none of that applies pre-pricing.
+ * of this pitch pattern.
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
@@ -38,6 +38,9 @@ import {
   Radar,
   FileText,
   Cloud,
+  Download,
+  ClipboardList,
+  Mail,
 } from 'lucide-react';
 import {
   LAFAYETTE_PROPERTY,
@@ -79,6 +82,9 @@ import {
   LAFAYETTE_TO_EXEC_OFFICE_MILES,
   LAFAYETTE_90_DAY_PLAN,
   LAFAYETTE_90_DAY_COMMITMENT,
+  LAFAYETTE_TRANSITION_TIMELINE,
+  LAFAYETTE_COMPLIANCE_SUMMARY,
+  LAFAYETTE_TRANSITION_DOCUMENTS,
   MDS_SAMPLE_PAGE_COUNT,
   MDS_SAMPLE_BASE,
   type Fact,
@@ -376,6 +382,7 @@ const NAV_SECTIONS: { id: string; label: string }[] = [
   { id: 'nearby', label: 'A Few Blocks Away' },
   { id: 'case-studies', label: 'Case Studies' },
   { id: 'testimonials', label: 'Testimonials' },
+  { id: 'transition-plan', label: '60-Day Transition' },
   { id: 'first-90-days', label: 'First 90 Days' },
   { id: 'technology', label: 'Technology' },
   { id: 'camelot-os', label: 'Camelot OS' },
@@ -858,6 +865,96 @@ export default function Pitch382Lafayette() {
             <strong style={{ color: NAVY }}>{CAMELOT_TESTIMONIAL_STATS.clientRating} client rating</strong>, <strong style={{ color: NAVY }}>{CAMELOT_TESTIMONIAL_STATS.yearsInNyc} years</strong> in New York City, and{' '}
             <strong style={{ color: NAVY }}>{CAMELOT_PROOF_STATS.betterCommunicationPct.value} of boards</strong> report better communication after switching to Camelot.
           </p>
+        </section>
+
+        {/* ============ 60-DAY TRANSITION PLAN ============ */}
+        <section id="transition-plan" className="py-20 border-b" style={{ borderColor: DIVIDER }}>
+          <SectionLabel>The next 60 days</SectionLabel>
+          <SectionTitle>From <Subject>The Andrews Organization</Subject> to Camelot — a documented handoff, not a black box.</SectionTitle>
+          <Rule />
+          <p className="mb-10 text-base leading-relaxed max-w-3xl" style={{ color: NAVY }}>
+            Following the Board’s call, here is the concrete path from notice to go-live: a signed Board decision, a formal
+            termination letter to the outgoing agent, a full records and file request, and a documented compliance picture —
+            with real numbers, not estimates. Everything below is ready for the Board to review now.
+          </p>
+
+          {/* Compliance summary callout */}
+          <div className="mb-14 p-6 md:p-8" style={{ backgroundColor: PAPER, border: `1px solid ${DIVIDER}` }}>
+            <div className="flex items-start gap-3 mb-4">
+              <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" style={{ color: GOLD }} />
+              <div>
+                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>
+                  DOB compliance, as of {LAFAYETTE_COMPLIANCE_SUMMARY.asOf} &middot; BIN #{LAFAYETTE_COMPLIANCE_SUMMARY.bin}
+                </p>
+                <p className="font-heading text-xl leading-tight" style={{ color: NAVY }}>
+                  {LAFAYETTE_COMPLIANCE_SUMMARY.totalViolations} total violations &middot; {LAFAYETTE_COMPLIANCE_SUMMARY.activeViolations} active &middot; {LAFAYETTE_COMPLIANCE_SUMMARY.totalPenaltiesDue} in civil penalties due
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              {LAFAYETTE_COMPLIANCE_SUMMARY.categories.map((c) => (
+                <div key={c.category} className="p-4" style={{ backgroundColor: IVORY, border: `1px solid ${DIVIDER}` }}>
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: MUTED }}>{c.category}</p>
+                  <p className="font-heading text-2xl leading-tight mb-1" style={{ color: NAVY }}>{c.penaltiesDue}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>{c.totalViolations} total &middot; {c.active} active &middot; {c.dismissed} dismissed</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: MUTED }}>
+              Camelot will file the outstanding elevator Cat1 affirmations, retain a licensed boiler inspector for the open Low
+              Pressure inspection filings, and engage a FISP-qualified engineer for the facade filing — each within the first
+              60 days — before bringing a resolution and payment plan to the Board. Full detail in the Proposal’s compliance
+              addendum, linked below.
+            </p>
+          </div>
+
+          {/* Timeline */}
+          <div className="grid md:grid-cols-4 gap-6 mb-14">
+            {LAFAYETTE_TRANSITION_TIMELINE.map((week) => (
+              <div key={week.weeks} className="pt-4 border-t-2" style={{ borderColor: GOLD }}>
+                <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: GOLD }}>
+                  {week.weeks}
+                </p>
+                <p className="font-heading text-lg leading-tight mb-3" style={{ color: NAVY }}>{week.headline}</p>
+                <ul className="space-y-2">
+                  {week.activities.map((a) => (
+                    <li key={a} className="flex gap-2 text-xs leading-relaxed">
+                      <span className="shrink-0 mt-1 w-1 h-1 rounded-full" style={{ backgroundColor: GOLD }} />
+                      <span style={{ color: MUTED }}>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Downloadable documents */}
+          <div>
+            <p className="font-sans text-[10px] font-semibold uppercase tracking-wider mb-4" style={{ color: GOLD }}>
+              Ready for Board review
+            </p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {LAFAYETTE_TRANSITION_DOCUMENTS.map((doc) => (
+                <a
+                  key={doc.title}
+                  href={doc.url}
+                  download
+                  className="group flex items-start gap-4 p-5 transition-colors hover:bg-black/[0.02]"
+                  style={{ backgroundColor: IVORY, border: `1px solid ${DIVIDER}` }}
+                >
+                  <FileText className="w-6 h-6 shrink-0 mt-0.5" style={{ color: GOLD }} />
+                  <div className="flex-1">
+                    <p className="font-sans text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: MUTED }}>
+                      {doc.audience}
+                    </p>
+                    <p className="font-heading text-base leading-tight mb-1.5" style={{ color: NAVY }}>{doc.title}</p>
+                    <p className="text-xs leading-relaxed" style={{ color: MUTED }}>{doc.description}</p>
+                  </div>
+                  <Download className="w-4 h-4 shrink-0 mt-1 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: GOLD }} />
+                </a>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* ============ FIRST 90 DAYS ============ */}

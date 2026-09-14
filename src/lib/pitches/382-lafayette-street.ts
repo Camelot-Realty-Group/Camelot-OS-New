@@ -643,6 +643,120 @@ export const LAFAYETTE_90_DAY_PLAN: NinetyDayPhase[] = [
 export const LAFAYETTE_90_DAY_COMMITMENT =
   'Camelot is not the cheapest option \u2014 and we do not aim to be. Our value is the combination of experienced professionals, institutional-quality financial oversight, and a technology infrastructure built specifically for buildings like 382 Lafayette Street.';
 
+/**
+ * The next 60 days \u2014 Andrews to Camelot transition, following the
+ * September 2026 Zoom call with Samantha and the Board. Terms discussed
+ * on that call (confirmed by David): $2,000/month management fee, $500
+ * one-time setup fee, November 1, 2026 start, one-year term with 3%
+ * annual increases indexed to CPI. Full documents are linked in
+ * LAFAYETTE_TRANSITION_DOCUMENTS below.
+ */
+export interface TransitionWeek {
+  weeks: string;
+  headline: string;
+  activities: string[];
+}
+
+export const LAFAYETTE_TRANSITION_TIMELINE: TransitionWeek[] = [
+  {
+    weeks: 'Weeks 1\u20132',
+    headline: 'Notice & Kickoff',
+    activities: [
+      'Board issues the Notice of Termination to The Andrews Organization',
+      'Camelot sends the full records and file request, and schedules a transition kickoff call with the outgoing agent',
+      'Camelot runs its own independent DOB/HPD/DOF compliance pull to cross-check what Andrews provides',
+    ],
+  },
+  {
+    weeks: 'Weeks 3\u20134',
+    headline: 'Financial & Records Reconciliation',
+    activities: [
+      'Andrews delivers financial statements, bank reconciliations, and A/R & A/P reports through the most recent closed period',
+      'Camelot\u2019s in-house controller reconciles balances and flags discrepancies to the Board before any funds transfer',
+      'New operating and reserve accounts opened; signature-card paperwork prepared for Board officers',
+    ],
+  },
+  {
+    weeks: 'Weeks 5\u20136',
+    headline: 'Vendor & Notice Coordination',
+    activities: [
+      'All active vendors (elevator, boiler, cleaning, and others) notified in writing of the management change',
+      'Insurance carriers and brokers notified; certificates updated to reflect Camelot as managing agent',
+      'Unit owners receive a transition notice from the Board with Camelot\u2019s contact information',
+    ],
+  },
+  {
+    weeks: 'Weeks 7\u20138',
+    headline: 'Handoff & Go-Live',
+    activities: [
+      'Final walk-through of the building with Andrews\u2019 outgoing representative, if applicable',
+      'Transfer of keys, fobs, access codes, and any remaining physical files',
+      'Bank funds transfer completed; Camelot assumes full operating authority November 1, 2026',
+    ],
+  },
+];
+
+export interface ComplianceCategory {
+  category: string;
+  totalViolations: number;
+  active: number;
+  dismissed: number;
+  penaltiesDue: string;
+}
+
+/**
+ * Source: NYC DOB/BIS \"Search Results for All Violations,\" BIN #1008508,
+ * pulled 9/14/2026. This supersedes the earlier unconfirmed HPD-sourced
+ * estimate flagged in LAFAYETTE_TO_BE_CONFIRMED below.
+ */
+export const LAFAYETTE_COMPLIANCE_SUMMARY = {
+  asOf: 'September 14, 2026',
+  bin: '1008508',
+  totalViolations: 24,
+  activeViolations: 16,
+  dismissedViolations: 8,
+  totalPenaltiesDue: '$21,750.00',
+  categories: [
+    { category: 'Elevators', totalViolations: 4, active: 3, dismissed: 1, penaltiesDue: '$9,000.00' },
+    { category: 'Boiler', totalViolations: 19, active: 11, dismissed: 8, penaltiesDue: '$12,000.00' },
+    { category: 'Facades', totalViolations: 1, active: 1, dismissed: 0, penaltiesDue: '$750.00' },
+  ] as ComplianceCategory[],
+};
+
+export interface TransitionDocument {
+  title: string;
+  description: string;
+  url: string;
+  audience: string;
+}
+
+export const LAFAYETTE_TRANSITION_DOCUMENTS: TransitionDocument[] = [
+  {
+    title: 'Proposal of Property Management Services',
+    description: 'Camelot\u2019s full proposal for 382 Lafayette Street, including scope of services, fee structure, and the DOB compliance addendum.',
+    url: '/pitch/382-lafayette-street/documents/Camelot-Proposal-of-Property-Management-Services.pdf',
+    audience: 'For the Board',
+  },
+  {
+    title: 'Property Management Agreement',
+    description: 'The formal agreement for the Board\u2019s review and signature \u2014 $2,000/month, $500 setup fee, one-year term starting November 1, 2026, with 3% annual CPI-indexed increases.',
+    url: '/pitch/382-lafayette-street/documents/Camelot-Property-Management-Agreement.pdf',
+    audience: 'For the Board',
+  },
+  {
+    title: 'Notice of Termination (Andrews Organization)',
+    description: 'A ready-to-send letter from the Board to The Andrews Organization, formally ending the current management agreement effective October 31, 2026.',
+    url: '/pitch/382-lafayette-street/documents/Notice-of-Termination-Andrews-Organization.pdf',
+    audience: 'For the Board to send',
+  },
+  {
+    title: 'Transition & File Request Guide',
+    description: 'The complete records checklist Camelot will request from Andrews, the 60-day transition timeline, and what happens in Camelot\u2019s first 90 days.',
+    url: '/pitch/382-lafayette-street/documents/Transition-and-File-Request-Guide.pdf',
+    audience: 'For the Board',
+  },
+];
+
 // ============================================================
 // Recognition \u2014 sourced from camelot.nyc/awards/ and the
 // Camelot 2025 Year in Review PDF. Real, dated, named awards \u2014

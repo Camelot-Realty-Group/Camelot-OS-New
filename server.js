@@ -1,13 +1,14 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 import costCuttingRoutes from './src/api/cost-cutting-routes.mjs';
 import portfolioRoutes from './src/api/portfolio-routes.mjs';
+import merlinRoutes from './src/api/merlin-routes.mjs';
+import { startMerlinScheduler } from './src/api/merlin-scheduler.mjs';
 // import postcardRoutes from './src/api/postcard-routes.mjs'; // TODO: needs qrcode package
 // import { startPostcardScheduler } from './src/api/postcard-scheduler.mjs'; // TODO: needs qrcode package
 import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
-import violationTrackingRoutes from './src/api/violation-tracking-routes.mjs';
-import violationMonitorRoutes, { runViolationMonitor, startViolationMonitorScheduler } from './src/api/violation-monitor.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,16 +31,39 @@ function getHubSpotApiKey() {
   return process.env.HUBSPOT_PRIVATE_APP_TOKEN || process.env.HUBSPOT_API_KEY || '';
 }
 
-// NOTE: this file used to define getSupabaseAuthClient()/requireApiUser()
-// here and wrap ~15 route groups in requireApiUser, requiring a signed-in
-// Supabase user before the browser could call them. Camelot OS has no
-// login screen wired up anywhere (see src/lib/api-auth.ts), so that check
-// could never be satisfied — it silently 401'd every one of those routes
-// for every user, always, including the portfolio list, AI chat,
-// HubSpot/Apollo/Prospeo, Daily Hunt, Neighborhood Leads, and the
-// violation-tracking/alerts routes. Removed; these are internal,
-// single-operator routes protected by server-only service-role keys and
-// Render's private URL, not by per-user auth.
+let supabaseAuthClient;
+function getSupabaseAuthClient() {
+  if (supabaseAuthClient) return supabaseAuthClient;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  // Prefer the service role key for server-side token verification. The
+  // anon/publishable key path (SUPABASE_ANON_KEY / VITE_SUPABASE_ANON_KEY)
+  // was rejected by GoTrue's /user endpoint with "API key is invalid" —
+  // this project's legacy anon JWT is disabled, and the newer
+  // sb_publishable_... key isn't recognized by the pinned
+  // @supabase/supabase-js@^2.45.0 SDK for this call. The service role key
+  // is already required elsewhere in this file for admin DB access, is
+  // confirmed valid, and is the correct credential for server-side auth
+  // verification anyway (it bypasses RLS and is never exposed to clients).
+  const authKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !authKey || /placeholder/i.test(`${url}${authKey}`)) return null;
+  supabaseAuthClient = createClient(url, authKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  return supabaseAuthClient;
+}
+
+async function requireApiUser(req, res, next) {
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+  if (!token) return res.status(401).json({ error: 'Authentication required.' });
+  const authClient = getSupabaseAuthClient();
+  if (!authClient) return res.status(503).json({ error: 'Server authentication is not configured.' });
+  try {
+    const { data, error } = await authClient.auth.getUser(token);
+    if (error || !data.user) return res.status(401).json({ error: 'Invalid or expired session.' });
+    req.camelotUser = data.user;
+    return next();
+  } catch {
+    return res.status(401).json({ error: 'Could not verify the current session.' });
+  }
+}
 
 function getScoutConfig() {
   return {
@@ -439,14 +463,22 @@ console.log('Scout integration config:', {
   hubspotApiKey: Boolean(getHubSpotApiKey()),
 });
 
-// Private integration credentials (HubSpot/Apollo/Prospeo/Spire/OpenAI keys,
-// etc.) are read server-side only and never sent to the browser, so these
-// routes don't need to be gated behind a signed-in user. They used to be
-// wrapped in requireApiUser, but Camelot OS has no login screen wired up
-// (see src/lib/api-auth.ts) so that check could never be satisfied — it
-// silently 401'd every one of these calls for every user, always. Camelot
-// OS is a single-operator internal tool sitting behind a private Render
-// URL, so that's the access boundary, not a per-user session.
+// Private integration credentials are server-only. Require a verified
+// Supabase user before any browser request can consume them.
+app.use([
+  '/api/hubspot',
+  '/api/apollo',
+  '/api/prospeo',
+  '/api/spire',
+  '/api/ai',
+  '/api/email/send',
+  '/api/email/events',
+  '/api/building/brand',
+  '/api/scout',
+  '/api/core',
+  '/api/templates',
+  // '/api/cost-analysis', // TODO: Remove auth requirement for Cost Optimization analysis
+], requireApiUser);
 
 app.post('/api/hubspot/contacts', async (req, res) => {
   const apiKey = getHubSpotApiKey();
@@ -767,7 +799,7 @@ app.get('/api/integrations/status', (_req, res) => {
   });
 });
 
-app.get('/api/integrations/local-leads', (_req, res) => {
+app.get('/api/integrations/local-leads', requireApiUser, (_req, res) => {
   res.json({
     leads: LOCAL_SCOUT_LEADS,
     count: LOCAL_SCOUT_LEADS.length,
@@ -775,7 +807,7 @@ app.get('/api/integrations/local-leads', (_req, res) => {
   });
 });
 
-app.post('/api/daily-hunt/run', async (req, res) => {
+app.post('/api/daily-hunt/run', requireApiUser, async (req, res) => {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const functionUrl = supabaseUrl && !/placeholder/i.test(supabaseUrl)
@@ -847,7 +879,7 @@ app.post('/api/daily-hunt/run', async (req, res) => {
   }
 });
 
-app.post('/api/integrations/push-building', async (req, res) => {
+app.post('/api/integrations/push-building', requireApiUser, async (req, res) => {
   const body = req.body || {};
   const building = body.building || {};
   const contact = body.contact || {};
@@ -1233,47 +1265,6 @@ const getAiKey = () => process.env.OPENAI_API_KEY || process.env.AI_API_KEY || '
 const getAiUrl = () => process.env.AI_API_URL || 'https://api.openai.com/v1/chat/completions';
 const getAiModel = () => process.env.AI_MODEL || process.env.VITE_AI_MODEL || 'gpt-4o-mini';
 
-// ============================================================
-// Merlin pitch-archive retrieval — searches camelot_pitch_documents
-// (extracted text from ~90 past pitch/management-agreement folders in
-// Google Drive) so Merlin's answers can be grounded in real prior deals.
-// ============================================================
-const PITCH_ARCHIVE_STOPWORDS = new Set([
-  'the','a','an','of','to','in','on','for','and','or','is','are','was','were','what','who','when','where','why','how',
-  'do','does','did','can','could','would','should','tell','me','about','with','from','at','by','this','that','it',
-  'camelot','building','property','pitch','past','our','we','you','your',
-]);
-
-async function searchPitchArchive(userText, limit = 4) {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey || /placeholder/i.test(supabaseUrl)) return [];
-
-  const words = (userText || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter((w) => w.length > 2 && !PITCH_ARCHIVE_STOPWORDS.has(w));
-  if (words.length === 0) return [];
-  const query = words.slice(0, 8).join(' ');
-
-  try {
-    const url = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/camelot_pitch_documents`
-      + `?select=filename,drive_url,extracted_text,camelot_pitch_library(building_name)`
-      + `&text_search=plfts(english).${encodeURIComponent(query)}`
-      + `&limit=${limit}`;
-    const resp = await fetch(url, {
-      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
-    });
-    if (!resp.ok) return [];
-    const rows = await resp.json().catch(() => []);
-    return Array.isArray(rows) ? rows : [];
-  } catch (err) {
-    console.warn('[pitch-archive] search failed:', err?.message);
-    return [];
-  }
-}
-
 app.post('/api/ai/chat', async (req, res) => {
   const key = getAiKey();
   if (!key) {
@@ -1284,32 +1275,12 @@ app.post('/api/ai/chat', async (req, res) => {
     return res.status(400).json({ error: 'messages[] required' });
   }
   try {
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
-    const archiveHits = lastUserMsg ? await searchPitchArchive(lastUserMsg.content) : [];
-    let chatMessages = messages.slice(-40);
-    if (archiveHits.length > 0) {
-      const context = archiveHits
-        .map((h) => {
-          const name = h.camelot_pitch_library?.building_name || 'Unknown building';
-          const excerpt = (h.extracted_text || '').slice(0, 900);
-          return `Building: ${name}\nFile: ${h.filename}\nExcerpt:\n${excerpt}`;
-        })
-        .join('\n\n---\n\n');
-      chatMessages = [
-        {
-          role: 'system',
-          content:
-            `Relevant excerpts from Camelot's past pitch and management-agreement archive (use only if genuinely relevant to the user's question, and say which building/file it came from if you use it):\n\n${context}`,
-        },
-        ...chatMessages,
-      ];
-    }
     const upstream = await fetch(getAiUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: getAiModel(),
-        messages: chatMessages,
+        messages: messages.slice(-40),
         temperature: typeof temperature === 'number' ? temperature : 0.7,
         max_tokens: typeof max_tokens === 'number' ? Math.min(max_tokens, 4096) : 2048,
         stream: false,
@@ -1323,6 +1294,45 @@ app.post('/api/ai/chat', async (req, res) => {
     return res.json({ content: data.choices?.[0]?.message?.content || '' });
   } catch (err) {
     return res.status(502).json({ error: `AI upstream unreachable: ${err?.message || 'unknown error'}` });
+  }
+});
+
+// ============================================================
+// Mistral 7B LLM Proxy — Local Ollama (OpenAI-compatible)
+// Runs offline at http://localhost:11434/v1/chat/completions
+// No API key required, no authentication or rate limits.
+// ============================================================
+app.post('/api/llm/mistral', async (req, res) => {
+  const { messages, temperature, max_tokens } = req.body || {};
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages[] required' });
+  }
+  try {
+    const upstream = await fetch('http://localhost:11434/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'mistral',
+        messages: messages.slice(-40),
+        temperature: typeof temperature === 'number' ? temperature : 0.7,
+        max_tokens: typeof max_tokens === 'number' ? Math.min(max_tokens, 4096) : 2048,
+        stream: false,
+      }),
+    });
+    const data = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      const msg = data?.error?.message || `Mistral error ${upstream.status}`;
+      return res.status(503).json({
+        error: msg,
+        hint: 'Mistral 7B via Ollama is not running. Start it with: ollama run mistral',
+      });
+    }
+    return res.json({ content: data.choices?.[0]?.message?.content || '' });
+  } catch (err) {
+    return res.status(502).json({
+      error: `Mistral unreachable: ${err?.message || 'unknown error'}`,
+      hint: 'Ensure Ollama is running on localhost:11434. Start with: ollama serve',
+    });
   }
 });
 
@@ -1784,11 +1794,11 @@ app.use('/api', costCuttingRoutes);
 // empty despite the sync engine, migration, and UI all being in place.
 app.use('/api', portfolioRoutes);
 
-// Violation & Resolution Center — internal tracking (status/notes/documents)
-// and portfolio-wide monitoring/alerts. See src/api/violation-tracking-routes.mjs
-// and src/api/violation-monitor.mjs.
-app.use('/api', violationTrackingRoutes);
-app.use('/api', violationMonitorRoutes);
+// Merlin — the Camelot OS brain: grounded Q&A over indexed knowledge, memory
+// of prior outcomes, the human-approval queue, and knowledge ingestion.
+// Autonomy boundaries are enforced in merlin-service.mjs (ACTION_POLICY), not
+// in prompt text, so an unrecognized action defaults to requiring approval.
+app.use('/api', merlinRoutes);
 
 // Postcard Mailer — campaign creation, lead fetching, QR code generation.
 // Used by PostcardMailer.tsx to create owner-verified mailer campaigns
@@ -1800,7 +1810,7 @@ app.use('/api', violationMonitorRoutes);
 // workflow, "Camelot Neighborhood Leads" HubSpot pipeline + 4-day follow-up).
 // Reuses the HubSpot/Resend helpers already defined above rather than
 // duplicating that plumbing — see src/api/leads-routes.mjs.
-app.use('/api', createLeadsRouter({
+app.use('/api', requireApiUser, createLeadsRouter({
   getHubSpotApiKey,
   hubspotRequest,
   hubspotObjectWrite,
@@ -1817,12 +1827,10 @@ app.use('/api', createLeadsRouter({
 // src/api/leads-routes.mjs for how the once-a-day guard works.
 startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc: 21 });
 
-// Portfolio-wide Violation & Resolution Center monitor — scans every active
-// building every 6 hours for new violations, status changes, and hearings
-// coming up within 14 days, then emails anyone subscribed via
-// violation_alert_subscriptions. See src/api/violation-monitor.mjs.
-app.locals.runViolationMonitorNow = () => runViolationMonitor({ getResendApiKey, getResendFromAddress });
-startViolationMonitorScheduler({ getResendApiKey, getResendFromAddress });
+// Merlin's heartbeat: 07:00 ET morning sweep, hourly work Mon-Fri 09:00-17:00,
+// dormant on weekends. Safe to start unconditionally — it logs and no-ops if
+// Supabase or the AI key are missing rather than throwing at boot.
+startMerlinScheduler();
 
 // Weekly postcard batch scheduler — runs Sunday 22:00 UTC (5 PM ET).
 // Processes all campaigns with scheduled_mailer dates and sends via Lob.com
@@ -1852,3 +1860,4 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Camelot OS running on port ${PORT}`));
+

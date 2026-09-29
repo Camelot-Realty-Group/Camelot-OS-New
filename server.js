@@ -6,6 +6,7 @@ import portfolioRoutes from './src/api/portfolio-routes.mjs';
 // import postcardRoutes from './src/api/postcard-routes.mjs'; // TODO: needs qrcode package
 // import { startPostcardScheduler } from './src/api/postcard-scheduler.mjs'; // TODO: needs qrcode package
 import createLeadsRouter, { startDailyReportScheduler } from './src/api/leads-routes.mjs';
+import { createSubletRenewalRouter, startSubletRenewalScheduler } from './src/api/sublet-renewal-routes.mjs';
 import violationTrackingRoutes from './src/api/violation-tracking-routes.mjs';
 import violationMonitorRoutes, { runViolationMonitor, startViolationMonitorScheduler } from './src/api/violation-monitor.mjs';
 
@@ -1790,6 +1791,12 @@ app.use('/api', portfolioRoutes);
 app.use('/api', violationTrackingRoutes);
 app.use('/api', violationMonitorRoutes);
 
+// Sublet Renewal Tracker — co-op/condo sublet leases expiring in 60–90 days,
+// pulled from Spire MDS, tracked in Supabase, digested to the team. Carries
+// its own fail-closed access check (Supabase user OR X-Camelot-Ops-Key) since
+// it serves subtenant PII. See src/api/sublet-renewal-routes.mjs.
+app.use('/api', createSubletRenewalRouter({ getResendApiKey, getResendFromAddress }));
+
 // Postcard Mailer — campaign creation, lead fetching, QR code generation.
 // Used by PostcardMailer.tsx to create owner-verified mailer campaigns
 // across all tools (Results, Pipeline, Factory Engine, etc.).
@@ -1823,6 +1830,10 @@ startDailyReportScheduler({ getResendApiKey, getResendFromAddress, hourUtc: 21 }
 // violation_alert_subscriptions. See src/api/violation-monitor.mjs.
 app.locals.runViolationMonitorNow = () => runViolationMonitor({ getResendApiKey, getResendFromAddress });
 startViolationMonitorScheduler({ getResendApiKey, getResendFromAddress });
+
+// Sublet renewals: daily scan after 6 AM ET, digest when new items enter the
+// 60–90 day window, full list every Monday. SUBLET_RENEWALS_SCHEDULER=off disables.
+startSubletRenewalScheduler({ getResendApiKey, getResendFromAddress });
 
 // Weekly postcard batch scheduler — runs Sunday 22:00 UTC (5 PM ET).
 // Processes all campaigns with scheduled_mailer dates and sends via Lob.com

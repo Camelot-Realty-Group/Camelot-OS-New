@@ -48,6 +48,7 @@ const TradedNY = lazy(() => import('@/pages/TradedNY'));
 const CostCuttingTool = lazy(() => import('@/pages/CostCuttingTool'));
 const CostBeatReportBuilder = lazy(() => import('@/pages/CostBeatReportBuilder'));
 const Portfolio = lazy(() => import('@/pages/Portfolio'));
+const SubletRenewals = lazy(() => import('@/pages/SubletRenewals'));
 const FactoryEngine = lazy(() => import('@/pages/FactoryEngine'));
 const PitchOakParkDouglaston = lazy(() => import('@/pages/PitchOakParkDouglaston'));
 const Pitch382Lafayette = lazy(() => import('@/pages/Pitch382Lafayette'));
@@ -112,6 +113,7 @@ export default function App() {
           <Route path="/call-queue" element={page(CallQueue)} />
           <Route path="/postcard-mailer" element={page(PostcardMailer)} />
           <Route path="/portfolio" element={page(Portfolio)} />
+          <Route path="/sublet-renewals" element={page(SubletRenewals)} />
           <Route path="/cost-cutting" element={page(CostCuttingTool)} />
           <Route path="/cost-beat-report" element={page(CostBeatReportBuilder)} />
           <Route path="/factory-engine" element={page(FactoryEngine)} />

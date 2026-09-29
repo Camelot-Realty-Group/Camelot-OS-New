@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "qa": "node scripts/qa-run.mjs",
     "qa:scan": "node scripts/qa-scan.mjs",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test:renewals": "node --test tests/sublet-renewals.test.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

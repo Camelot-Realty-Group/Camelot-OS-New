@@ -55,8 +55,11 @@ export function createSpireClient({
   requestTimeoutMs = REQUEST_TIMEOUT_MS,
 } = {}) {
   const config = {
-    apiKey: String(env.SPIRE_API_KEY || '').trim(),
-    clientSecret: String(env.SPIRE_CLIENT_SECRET || '').trim(),
+    // server.js and the Render env group use SPIRE_MDS_*; this client was
+    // written against SPIRE_*. Accept either so every caller sees the same
+    // credentials instead of one half of the app reporting "not configured".
+    apiKey: String(env.SPIRE_API_KEY || env.SPIRE_MDS_API_KEY || '').trim(),
+    clientSecret: String(env.SPIRE_CLIENT_SECRET || env.SPIRE_MDS_CLIENT_SECRET || '').trim(),
     baseUrl: normalizedBaseUrl(env.SPIRE_BASE_URL),
   };
   let tokenCache = { token: '', expiresAt: 0 };
@@ -401,6 +404,38 @@ export function createSpireClient({
     });
   }
 
+  // --- Additive: filtered unit/occupant list (lease-expiration scans) ---------
+  // Swagger names the building filter `BuildingRcds` (comma-delimited). Date
+  // filters are sent, but callers MUST re-filter client-side: other Spire list
+  // endpoints have been observed ignoring documented filters (see AP note).
+  async function listUnitsFiltered(params = {}) {
+    const response = await request('/RM/UnitsList', { params });
+    if (!response.ok) return response;
+    return successResult({ items: extractRows(response.data) });
+  }
+
+  async function getOccupant({ buildingRcd, occupancyRcd } = {}) {
+    if (!buildingRcd || !occupancyRcd) {
+      return errorResult('SPIRE_INVALID_REQUEST', 'buildingRcd and occupancyRcd are required.');
+    }
+    return request('/RM/Occupant', { params: { BuildingRcd: buildingRcd, OccupancyRcd: occupancyRcd } });
+  }
+
+  async function getUnitContacts({ buildingRcd, occupancyRcd } = {}) {
+    if (!buildingRcd || !occupancyRcd) {
+      return errorResult('SPIRE_INVALID_REQUEST', 'buildingRcd and occupancyRcd are required.');
+    }
+    const response = await request('/RM/Contacts', { params: { BuildingRcd: buildingRcd, OccupancyRcd: occupancyRcd } });
+    if (!response.ok) return response;
+    return successResult({ items: extractRows(response.data) });
+  }
+
+  async function listContactCategories() {
+    const response = await request('/RM/Lookup/ContactCategories');
+    if (!response.ok) return response;
+    return successResult({ items: extractRows(response.data) });
+  }
+
   return {
     isConfigured: Boolean(config.apiKey && config.clientSecret),
     listBuildings,
@@ -411,5 +446,9 @@ export function createSpireClient({
     getGlActuals,
     getApVouchers,
     getVendorSpend,
+    listUnitsFiltered,
+    getOccupant,
+    getUnitContacts,
+    listContactCategories,
   };
 }

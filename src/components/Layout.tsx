@@ -36,6 +36,7 @@ import {
   Briefcase,
   TrendingDown,
   Building2,
+  CalendarClock,
   Users,
   UserSearch,
   Phone,
@@ -87,6 +88,7 @@ const navigation: NavSection[] = [
     title: 'Portfolio — Cost Optimization',
     items: [
       { label: 'Portfolio', href: '/portfolio', icon: <Building2 size={18} /> },
+      { label: 'Sublet Renewals', href: '/sublet-renewals', icon: <CalendarClock size={18} /> },
       { label: 'Cost Optimization', href: '/cost-cutting', icon: <TrendingDown size={18} /> },
       { label: 'Cost-Beat Report Builder', href: '/cost-beat-report', icon: <FileText size={18} /> },
     ],

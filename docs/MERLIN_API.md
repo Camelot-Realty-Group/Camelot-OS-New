@@ -13,10 +13,11 @@ All paths are rooted at `/api/merlin`. Send and receive JSON (`Content-Type: app
 | `MERLIN_API_TOKEN` | Server only (Render / `.env`). Never prefix with `VITE_`. | Optional shared bearer token for agents. |
 
 - When `MERLIN_API_TOKEN` is **unset**, routes accept calls the same way the rest of the internal Camelot OS API does.
-- When it is **set**:
-  - An external agent sends `Authorization: Bearer <MERLIN_API_TOKEN>`.
-  - A same-origin browser call (the staff UI) is allowed without the token, so the secret stays out of the frontend bundle.
-  - A wrong token returns `401`.
+- When it is **set**, every `/api/merlin/*` call except the session handshake must prove it:
+  - An agent sends `Authorization: Bearer <MERLIN_API_TOKEN>`.
+  - A staff browser posts the same token once to `POST /api/merlin/session`. The server sets an HttpOnly, SameSite=Strict cookie (`merlin_session`) for 12 hours. Later GETs from that browser send the cookie. The token is not written into the frontend bundle.
+  - `GET /api/merlin/session` reports `{ "required": true, "authenticated": false }` until one of those credentials is present.
+  - The `Origin` header is not accepted as proof. A wrong or missing credential returns `401`.
 
 ## Storage
 

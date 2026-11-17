@@ -166,6 +166,10 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
   const [command, setCommand] = useState('');
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [authReady, setAuthReady] = useState(true);
+  const [accessToken, setAccessToken] = useState('');
+  const [viewKey, setViewKey] = useState(0);
   const activeSection = useMemo(() => sectionForPath(location.pathname), [location.pathname]);
   const hud = HUD_ROUTES.has(location.pathname);
 
@@ -176,6 +180,40 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
   useEffect(() => {
     setOpenSections((current) => ({ ...current, [activeSection]: true }));
   }, [activeSection]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/merlin/session')
+      .then((res) => res.json())
+      .then((data: { required?: boolean; authenticated?: boolean }) => {
+        if (cancelled) return;
+        setAuthRequired(Boolean(data.required));
+        setAuthReady(data.required ? Boolean(data.authenticated) : true);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthRequired(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewKey]);
+
+  const unlock = async (event: FormEvent) => {
+    event.preventDefault();
+    const res = await fetch('/api/merlin/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: accessToken }),
+    });
+    if (!res.ok) {
+      toast.error('That Merlin token was not accepted.');
+      return;
+    }
+    setAccessToken('');
+    setAuthReady(true);
+    setViewKey((value) => value + 1);
+    setReply('Merlin is unlocked on this browser for 12 hours.');
+  };
 
   const onCommand = async (event: FormEvent) => {
     event.preventDefault();
@@ -318,7 +356,25 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        {authRequired && !authReady && (
+          <form onSubmit={unlock} className="flex flex-wrap items-center gap-2 border-b border-[#e8cc5a]/30 bg-[#1a1404] px-4 py-2 text-sm text-[#f4e4a8]">
+            <label htmlFor="merlin-token" className="uppercase tracking-[0.16em] text-[11px]">Merlin token</label>
+            <input
+              id="merlin-token"
+              type="password"
+              value={accessToken}
+              onChange={(event) => setAccessToken(event.target.value)}
+              autoComplete="current-password"
+              className="min-w-0 flex-1 rounded-md border border-[#e8cc5a]/40 bg-black/40 px-3 py-1.5 text-white"
+              placeholder="Enter the server token once"
+            />
+            <button type="submit" className="rounded-md bg-[#e8cc5a] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#1a1404]">
+              Unlock
+            </button>
+          </form>
+        )}
+
+        <main key={viewKey} className="min-h-0 flex-1 overflow-y-auto">
           {hud ? children : <div className="jarvis-workbench">{children}</div>}
         </main>
 

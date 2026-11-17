@@ -13,13 +13,15 @@
  * for the life of the process. Memory mode starts empty — it is not a
  * demo dataset.
  *
- * When MERLIN_API_TOKEN is set, callers from another origin must send
- * Authorization: Bearer <token>. Same-origin browser calls are allowed
- * so staff can use the UI without embedding the token in the bundle.
+ * When MERLIN_API_TOKEN is set, every call must present that bearer token
+ * or a staff session cookie issued by POST /api/merlin/session. The Origin
+ * header is not a credential. When the token is unset, these routes stay
+ * open, matching the rest of this internal service.
  */
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 
 const router = express.Router();
 
@@ -74,27 +76,89 @@ function storageName() {
   return supabaseMode === 'supabase' ? 'supabase' : 'memory';
 }
 
-function requireMerlinAccess(req, res, next) {
-  const expected = clean(process.env.MERLIN_API_TOKEN, 500);
-  if (!expected) return next();
+const SESSION_COOKIE = 'merlin_session';
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const sessions = new Map();
 
-  const presented = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
-  if (presented && presented === expected) return next();
-  if (presented) return res.status(401).json({ error: 'Invalid Merlin API token.' });
+function merlinToken() {
+  return clean(process.env.MERLIN_API_TOKEN, 500);
+}
 
-  const origin = req.get('origin') || '';
-  const host = req.get('host') || '';
-  let originHost = '';
-  try {
-    originHost = origin ? new URL(origin).host : '';
-  } catch {
-    originHost = '';
+function bearerToken(req) {
+  return String(req.headers.authorization || '').replace(/^Bearer\s+/i, '').trim();
+}
+
+function tokenMatches(presented, expected) {
+  const left = Buffer.from(String(presented || ''));
+  const right = Buffer.from(String(expected || ''));
+  if (!right.length || left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+function readCookie(req, name) {
+  const header = String(req.headers.cookie || '');
+  for (const part of header.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
   }
-  if (originHost && host && originHost === host) return next();
+  return '';
+}
+
+function sessionIsValid(req) {
+  const sid = readCookie(req, SESSION_COOKIE);
+  const session = sid ? sessions.get(sid) : null;
+  if (!session) return false;
+  if (session.expires <= Date.now()) {
+    sessions.delete(sid);
+    return false;
+  }
+  return true;
+}
+
+function requireMerlinAccess(req, res, next) {
+  const expected = merlinToken();
+  if (!expected) return next();
+  const presented = bearerToken(req);
+  if (presented && tokenMatches(presented, expected)) return next();
+  if (presented) return res.status(401).json({ error: 'Invalid Merlin API token.', code: 'merlin_auth_required' });
+  if (sessionIsValid(req)) return next();
   return res.status(401).json({
-    error: 'Merlin API token required. Send Authorization: Bearer <MERLIN_API_TOKEN>.',
+    error: 'Merlin API token required. Send Authorization: Bearer <MERLIN_API_TOKEN>, or unlock the staff screen.',
+    code: 'merlin_auth_required',
   });
 }
+
+function sessionCookie(req, sid) {
+  const secure = Boolean(req.secure || req.get('x-forwarded-proto') === 'https');
+  const parts = [
+    `${SESSION_COOKIE}=${encodeURIComponent(sid)}`,
+    'HttpOnly',
+    'SameSite=Strict',
+    'Path=/',
+    `Max-Age=${SESSION_TTL_MS / 1000}`,
+  ];
+  if (secure) parts.push('Secure');
+  return parts.join('; ');
+}
+
+router.get('/merlin/session', (req, res) => {
+  const required = Boolean(merlinToken());
+  const authenticated = !required || sessionIsValid(req) || tokenMatches(bearerToken(req), merlinToken());
+  res.json({ required, authenticated });
+});
+
+router.post('/merlin/session', (req, res) => {
+  const expected = merlinToken();
+  if (!expected) return res.json({ required: false, authenticated: true });
+  const presented = clean(req.body?.token, 500) || bearerToken(req);
+  if (!tokenMatches(presented, expected)) {
+    return res.status(401).json({ error: 'Invalid Merlin API token.', code: 'merlin_auth_required' });
+  }
+  const sid = randomBytes(32).toString('hex');
+  sessions.set(sid, { expires: Date.now() + SESSION_TTL_MS });
+  res.setHeader('Set-Cookie', sessionCookie(req, sid));
+  res.json({ required: true, authenticated: true });
+});
 
 router.use('/merlin', requireMerlinAccess);
 
@@ -271,6 +335,7 @@ async function listRows(table, filters) {
   if (q && table === 'tasks') query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
   if (q && table === 'templates') query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,body.ilike.%${q}%`);
   if (q && table === 'marketing_campaigns') query = query.or(`name.ilike.%${q}%,summary.ilike.%${q}%`);
+  if (q && table === 'merlin_activity_log') query = query.or(`action.ilike.%${q}%,module.ilike.%${q}%,summary.ilike.%${q}%,actor.ilike.%${q}%`);
   const { data, error } = await query;
   if (error) {
     if (missingTable(error)) {
@@ -335,35 +400,60 @@ function sendList(res, key, result) {
   res.json({ [key]: result.rows, storage: result.storage, warning: result.warning });
 }
 
+function emptyCounts(values) {
+  const counts = { total: 0 };
+  for (const value of values) counts[value] = 0;
+  return counts;
+}
+
+function memoryCounts(rows, field, values) {
+  const counts = { total: rows.length };
+  for (const value of values) counts[value] = rows.filter((row) => row[field] === value).length;
+  return counts;
+}
+
+async function exactCount(table, column, value) {
+  let query = getSupabase().from(table).select('id', { count: 'exact', head: true });
+  if (column) query = query.eq(column, value);
+  const { count, error } = await query;
+  if (error) throw error;
+  return count || 0;
+}
+
+async function groupedCounts(table, field, values) {
+  const supabase = getSupabase();
+  if (!supabase) return { counts: memoryCounts(memory[table], field, values), warning: null };
+  try {
+    const entries = await Promise.all(values.map(async (value) => [value, await exactCount(table, field, value)]));
+    const counts = { total: await exactCount(table) };
+    for (const [value, count] of entries) counts[value] = count;
+    return { counts, warning: null };
+  } catch (error) {
+    if (missingTable(error)) {
+      return {
+        counts: emptyCounts(values),
+        warning: 'Merlin tables are not installed yet. Apply supabase/migrations/028_merlin_command_center.sql.',
+      };
+    }
+    throw error;
+  }
+}
+
 router.get('/merlin/summary', async (_req, res) => {
   try {
     const [tasks, campaigns, templates, activity] = await Promise.all([
-      listRows('tasks', {}),
-      listRows('marketing_campaigns', {}),
-      listRows('templates', {}),
+      groupedCounts('tasks', 'status', TASK_STATUSES),
+      groupedCounts('marketing_campaigns', 'status', CAMPAIGN_STATUSES),
+      groupedCounts('templates', 'kind', TEMPLATE_KINDS),
       listRows('merlin_activity_log', {}),
     ]);
-    const countStatus = (rows, status) => rows.filter((row) => row.status === status).length;
     const warning = tasks.warning || campaigns.warning || templates.warning || activity.warning;
     res.json({
       storage: storageName(),
       warning,
-      tasks: {
-        total: tasks.rows.length,
-        open: countStatus(tasks.rows, 'open'),
-        in_progress: countStatus(tasks.rows, 'in_progress'),
-        blocked: countStatus(tasks.rows, 'blocked'),
-        done: countStatus(tasks.rows, 'done'),
-        cancelled: countStatus(tasks.rows, 'cancelled'),
-      },
-      campaigns: {
-        total: campaigns.rows.length,
-        draft: countStatus(campaigns.rows, 'draft'),
-        active: countStatus(campaigns.rows, 'active'),
-        paused: countStatus(campaigns.rows, 'paused'),
-        completed: countStatus(campaigns.rows, 'completed'),
-      },
-      templates: { total: templates.rows.length },
+      tasks: tasks.counts,
+      campaigns: campaigns.counts,
+      templates: { total: templates.counts.total },
       activity: activity.rows.slice(0, 8),
     });
   } catch (error) {

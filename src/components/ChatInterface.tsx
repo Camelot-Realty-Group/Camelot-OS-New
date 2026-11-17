@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { isAIConfigured, chatCompletion, chatCompletionStream, localQueryEngine, type AIChatMessage } from '@/lib/ai-client';
 import { useBuildingsStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,23 @@ const QUICK_ACTIONS = [
   { label: 'Agent Skill Sets', icon: Bot, prompt: 'Summarize the upgraded Scout agent skill sets across Merlin, Scout, Guardian, Sentinel, Outreach, and Excalibur.' },
 ];
 
+function merlinErrorText(err: unknown): string {
+  const message = err instanceof Error ? err.message : 'Merlin could not answer.';
+  if (message === 'AI_NOT_CONFIGURED') {
+    return 'Merlin has no model key on this server. Add OPENAI_API_KEY or AI_API_KEY in Render, then redeploy. Quick actions on this screen still work from the building list.';
+  }
+  if (message === 'AI_AUTH_FAILED') {
+    return 'Merlin could not authenticate to the model. The server key was rejected. Check OPENAI_API_KEY or AI_API_KEY in Render.';
+  }
+  if (message === 'AI_RATE_LIMITED') {
+    return 'The model rate limit was hit. Wait a moment and ask Merlin again.';
+  }
+  if (/no credits/i.test(message)) {
+    return 'Merlin is wired up, but the OpenAI account behind this server has no credits left. Add credits in the OpenAI billing settings, then ask again.';
+  }
+  return message || 'Merlin could not answer.';
+}
+
 export default function ChatInterface() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
@@ -37,6 +55,9 @@ export default function ChatInterface() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const buildings = useBuildingsStore((s) => s.buildings);
   const aiConfigured = isAIConfigured();
+  const location = useLocation();
+  const launchedPrompt = (location.state as { prompt?: string } | null)?.prompt || '';
+  const launchedRef = useRef('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -164,23 +185,20 @@ export default function ChatInterface() {
       // Remove the streaming placeholder
       setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
 
-      let errorContent = 'Sorry, I encountered an error. Please try again.';
-      if (err.message === 'AI_NOT_CONFIGURED') {
-        errorContent = '🤖 AI backend not configured. Use the **quick actions** above for pipeline summaries, top leads, email drafts, and more — they work offline.\n\nTo turn on free-text chat, add `OPENAI_API_KEY` in **Render → Environment**.';
-      } else if (err.message === 'AI_AUTH_FAILED') {
-        errorContent = '⚠️ AI authentication failed. Please check your API key in **Settings**.';
-      } else if (err.message === 'AI_RATE_LIMITED') {
-        errorContent = '⚠️ AI rate limit reached. Please wait a moment and try again.';
-      }
-
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), role: 'assistant', content: errorContent, timestamp: new Date() },
+        { id: crypto.randomUUID(), role: 'assistant', content: merlinErrorText(err), timestamp: new Date() },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!launchedPrompt || launchedRef.current === launchedPrompt) return;
+    launchedRef.current = launchedPrompt;
+    void sendMessage(launchedPrompt);
+  }, [launchedPrompt]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -190,46 +208,40 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="flex h-full min-h-0 flex-col bg-[#02060c] text-slate-100">
+      <div className="border-b border-[#7ef0ff]/30 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-camelot-gold/20 rounded-xl flex items-center justify-center">
-              <Bot size={20} className="text-camelot-gold" />
+            <div className="grid h-10 w-10 place-items-center border border-[#e8cc5a]/70 text-[#f4e4a8]">
+              <Bot size={20} />
             </div>
             <div>
-              <h2 className="font-bold text-lg">Merlin AI</h2>
+              <h2 className="font-heading text-2xl text-white">Merlin</h2>
               {aiConfigured ? (
-                <p className="text-xs text-green-600 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full" /> Connected
-                </p>
+                <p className="text-xs uppercase tracking-[0.16em] text-[#7ef0ff]">Model link ready</p>
               ) : (
-                <p className="text-xs text-amber-600 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" /> Local Mode — Quick actions available
-                </p>
+                <p className="text-xs uppercase tracking-[0.16em] text-amber-200">Local answers only</p>
               )}
             </div>
           </div>
           <button
             onClick={() => setMessages([])}
-            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100"
+            className="flex items-center gap-1.5 border border-[#7ef0ff]/30 px-3 py-1.5 text-xs uppercase tracking-[0.14em] text-slate-300 hover:text-white"
           >
-            <RefreshCw size={13} /> Clear Chat
+            <RefreshCw size={13} /> Clear
           </button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 chat-messages">
+      <div className="chat-messages min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
         {messages.length === 0 && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-camelot-gold/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Sparkles size={32} className="text-camelot-gold" />
             </div>
-            <h3 className="text-lg font-bold mb-2">How can I help?</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Ask me about your pipeline, leads, buildings, or let me draft emails.
+            <h3 className="font-heading text-3xl mb-2">Ask Merlin</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              Pipeline, buildings, drafts, and the work on this desk. The command bar opens this same conversation.
             </p>
 
             {/* Quick Actions */}
@@ -238,7 +250,7 @@ export default function ChatInterface() {
                 <button
                   key={label}
                   onClick={() => sendMessage(prompt)}
-                  className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:border-camelot-gold/50 hover:shadow-sm transition-all text-left"
+                  className="flex items-center gap-2 border border-[#7ef0ff]/30 bg-black/30 p-3 text-left hover:border-[#e8cc5a]"
                 >
                   <Icon size={16} className="text-camelot-gold flex-shrink-0" />
                   <span className="text-sm">{label}</span>
@@ -265,10 +277,10 @@ export default function ChatInterface() {
               {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
             </div>
             <div className={cn(
-              'rounded-xl px-4 py-3 max-w-[80%]',
+              'border px-4 py-3 max-w-[80%]',
               msg.role === 'user'
-                ? 'bg-camelot-navy text-white'
-                : 'bg-white border border-gray-200'
+                ? 'border-[#e8cc5a]/50 bg-[#e8cc5a]/15 text-white'
+                : 'border-[#7ef0ff]/30 bg-[#041018] text-slate-100'
             )}>
               <div className="text-sm whitespace-pre-wrap leading-relaxed">
                 {msg.content}
@@ -291,7 +303,7 @@ export default function ChatInterface() {
             <div className="w-8 h-8 rounded-lg bg-camelot-gold/20 flex items-center justify-center">
               <Bot size={14} className="text-camelot-gold" />
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <div className="border border-[#7ef0ff]/30 bg-[#041018] px-4 py-3">
               <Loader2 size={16} className="animate-spin text-camelot-gold" />
             </div>
           </div>
@@ -301,7 +313,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 bg-white p-4">
+      <div className="border-t border-[#7ef0ff]/30 bg-[#02070d] p-4">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-end gap-2">
             <div className="flex-1 relative">
@@ -310,22 +322,22 @@ export default function ChatInterface() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask Merlin AI anything..."
+                placeholder="Ask Merlin..."
                 rows={1}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-camelot-gold/50 focus:border-camelot-gold"
+                className="w-full resize-none border border-[#7ef0ff]/40 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-[#e8cc5a]"
                 style={{ minHeight: '48px', maxHeight: '120px' }}
               />
             </div>
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || isLoading}
-              className="bg-camelot-gold text-white p-3 rounded-xl hover:bg-camelot-gold-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#e8cc5a] p-3 text-[#1a1404] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send size={18} />
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-2 text-center">
-            Merlin AI has access to your building database for contextual answers
+          <p className="mt-2 text-center text-[10px] uppercase tracking-[0.16em] text-slate-500">
+            Merlin answers from the model on this server and the buildings already loaded
           </p>
         </div>
       </div>

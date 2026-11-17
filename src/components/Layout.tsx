@@ -49,7 +49,7 @@ import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/store';
 import { APP_NAME_SHORT } from '@/lib/app-brand';
 import { parseMerlinCommand } from '@/lib/merlin-commands';
-import { createTask, logMerlinActivity } from '@/lib/merlin-api';
+import { createTask } from '@/lib/merlin-api';
 
 interface NavItem {
   label: string;
@@ -64,7 +64,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const HUD_ROUTES = new Set(['/', '/tasks', '/marketing', '/templates']);
+const HUD_ROUTES = new Set(['/', '/tasks', '/marketing', '/templates', '/chat']);
 
 const navigation: NavSection[] = [
   {
@@ -73,7 +73,7 @@ const navigation: NavSection[] = [
     items: [
       { label: 'Command', href: '/', icon: <Sparkles size={18} /> },
       { label: 'Tasks', href: '/tasks', icon: <ListTodo size={18} /> },
-      { label: 'Merlin chat', href: '/chat', icon: <MessageSquare size={18} />, tourId: 'scout-ai' },
+      { label: 'Merlin', href: '/chat', icon: <MessageSquare size={18} />, tourId: 'scout-ai' },
     ],
   },
   {
@@ -234,14 +234,9 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
         navigate('/tasks');
         return;
       }
-      await logMerlinActivity({
-        actor: 'staff',
-        action: 'command',
-        module: 'merlin',
-        summary: parsed.summary,
-      });
-      setReply('Logged for Merlin. This screen does not invent an answer — an agent reading the activity log can pick it up.');
       setCommand('');
+      setReply('Merlin is taking that.');
+      navigate('/chat', { state: { prompt: parsed.summary } });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Merlin could not take that command.';
       setReply(message);
@@ -375,7 +370,7 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
         )}
 
         <main key={viewKey} className="min-h-0 flex-1 overflow-y-auto">
-          {hud ? children : <div className="jarvis-workbench">{children}</div>}
+          {hud ? <div className="h-full min-h-0">{children}</div> : <div className="jarvis-workbench">{children}</div>}
         </main>
 
         <form onSubmit={onCommand} className="border-t border-[#7ef0ff]/35 bg-[#02070d]/95 px-3 py-3 md:px-5">

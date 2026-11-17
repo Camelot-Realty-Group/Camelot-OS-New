@@ -302,8 +302,8 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
                     data-tour={item.tourId}
                     title={sidebarCollapsed && !mobileMenuOpen ? item.label : undefined}
                     className={cn(
-                      'mx-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition',
-                      active ? 'bg-[#e8cc5a]/15 text-[#f4e4a8]' : 'text-slate-300 hover:bg-white/5 hover:text-white',
+                      'mx-2 flex items-center gap-3 border-l-2 px-3 py-2 text-sm transition',
+                      active ? 'border-[#7ef0ff] bg-[#7ef0ff]/10 text-[#e8f8ff]' : 'border-transparent text-slate-300 hover:border-[#7ef0ff]/40 hover:text-white',
                     )}
                   >
                     <span className="flex-shrink-0">{item.icon}</span>
@@ -336,7 +336,7 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
 
   return (
     <div className="jarvis-grid flex h-screen overflow-hidden font-sans text-slate-100">
-      <aside className={cn('hidden md:flex md:flex-col border-r border-white/10 bg-[#050910]/95', sidebarCollapsed ? 'w-[4.5rem]' : 'w-72')}>
+      <aside className={cn('hidden border-r border-[#7ef0ff]/25 bg-[#02070d]/95 md:flex md:flex-col', sidebarCollapsed ? 'w-[4.5rem]' : 'w-72')}>
         {sidebarContent}
       </aside>
 
@@ -346,13 +346,13 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#050910]/90 py-2 pl-3 pr-40 md:pl-5 md:pr-48">
-          <button type="button" onClick={() => setMobileMenuOpen(true)} className="grid h-10 w-10 place-items-center rounded-lg text-slate-200 md:hidden" aria-label="Open menu">
+        <header className="flex items-center justify-between gap-3 border-b border-[#7ef0ff]/30 bg-[#02070d]/90 py-2 pl-3 pr-40 md:pl-5 md:pr-48">
+          <button type="button" onClick={() => setMobileMenuOpen(true)} className="grid h-10 w-10 place-items-center text-[#7ef0ff] md:hidden" aria-label="Open menu">
             <Menu size={20} />
           </button>
           <div className="min-w-0">
-            <div className="font-heading text-lg tracking-wide text-white">Camelot OS</div>
-            <p className="truncate text-[11px] uppercase tracking-[0.22em] text-slate-400">Property command · Merlin</p>
+            <div className="font-sans text-[10px] uppercase tracking-[0.42em] text-[#7ef0ff]">Camelot command</div>
+            <p className="truncate font-heading text-lg tracking-wide text-white">Merlin interface</p>
           </div>
         </header>
 
@@ -378,18 +378,18 @@ export default function Layout({ children, onStartTour }: LayoutProps) {
           {hud ? children : <div className="jarvis-workbench">{children}</div>}
         </main>
 
-        <form onSubmit={onCommand} className="border-t border-[#e8cc5a]/20 bg-[#050910]/95 px-3 py-3 md:px-5">
+        <form onSubmit={onCommand} className="border-t border-[#7ef0ff]/35 bg-[#02070d]/95 px-3 py-3 md:px-5">
           <label htmlFor="merlin-command" className="sr-only">Command Merlin</label>
-          <div className="flex items-center gap-2 rounded-full border border-[#e8cc5a]/35 bg-black/40 px-3 py-1.5">
-            <span className="hidden text-[10px] tracking-[0.28em] text-[#e8cc5a] sm:inline">MERLIN</span>
+          <div className="jarvis-panel flex items-center gap-2 px-3 py-1.5">
+            <span className="hidden font-sans text-[10px] tracking-[0.28em] text-[#7ef0ff] sm:inline">&gt;</span>
             <input
               id="merlin-command"
               value={command}
               onChange={(event) => setCommand(event.target.value)}
-              placeholder='Try “go to tasks” or “new task call the super”'
-              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-white outline-none placeholder:text-slate-500"
+              placeholder='Awaiting command — “go to tasks” or “new task call the super”'
+              className="min-w-0 flex-1 bg-transparent py-1.5 font-sans text-sm text-white outline-none placeholder:text-[#7a93a3]"
             />
-            <button type="submit" disabled={sending} className="rounded-full bg-[#e8cc5a] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#1a1404] disabled:opacity-60">
+            <button type="submit" disabled={sending} className="border border-[#e8cc5a] bg-[#e8cc5a] px-3 py-1.5 font-sans text-xs font-semibold uppercase tracking-[0.14em] text-[#1a1404] disabled:opacity-60">
               {sending ? 'Sending' : 'Send'}
             </button>
           </div>

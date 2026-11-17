@@ -59,27 +59,30 @@ export default function MerlinConsole() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
         <section className="jarvis-panel jarvis-rise relative overflow-hidden px-6 py-8 md:px-10">
           <div className="flex flex-col items-center text-center">
-            <div className="merlin-orb relative mb-5 grid h-28 w-28 place-items-center rounded-full border border-[#e8cc5a]/50 bg-[radial-gradient(circle_at_40%_35%,#1c3c52,#071018_68%)]">
-              <div className="absolute inset-2 rounded-full border border-cyan-200/20" />
-              <div className="absolute inset-5 rounded-full border border-[#e8cc5a]/30" />
-              <span className="font-heading text-lg tracking-[0.28em] text-[#f4e4a8]">M</span>
+            <div className="merlin-core mb-4" aria-hidden="true">
+              <div className="merlin-ring" />
+              <div className="merlin-ring-reverse" />
+              <div className="merlin-sweep" />
+              <div className="merlin-core-face">
+                <span className="font-heading text-3xl tracking-[0.2em] text-[#f4e4a8]">M</span>
+              </div>
             </div>
-            <p className="text-[11px] uppercase tracking-[0.42em] text-[#e8cc5a]">Camelot OS</p>
-            <h1 className="mt-2 font-heading text-5xl text-white md:text-6xl">Merlin</h1>
-            <p className="mt-3 max-w-xl text-base text-slate-300">{presence}</p>
-            <p className="mt-2 max-w-lg text-sm text-slate-500">
-              Use the command bar to open a module, add a task, or leave a note for the agent. Merlin does not invent buildings, fees, or alerts.
+            <p className="font-sans text-[11px] uppercase tracking-[0.48em] text-[#7ef0ff]">Interface online</p>
+            <h1 className="mt-1 font-heading text-5xl text-white md:text-6xl">Merlin</h1>
+            <p className="mt-3 max-w-xl font-sans text-base text-slate-200">{presence}</p>
+            <p className="mt-2 max-w-lg font-sans text-sm text-slate-400">
+              Command bar below. Merlin reports only what the queue and the activity log actually contain.
             </p>
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-[11px] uppercase tracking-[0.16em]">
-            <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
-              API {apiOnline === null ? 'checking' : apiOnline ? 'online' : 'offline'}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 font-sans text-[11px] uppercase tracking-[0.18em]">
+            <span className="border border-[#7ef0ff]/40 px-3 py-1 text-[#bff6ff]">
+              Link {apiOnline === null ? 'checking' : apiOnline ? 'established' : 'down'}
             </span>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
+            <span className="border border-[#7ef0ff]/30 px-3 py-1 text-slate-300">
               Store {summary.storage === 'supabase' ? 'Supabase' : 'memory'}
             </span>
-            <Link to="/chat" className="rounded-full border border-[#e8cc5a]/40 px-3 py-1 text-[#f4e4a8] hover:bg-[#e8cc5a]/10">
-              Open Merlin chat
+            <Link to="/chat" className="border border-[#e8cc5a]/70 px-3 py-1 text-[#f4e4a8] hover:bg-[#e8cc5a]/10">
+              Open voice channel
             </Link>
           </div>
           {(summary.warning || loadError) && (

@@ -9,6 +9,9 @@ import { useTour } from '@/hooks/useTour';
 import { useBuildings } from '@/hooks/useBuildings';
 
 const Search = lazy(() => import('@/pages/Search'));
+const MerlinConsole = lazy(() => import('@/pages/MerlinConsole'));
+const Tasks = lazy(() => import('@/pages/Tasks'));
+const Marketing = lazy(() => import('@/pages/Marketing'));
 const WelcomeHome = lazy(() => import('@/pages/WelcomeHome'));
 const Results = lazy(() => import('@/pages/Results'));
 const DailyHunt = lazy(() => import('@/pages/DailyHunt'));
@@ -84,7 +87,10 @@ export default function App() {
       <GuidedTour isOpen={isTourOpen} onClose={closeTour} />
       <Layout onStartTour={startTour}>
         <Routes>
-          <Route path="/" element={page(Search)} />
+          <Route path="/" element={page(MerlinConsole)} />
+          <Route path="/search" element={page(Search)} />
+          <Route path="/tasks" element={page(Tasks)} />
+          <Route path="/marketing" element={page(Marketing)} />
           <Route path="/welcome-home" element={page(WelcomeHome)} />
           <Route path="/results" element={page(Results)} />
           <Route path="/daily-hunt" element={page(DailyHunt)} />

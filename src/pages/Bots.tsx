@@ -317,7 +317,7 @@ const DEMO_BOTS: DashboardBot[] = [
       ...NY_OWNERSHIP_HUNT_SOURCE_CARDS,
     ],
     actions: [
-      { label: 'Search', href: '/', icon: Database },
+      { label: 'Search', href: '/search', icon: Database },
       { label: 'Pipeline', href: '/pipeline', icon: RefreshCw },
       { label: 'Reports', href: '/reports', icon: FileText },
     ],

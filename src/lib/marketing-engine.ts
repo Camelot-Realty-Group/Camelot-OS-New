@@ -362,14 +362,23 @@ export function logContentRun(run: {
   failures?: number;
   notes?: string;
 }): void {
-  if (!isSupabaseConfigured()) return;
-  void supabase.from('content_runs').insert({
-    module: run.module,
-    finished_at: new Date().toISOString(),
-    records_processed: run.recordsProcessed ?? 0,
-    outputs_generated: run.outputsGenerated ?? 0,
-    failures: run.failures ?? 0,
-    notes: run.notes,
+  // Log through Merlin's activity API. A direct insert into content_runs
+  // 404s on the deployed Supabase project (the table is not in that schema
+  // cache) and shows up as a console error on the QA page.
+  void fetch('/api/merlin/activity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      actor: 'staff',
+      action: 'content_run',
+      module: run.module,
+      summary: run.notes || `${run.module} run`,
+      metadata: {
+        recordsProcessed: run.recordsProcessed ?? 0,
+        outputsGenerated: run.outputsGenerated ?? 0,
+        failures: run.failures ?? 0,
+      },
+    }),
   }).then(() => undefined, () => undefined);
 }
 

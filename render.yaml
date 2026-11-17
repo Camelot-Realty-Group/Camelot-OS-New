@@ -61,3 +61,7 @@ services:
         sync: false
       - key: RESEND_WEBHOOK_SECRET
         sync: false
+      # Bearer token for /api/merlin/*. When set, callers must send the bearer
+      # token or unlock the staff UI once (HttpOnly session cookie). See docs/MERLIN_API.md.
+      - key: MERLIN_API_TOKEN
+        sync: false

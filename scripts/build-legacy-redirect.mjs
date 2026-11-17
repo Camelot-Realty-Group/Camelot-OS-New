@@ -19,10 +19,13 @@ const html = `<!doctype html>
       (() => {
         const query = new URLSearchParams(window.location.search);
         query.set('legacyRedirect', '1');
-        const destination = 'https://camelot-os.onrender.com'
-          + window.location.pathname
-          + '?' + query.toString()
-          + window.location.hash;
+        const path = window.location.pathname || '/';
+        const hash = window.location.hash && window.location.hash.length > 1
+          ? window.location.hash
+          : (path !== '/' ? '#' + path.replace(/\\/$/, '') : '');
+        const destination = 'https://camelot-os.onrender.com/?'
+          + query.toString()
+          + hash;
         window.location.replace(destination);
       })();
     </script>

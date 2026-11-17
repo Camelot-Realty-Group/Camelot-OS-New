@@ -128,7 +128,7 @@ export default function QAConsole() {
       .then((data: QAReport) => {
         setReport(data);
         setLoadedAt(Date.now());
-        // Every QA review is logged to the database (content_runs, module
+        // Every QA review is logged to Merlin's activity API (module
         // 'qa_console') so run history is auditable, not anecdotal.
         logContentRun({
           module: 'qa_console',

@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText,
   Download,
   Loader2,
-  ChevronRight,
   CheckCircle2,
   Clock,
   Eye,
@@ -12,6 +11,7 @@ import {
   Mail,
   Receipt,
   FileEdit,
+  Copy,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ import {
   type TemplateField,
 } from '@/lib/document-templates';
 import { getTemplateFiles } from '@/lib/template-library-files';
+import { createTemplate, deleteTemplate, fetchTemplates, type MerlinTemplate } from '@/lib/merlin-api';
 
 // Template Concierge — restyled July 31 2026 per David: editorial-magazine
 // treatment (Vogue / GQ / Architectural Digest), ink-on-cream, serif display
@@ -183,7 +184,29 @@ function emailTemplate(template: DocumentTemplate, fileUrl: string, fileLabel: s
   toast.success(`${fileLabel} downloading — a draft is opening; attach the file and paste the note (already on your clipboard).`, { duration: 8000 });
 }
 
-function TemplateCard({ t, onFill }: { t: DocumentTemplate; onFill: () => void }) {
+function templateCopyText(template: DocumentTemplate) {
+  const fields = template.fields.map((field) => `- ${field.label}${field.required ? ' (required)' : ''}`).join('\n');
+  return [template.title, template.category, template.description, fields && `Fields:\n${fields}`].filter(Boolean).join('\n\n');
+}
+
+async function copyText(text: string, label = 'Copied') {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success(label);
+  } catch {
+    toast.error('Clipboard is blocked in this browser.');
+  }
+}
+
+function TemplateCard({
+  t,
+  onFill,
+  onPreview,
+}: {
+  t: DocumentTemplate;
+  onFill: () => void;
+  onPreview: () => void;
+}) {
   const navigate = useNavigate();
   const fileSet = getTemplateFiles(t.id);
 
@@ -231,6 +254,18 @@ function TemplateCard({ t, onFill }: { t: DocumentTemplate; onFill: () => void }
             <FileEdit className="h-3 w-3" /> Fill &amp; Generate
           </button>
         )}
+        <button
+          onClick={onPreview}
+          className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+        >
+          <Eye className="h-3 w-3" /> Preview
+        </button>
+        <button
+          onClick={() => void copyText(templateCopyText(t), 'Template summary copied')}
+          className="inline-flex items-center gap-1.5 border border-[#1a2744]/20 text-slate-700 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider hover:border-[#B8973A] hover:text-[#B8973A] transition-colors"
+        >
+          <Copy className="h-3 w-3" /> Copy
+        </button>
         {fileSet ? (
           <>
             <a
@@ -282,48 +317,171 @@ function TemplateCard({ t, onFill }: { t: DocumentTemplate; onFill: () => void }
 export default function Templates() {
   const grouped = useMemo(() => getTemplatesByCategory(), []);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [saved, setSaved] = useState<MerlinTemplate[]>([]);
+  const [savedWarning, setSavedWarning] = useState<string | null>(null);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftKind, setDraftKind] = useState<MerlinTemplate['kind']>('letter');
+  const [draftBody, setDraftBody] = useState('');
   const active = DOCUMENT_TEMPLATES.find((t) => t.id === activeId) || null;
+  const preview = DOCUMENT_TEMPLATES.find((t) => t.id === previewId) || null;
+  const needle = query.trim().toLowerCase();
+
+  const loadSaved = () => {
+    fetchTemplates()
+      .then((data) => {
+        setSaved(data.templates || []);
+        setSavedWarning(data.warning);
+      })
+      .catch((error: Error) => setSavedWarning(error.message));
+  };
+
+  useEffect(() => {
+    loadSaved();
+  }, []);
+
+  const saveDraft = async () => {
+    if (!draftTitle.trim()) {
+      toast.error('A saved template needs a title.');
+      return;
+    }
+    try {
+      await createTemplate({
+        title: draftTitle.trim(),
+        kind: draftKind,
+        body: draftBody,
+        description: 'Saved from the Template Library.',
+        source: 'staff',
+      });
+      setDraftTitle('');
+      setDraftBody('');
+      toast.success('Template saved for Merlin.');
+      loadSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not save the template');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5]">
-      {/* Masthead — magazine cover treatment */}
-      <div className="bg-white border-b border-[#1a2744]/10 px-8 md:px-14 pt-12 pb-10">
+    <div className="min-h-full bg-[#FAF8F5]">
+      <div className="bg-[#071018] text-white border-b border-[#e8cc5a]/20 px-8 md:px-14 pt-10 pb-8">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="h-px flex-1 bg-[#B8973A]/50" />
-            <div className="text-[11px] uppercase tracking-[0.42em] text-[#B8973A] font-bold">Camelot OS &middot; The Document Library</div>
-            <div className="h-px flex-1 bg-[#B8973A]/50" />
-          </div>
-          <h1 className="font-heading text-5xl md:text-6xl italic text-slate-950 text-center leading-[1.05]">
+          <p className="text-[11px] uppercase tracking-[0.42em] text-[#e8cc5a] font-bold text-center">Template library</p>
+          <h1 className="font-heading text-5xl md:text-6xl text-white text-center leading-[1.05] mt-3">
             Template Concierge
           </h1>
-          <p className="text-center text-[15px] text-slate-600 mt-5 max-w-2xl mx-auto leading-relaxed">
-            Every template is view/print/download/email-ready today. Templates marked with a checkmark can also
-            be filled in through a short questionnaire for a branded, merge-filled Word document.
+          <p className="text-center text-[15px] text-slate-300 mt-4 max-w-2xl mx-auto leading-relaxed">
+            Browse the Camelot document catalog, preview a summary, and copy it. Checkmarks can still be filled into a branded Word file. Saved copies below are the rows Merlin can read through the API.
           </p>
+          <label className="mt-6 block max-w-xl mx-auto text-xs uppercase tracking-[0.18em] text-slate-400">
+            Search
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Proposals, letters, notices, board reports, emails"
+              className="mt-1 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm normal-case tracking-normal text-white placeholder:text-slate-500"
+            />
+          </label>
         </div>
       </div>
 
       <main className="px-8 md:px-14 py-10 max-w-5xl mx-auto space-y-12">
+        <section className="border border-[#1a2744]/15 bg-white p-5">
+          <h2 className="font-heading text-2xl italic text-slate-950">Saved for Merlin</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            This list starts empty. Nothing here is a sample letter. Add a real template when you want the agent to reuse it.
+          </p>
+          {savedWarning && <p className="mt-2 text-sm text-amber-800">{savedWarning}</p>}
+          {saved.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-500">No saved templates yet.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-slate-200">
+              {saved
+                .filter((item) => !needle || `${item.title} ${item.kind} ${item.body}`.toLowerCase().includes(needle))
+                .map((item) => (
+                  <li key={item.id} className="py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-slate-950">{item.title}</div>
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{item.kind.replace('_', ' ')} · {item.category}</p>
+                        {item.body && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{item.body}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => void copyText(item.body || item.title, 'Template copied')} className="text-[11px] font-bold uppercase tracking-wider text-[#1a2744]">
+                          Copy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void deleteTemplate(item.id).then(loadSaved).catch((error: Error) => toast.error(error.message));
+                          }}
+                          className="text-[11px] font-bold uppercase tracking-wider text-slate-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+            </ul>
+          )}
+          <div className="mt-4 grid gap-2 md:grid-cols-4">
+            <input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Title" className="rounded-md border border-[#1a2744]/20 px-3 py-2 text-sm" />
+            <select value={draftKind} onChange={(event) => setDraftKind(event.target.value as MerlinTemplate['kind'])} className="rounded-md border border-[#1a2744]/20 bg-white px-3 py-2 text-sm text-slate-900">
+              {['proposal', 'letter', 'notice', 'board_report', 'email', 'other'].map((kind) => (
+                <option key={kind} value={kind}>{kind.replace('_', ' ')}</option>
+              ))}
+            </select>
+            <input value={draftBody} onChange={(event) => setDraftBody(event.target.value)} placeholder="Body to copy later" className="md:col-span-2 rounded-md border border-[#1a2744]/20 px-3 py-2 text-sm" />
+            <button type="button" onClick={() => void saveDraft()} className="md:col-span-4 w-fit bg-[#1a2744] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white">
+              Save template
+            </button>
+          </div>
+        </section>
+
+        {preview && (
+          <section className="rounded-none border border-[#1a2744]/15 border-t-2 border-t-[#B8973A] bg-white p-8 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.28em] text-[#B8973A] font-bold mb-2">Preview</div>
+                <h3 className="font-heading text-3xl italic text-slate-950">{preview.title}</h3>
+              </div>
+              <button onClick={() => setPreviewId(null)} className="text-xs uppercase tracking-[0.18em] text-slate-400 font-bold">Close</button>
+            </div>
+            <p className="text-slate-600">{preview.description}</p>
+            <pre className="whitespace-pre-wrap text-sm text-slate-700 bg-[#FAF8F5] p-4 border border-[#1a2744]/10">{templateCopyText(preview)}</pre>
+            <button type="button" onClick={() => void copyText(templateCopyText(preview), 'Preview copied')} className="inline-flex items-center gap-2 bg-[#1a2744] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white">
+              <Copy className="h-3.5 w-3.5" /> Copy summary
+            </button>
+          </section>
+        )}
+
         {active && <TemplateFillPanel template={active} onClose={() => setActiveId(null)} />}
 
-        {(Object.keys(grouped) as Array<keyof typeof grouped>).map((category) => (
+        {(Object.keys(grouped) as Array<keyof typeof grouped>).map((category) => {
+          const items = grouped[category].filter((template) => {
+            if (!needle) return true;
+            return `${template.title} ${template.category} ${template.description}`.toLowerCase().includes(needle);
+          });
+          if (items.length === 0) return null;
+          return (
           <section key={category}>
-            {/* Section rule — editorial department header */}
             <div className="flex items-baseline gap-4 mb-5">
               <h2 className="font-heading text-2xl italic text-slate-950 whitespace-nowrap">{category}</h2>
               <div className="h-px flex-1 bg-[#1a2744]/15 translate-y-[-4px]" />
               <span className="text-[10px] uppercase tracking-[0.24em] text-slate-400 font-bold">
-                {grouped[category].length} {grouped[category].length === 1 ? 'document' : 'documents'}
+                {items.length} {items.length === 1 ? 'document' : 'documents'}
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {grouped[category].map((t) => (
-                <TemplateCard key={t.id} t={t} onFill={() => setActiveId(t.id)} />
+              {items.map((t) => (
+                <TemplateCard key={t.id} t={t} onFill={() => setActiveId(t.id)} onPreview={() => setPreviewId(t.id)} />
               ))}
             </div>
           </section>
-        ))}
+          );
+        })}
 
         <div className="pt-2 pb-8 text-center">
           <div className="h-px w-24 bg-[#B8973A]/50 mx-auto mb-4" />

@@ -1,5 +1,5 @@
-import { ReactNode, useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Search,
   LayoutGrid,
@@ -12,6 +12,7 @@ import {
   Download,
   Bot,
   Settings,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   BookOpen,
@@ -40,10 +41,15 @@ import {
   UserSearch,
   Phone,
   Home,
+  ListTodo,
+  ScrollText,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/lib/store';
 import { APP_NAME_SHORT } from '@/lib/app-brand';
+import { parseMerlinCommand } from '@/lib/merlin-commands';
+import { createTask, logMerlinActivity } from '@/lib/merlin-api';
 
 interface NavItem {
   label: string;
@@ -53,60 +59,63 @@ interface NavItem {
 }
 
 interface NavSection {
+  id: string;
   title: string;
   items: NavItem[];
 }
 
+const HUD_ROUTES = new Set(['/', '/tasks', '/marketing', '/templates']);
+
 const navigation: NavSection[] = [
   {
-    title: 'Welcome Home',
+    id: 'merlin',
+    title: 'Merlin',
     items: [
-      { label: 'Intro to Camelot', href: '/welcome-home', icon: <Home size={18} /> },
+      { label: 'Command', href: '/', icon: <Sparkles size={18} /> },
+      { label: 'Tasks', href: '/tasks', icon: <ListTodo size={18} /> },
+      { label: 'Merlin chat', href: '/chat', icon: <MessageSquare size={18} />, tourId: 'scout-ai' },
     ],
   },
   {
-    title: 'Scout — New Business',
+    id: 'marketing',
+    title: 'Marketing',
     items: [
-      { label: 'Search', href: '/', icon: <Search size={18} />, tourId: 'search' },
+      { label: 'Campaign desk', href: '/marketing', icon: <Megaphone size={18} /> },
+      { label: 'Instant Proposal', href: '/instant-proposal', icon: <Zap size={18} /> },
+      { label: 'Proposal Library', href: '/proposals', icon: <FileText size={18} /> },
+      { label: 'Engagement Reports', href: '/report-center', icon: <Crown size={18} /> },
+      { label: 'Scout Search', href: '/search', icon: <Search size={18} />, tourId: 'search' },
       { label: 'Results & Scoring', href: '/results', icon: <LayoutGrid size={18} />, tourId: 'results' },
       { label: 'Daily Hunt', href: '/daily-hunt', icon: <Sparkles size={18} /> },
       { label: 'Pipeline', href: '/pipeline', icon: <GitBranch size={18} />, tourId: 'pipeline' },
       { label: 'Outreach', href: '/outreach', icon: <Mail size={18} />, tourId: 'outreach' },
-      { label: 'Saved', href: '/saved', icon: <Bookmark size={18} /> },
-      { label: 'Import', href: '/import', icon: <Upload size={18} />, tourId: 'import' },
-      { label: 'Factory Engine', href: '/factory-engine', icon: <Bot size={18} /> },
-    ],
-  },
-  {
-    title: 'Traded NY — Deal Flow',
-    items: [
-      { label: 'Traded NY', href: '/traded-ny', icon: <Newspaper size={18} /> },
-    ],
-  },
-  {
-    title: 'Portfolio — Cost Optimization',
-    items: [
-      { label: 'Portfolio', href: '/portfolio', icon: <Building2 size={18} /> },
-      { label: 'Cost Optimization', href: '/cost-cutting', icon: <TrendingDown size={18} /> },
-      { label: 'Cost-Beat Report Builder', href: '/cost-beat-report', icon: <FileText size={18} /> },
-    ],
-  },
-  {
-    title: 'Engagement — Pitches',
-    items: [
-      { label: 'Instant Proposal', href: '/instant-proposal', icon: <Zap size={18} /> },
-      { label: 'Proposal Library', href: '/proposals', icon: <FileText size={18} /> },
-      { label: 'Engagement Reports', href: '/report-center', icon: <Crown size={18} /> },
       { label: 'Partner Pitch Decks', href: '/partner-pitches', icon: <Briefcase size={18} /> },
       { label: 'Neighborhood Leads', href: '/neighborhood-leads', icon: <Users size={18} /> },
       { label: 'Needs Email', href: '/needs-email', icon: <UserSearch size={18} /> },
       { label: 'Call Queue', href: '/call-queue', icon: <Phone size={18} /> },
       { label: 'Postcard Mailer', href: '/postcard-mailer', icon: <Mail size={18} /> },
+      { label: 'Merlin Content', href: '/content-engine', icon: <Megaphone size={18} /> },
+      { label: 'Welcome Home', href: '/welcome-home', icon: <Home size={18} /> },
+      { label: 'Saved', href: '/saved', icon: <Bookmark size={18} /> },
+      { label: 'Factory Engine', href: '/factory-engine', icon: <Bot size={18} /> },
     ],
   },
   {
-    title: 'Intelligence',
+    id: 'templates',
+    title: 'Templates',
     items: [
+      { label: 'Template Library', href: '/templates', icon: <ScrollText size={18} /> },
+      { label: 'Generate Agreement', href: '/agreements', icon: <Sword size={18} /> },
+      { label: 'Templates & Billing', href: '/template-billing', icon: <Receipt size={18} /> },
+    ],
+  },
+  {
+    id: 'operations',
+    title: 'Buildings',
+    items: [
+      { label: 'Portfolio', href: '/portfolio', icon: <Building2 size={18} /> },
+      { label: 'Cost Optimization', href: '/cost-cutting', icon: <TrendingDown size={18} /> },
+      { label: 'Cost-Beat Report', href: '/cost-beat-report', icon: <FileText size={18} /> },
       { label: 'Alerts', href: '/alerts', icon: <Bell size={18} /> },
       { label: 'Shield — Compliance', href: '/compliance', icon: <ShieldCheck size={18} /> },
       { label: 'Violations', href: '/violations', icon: <AlertTriangle size={18} /> },
@@ -114,31 +123,29 @@ const navigation: NavSection[] = [
       { label: 'Reports', href: '/reports', icon: <FileText size={18} /> },
       { label: 'Sentinel — Market', href: '/sentinel', icon: <Eye size={18} /> },
       { label: 'Arthur — Underwriting', href: '/arthur', icon: <BarChart3 size={18} /> },
-      { label: 'Merlin Content', href: '/content-engine', icon: <Megaphone size={18} /> },
-    ],
-  },
-  {
-    title: 'Excalibur — Agreements',
-    items: [
-      { label: 'Generate Agreement', href: '/agreements', icon: <Sword size={18} /> },
-      { label: 'Template Concierge', href: '/templates', icon: <FileText size={18} /> },
-      { label: 'Templates & Billing', href: '/template-billing', icon: <Receipt size={18} /> },
-    ],
-  },
-  {
-    title: 'Tools',
-    items: [
-      { label: 'Merlin AI', href: '/chat', icon: <MessageSquare size={18} />, tourId: 'scout-ai' },
+      { label: 'Traded NY', href: '/traded-ny', icon: <Newspaper size={18} /> },
+      { label: 'Import', href: '/import', icon: <Upload size={18} />, tourId: 'import' },
       { label: 'Archive', href: '/archive', icon: <Archive size={18} /> },
       { label: 'Integrations', href: '/integrations', icon: <GitBranch size={18} /> },
       { label: 'Export', href: '/export', icon: <Download size={18} />, tourId: 'export' },
       { label: 'AI Bots', href: '/bots', icon: <Bot size={18} /> },
+      { label: 'QA Console', href: '/qa', icon: <Activity size={18} /> },
       { label: 'Settings', href: '/settings', icon: <Settings size={18} />, tourId: 'settings' },
       { label: 'Tutorials', href: '/tutorials', icon: <BookOpen size={18} /> },
-      { label: 'QA Console', href: '/qa', icon: <Activity size={18} /> },
     ],
   },
 ];
+
+function sectionForPath(pathname: string) {
+  return navigation.find((section) =>
+    section.items.some((item) => (item.href === '/' ? pathname === '/' : pathname === item.href || pathname.startsWith(`${item.href}/`))),
+  )?.id || 'merlin';
+}
+
+function isActive(href: string, pathname: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 interface LayoutProps {
   children: ReactNode;
@@ -147,188 +154,192 @@ interface LayoutProps {
 
 export default function Layout({ children, onStartTour }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    merlin: true,
+    marketing: true,
+    templates: true,
+    operations: true,
+  });
+  const [command, setCommand] = useState('');
+  const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
+  const activeSection = useMemo(() => sectionForPath(location.pathname), [location.pathname]);
+  const hud = HUD_ROUTES.has(location.pathname);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
-      }
-    };
+    setOpenSections((current) => ({ ...current, [activeSection]: true }));
+  }, [activeSection]);
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const onCommand = async (event: FormEvent) => {
+    event.preventDefault();
+    const parsed = parseMerlinCommand(command);
+    if (parsed.type === 'empty') return;
+    setSending(true);
+    try {
+      if (parsed.type === 'navigate') {
+        setReply(`Opening ${parsed.label}.`);
+        setCommand('');
+        navigate(parsed.href);
+        return;
+      }
+      if (parsed.type === 'task') {
+        await createTask({ title: parsed.title, source: 'command', created_by: 'staff' });
+        setReply(`Added “${parsed.title}” to the queue.`);
+        setCommand('');
+        navigate('/tasks');
+        return;
+      }
+      await logMerlinActivity({
+        actor: 'staff',
+        action: 'command',
+        module: 'merlin',
+        summary: parsed.summary,
+      });
+      setReply('Logged for Merlin. This screen does not invent an answer — an agent reading the activity log can pick it up.');
+      setCommand('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Merlin could not take that command.';
+      setReply(message);
+      toast.error(message);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const sidebarContent = (
     <>
-      <Link
-        to="/"
-        className="flex items-center gap-3 px-4 py-5 border-b border-slate-200 hover:bg-[#F8F6EF] transition-colors cursor-pointer flex-shrink-0"
-      >
+      <Link to="/" className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
         <img
           src="/images/camelot-gold-logo.png"
           alt="Camelot"
-          className={cn(
-            'flex-shrink-0 transition-all',
-            sidebarCollapsed && !mobileMenuOpen
-              ? 'w-9 h-9 rounded-lg object-cover shadow-sm'
-              : 'w-16 h-16 rounded-xl object-cover shadow-sm'
-          )}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
+          className={cn('flex-shrink-0 rounded-lg object-cover', sidebarCollapsed && !mobileMenuOpen ? 'h-9 w-9' : 'h-12 w-12')}
+          onError={(event) => {
+            (event.target as HTMLImageElement).style.display = 'none';
           }}
         />
         {(!sidebarCollapsed || mobileMenuOpen) && (
-          <div className="flex-1 flex items-center justify-between">
-            <div>
-              <h1 className="font-heading font-bold text-sm tracking-wider text-camelot-gold">
-                {APP_NAME_SHORT}
-              </h1>
-              <p className="text-[10px] text-slate-500 tracking-widest">
-                PROPERTY MANAGEMENT SYSTEM
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {onStartTour && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onStartTour();
-                  }}
-                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-camelot-gold/20 flex items-center justify-center transition-colors"
-                  title="Restart guided tour"
-                >
-                  <HelpCircle size={14} className="text-camelot-gold" />
-                </button>
-              )}
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-red-50 flex items-center justify-center transition-colors md:hidden"
-              >
-                <X size={14} className="text-slate-500" />
-              </button>
-            </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-heading text-sm tracking-[0.22em] text-[#f4e4a8]">{APP_NAME_SHORT}</div>
+            <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">Merlin</p>
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(false)}
+          className="grid h-8 w-8 place-items-center rounded-full text-slate-300 md:hidden"
+          aria-label="Close menu"
+        >
+          <X size={16} />
+        </button>
       </Link>
 
-      {sidebarCollapsed && !mobileMenuOpen && onStartTour && (
-        <button
-          onClick={onStartTour}
-          className="flex items-center justify-center py-2 text-slate-400 hover:text-camelot-gold transition-colors"
-          title="Restart guided tour"
-        >
-          <HelpCircle size={16} />
-        </button>
-      )}
-
-      <nav className="flex-1 overflow-y-auto py-4 sidebar-scroll">
-        {navigation.map((section) => (
-          <div key={section.title} className="mb-6">
-            {(!sidebarCollapsed || mobileMenuOpen) && (
-              <p className="px-4 mb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-body">
-                {section.title}
-              </p>
-            )}
-            {section.items.map((item) => {
-              const isActive =
-                item.href === '/'
-                  ? location.pathname === '/'
-                  : location.pathname.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  data-tour={item.tourId}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-sm transition-all font-body',
-                    isActive
-                      ? 'bg-[#F7F1DE] text-[#263747] font-semibold shadow-sm'
-                      : 'text-slate-600 hover:text-slate-950 hover:bg-[#F8F6EF]'
-                  )}
-                  title={sidebarCollapsed && !mobileMenuOpen ? item.label : undefined}
+      <nav className="sidebar-scroll flex-1 overflow-y-auto py-3" aria-label="Camelot modules">
+        {navigation.map((section) => {
+          const expanded = openSections[section.id] || (sidebarCollapsed && !mobileMenuOpen);
+          return (
+            <div key={section.id} className="mb-2">
+              {(!sidebarCollapsed || mobileMenuOpen) && (
+                <button
+                  type="button"
+                  onClick={() => setOpenSections((current) => ({ ...current, [section.id]: !current[section.id] }))}
+                  className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400"
                 >
-                  <span className="flex-shrink-0">{item.icon}</span>
-                  {(!sidebarCollapsed || mobileMenuOpen) && <span>{item.label}</span>}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+                  {section.title}
+                  <ChevronDown size={14} className={cn('transition', expanded && 'rotate-180')} />
+                </button>
+              )}
+              {expanded && section.items.map((item) => {
+                const active = isActive(item.href, location.pathname);
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    data-tour={item.tourId}
+                    title={sidebarCollapsed && !mobileMenuOpen ? item.label : undefined}
+                    className={cn(
+                      'mx-2 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition',
+                      active ? 'bg-[#e8cc5a]/15 text-[#f4e4a8]' : 'text-slate-300 hover:bg-white/5 hover:text-white',
+                    )}
+                  >
+                    <span className="flex-shrink-0">{item.icon}</span>
+                    {(!sidebarCollapsed || mobileMenuOpen) && <span className="truncate">{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
-      <button
-        onClick={toggleSidebar}
-        className="hidden md:flex items-center justify-center py-2 border-t border-b border-slate-200 text-slate-400 hover:text-slate-900 transition-colors flex-shrink-0"
-      >
-        {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-      </button>
+      <div className="flex items-center justify-between border-t border-white/10 px-2 py-2">
+        {onStartTour && (
+          <button type="button" onClick={onStartTour} className="grid h-9 w-9 place-items-center text-slate-400 hover:text-[#f4e4a8]" title="Restart guided tour">
+            <HelpCircle size={16} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="ml-auto hidden h-9 w-9 place-items-center text-slate-400 hover:text-white md:grid"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
+      </div>
     </>
   );
 
   return (
-    <div className="flex h-screen overflow-hidden font-body">
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-white text-slate-900 px-4 py-3 md:hidden border-b border-slate-200">
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[#F8F6EF] transition-colors"
-        >
-          <Menu size={22} />
-        </button>
+    <div className="jarvis-grid flex h-screen overflow-hidden font-sans text-slate-100">
+      <aside className={cn('hidden md:flex md:flex-col border-r border-white/10 bg-[#050910]/95', sidebarCollapsed ? 'w-[4.5rem]' : 'w-72')}>
+        {sidebarContent}
+      </aside>
 
-        <div className="flex items-center gap-2">
-          <img
-            src="/images/camelot-gold-logo.png"
-            alt="Camelot"
-            className="h-9 w-9 rounded-lg object-cover shadow-sm"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <span className="font-heading font-bold text-sm tracking-wider text-camelot-gold">
-            {APP_NAME_SHORT}
-          </span>
-        </div>
+      {mobileMenuOpen && <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setMobileMenuOpen(false)} />}
+      <aside className={cn('fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-[#050910] transition-transform md:hidden', mobileMenuOpen ? 'translate-x-0' : '-translate-x-full')}>
+        {sidebarContent}
+      </aside>
 
-        <div className="w-10" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#050910]/90 py-2 pl-3 pr-40 md:pl-5 md:pr-48">
+          <button type="button" onClick={() => setMobileMenuOpen(true)} className="grid h-10 w-10 place-items-center rounded-lg text-slate-200 md:hidden" aria-label="Open menu">
+            <Menu size={20} />
+          </button>
+          <div className="min-w-0">
+            <div className="font-heading text-lg tracking-wide text-white">Camelot OS</div>
+            <p className="truncate text-[11px] uppercase tracking-[0.22em] text-slate-400">Property command · Merlin</p>
+          </div>
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          {hud ? children : <div className="jarvis-workbench">{children}</div>}
+        </main>
+
+        <form onSubmit={onCommand} className="border-t border-[#e8cc5a]/20 bg-[#050910]/95 px-3 py-3 md:px-5">
+          <label htmlFor="merlin-command" className="sr-only">Command Merlin</label>
+          <div className="flex items-center gap-2 rounded-full border border-[#e8cc5a]/35 bg-black/40 px-3 py-1.5">
+            <span className="hidden text-[10px] tracking-[0.28em] text-[#e8cc5a] sm:inline">MERLIN</span>
+            <input
+              id="merlin-command"
+              value={command}
+              onChange={(event) => setCommand(event.target.value)}
+              placeholder='Try “go to tasks” or “new task call the super”'
+              className="min-w-0 flex-1 bg-transparent py-1.5 text-sm text-white outline-none placeholder:text-slate-500"
+            />
+            <button type="submit" disabled={sending} className="rounded-full bg-[#e8cc5a] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#1a1404] disabled:opacity-60">
+              {sending ? 'Sending' : 'Send'}
+            </button>
+          </div>
+          {reply && <p className="px-3 pt-2 text-xs text-slate-400">{reply}</p>}
+        </form>
       </div>
-
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      <aside
-        className={cn(
-          'hidden md:flex flex-col bg-white text-slate-900 transition-all duration-300 sidebar-scroll border-r border-slate-200',
-          sidebarCollapsed ? 'w-16' : 'w-64'
-        )}
-      >
-        {sidebarContent}
-      </aside>
-
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 bg-white text-slate-900 flex flex-col transition-transform duration-300 md:hidden border-r border-slate-200',
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        {sidebarContent}
-      </aside>
-
-      <main className="flex-1 overflow-y-auto bg-[#F8F6EF] pt-14 md:pt-0">
-        {children}
-      </main>
     </div>
   );
 }

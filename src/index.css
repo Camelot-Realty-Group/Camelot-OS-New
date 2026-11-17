@@ -127,3 +127,56 @@
 .tab-content {
   @apply animate-fade-in;
 }
+
+/* Jarvis command shell. Existing pages keep their own surfaces; these
+   classes only paint the chrome and the four Merlin modules. */
+.jarvis-grid {
+  background-color: #071018;
+  background-image:
+    linear-gradient(rgba(140, 190, 214, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 190, 214, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.jarvis-panel {
+  background: rgba(8, 18, 28, 0.82);
+  border: 1px solid rgba(186, 214, 230, 0.16);
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px rgba(232, 204, 90, 0.04), 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.jarvis-workbench {
+  margin: 12px;
+  min-height: calc(100% - 24px);
+  border-radius: 18px;
+  background: #f7f4ec;
+  color: #1a2744;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(232, 204, 90, 0.18);
+}
+
+.merlin-orb {
+  animation: merlin-breathe 4.8s ease-in-out infinite;
+}
+
+.jarvis-rise {
+  animation: jarvis-rise 0.45s ease both;
+}
+
+@keyframes merlin-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+@keyframes jarvis-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merlin-orb,
+  .jarvis-rise,
+  .tour-highlight-ring {
+    animation: none;
+  }
+}

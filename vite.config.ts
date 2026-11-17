@@ -17,7 +17,10 @@ function gitShortSha(): string {
 }
 
 export default defineConfig({
-  base: './',
+  // Absolute asset URLs. A relative base (`./`) 404s the bundle when a
+  // legacy path such as /instant-proposal is requested before the hash
+  // redirect in index.html runs.
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {
